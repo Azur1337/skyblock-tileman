@@ -1,28 +1,19 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "skyblocktileman",
   "version": "${version}",
   "name": "Skyblock Tileman",
-  "description": "Hypixel Skyblock Tileman mod, request by Derailious",
+  "description": "Hypixel Skyblock Tileman mod, requested by Derailious",
   "authors": ["Azur1337"],
-  "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
-  },
   "license": "CC0-1.0",
-  "icon": "assets/modid/icon.png",
-  "environment": "*",
+  "icon": "assets/skyblocktileman/icon.png",
+  "accessWidener": "moulconfig.accesswidener",
+  "environment": "client",
   "entrypoints": {
-    "main": ["com.example.ExampleMod"],
-    "client": ["com.example.client.ExampleModClient"]
+    "main": ["com.azur.skyblocktileman.SkyblockTileman"],
+    "client": ["com.azur.skyblocktileman.client.SkyblockTilemanClient"]
   },
-  "mixins": [
-    "modid.mixins.json",
-    {
-      "config": "modid.client.mixins.json",
-      "environment": "client"
-    }
-  ],
+  "mixins": ["skyblocktileman.mixins.json"],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.2",

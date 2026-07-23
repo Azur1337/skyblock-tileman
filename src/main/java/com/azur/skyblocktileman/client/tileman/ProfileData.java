@@ -1,26 +1,21 @@
-package com.example.client.tileman;
+package com.azur.skyblocktileman.client.tileman;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * All persisted Tileman state for a single Hypixel Skyblock profile
- * (Skyblock profiles have independent Skill XP, so tokens and total XP
- * are tracked per-profile, not per-player).
- */
+// Tileman data for a single Skyblock profile
 public class ProfileData {
 
     private int tokens = 0;
     private double totalSkillXp = 0.0;
 
-    // XP accumulated toward the *next* token that hasn't been converted yet.
-    // Kept separate from totalSkillXp so we never lose fractional progress
-    // between token thresholds (which scale up as totalSkillXp grows).
+    // XP saved up toward the next token, since the cost scales over time
     private double bankedXp = 0.0;
 
-    // Island name -> set of unlocked block coordinates on that island.
+    private int ruleBreaks = 0;
+
     private final Map<String, Set<BlockCoord>> islands = new HashMap<>();
 
     public int getTokens() {
@@ -57,6 +52,14 @@ public class ProfileData {
 
     public void addBankedXp(double delta) {
         this.bankedXp = Math.max(0, this.bankedXp + delta);
+    }
+
+    public int getRuleBreaks() {
+        return ruleBreaks;
+    }
+
+    public void addRuleBreak() {
+        ruleBreaks++;
     }
 
     public Map<String, Set<BlockCoord>> getIslands() {

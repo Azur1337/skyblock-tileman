@@ -1,4 +1,4 @@
-package com.example.client.tileman;
+package com.azur.skyblocktileman.client.tileman;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,16 +12,7 @@ import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Central manager for all Tileman persistence and in-memory state.
- * <p>
- * Data is stored on disk as a single JSON file at
- * {@code <config>/tileman/tileman_data.json}, shaped as:
- * Profile ID -> { tokens, totalSkillXp, islands: { Island Name -> Set of BlockCoord } }.
- * <p>
- * This class is a lazily-initialized singleton so it can be accessed from
- * anywhere (mixins, render events, HUD, etc.) via {@link #getInstance()}.
- */
+// Handles all the Tileman save data: tokens, xp, unlocked blocks, active profile/island
 public final class TilemanState {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(
@@ -42,10 +33,6 @@ public final class TilemanState {
 
     private TilemanSaveData data = new TilemanSaveData();
 
-    // The player's currently active Skyblock profile + island.
-    // These are set by other systems (profile detection / island-join handling)
-    // which we'll wire up in a later step. Default to placeholders so nothing
-    // crashes before that wiring exists.
     private String activeProfileId = "unknown";
     private String activeIsland = "unknown";
 
@@ -62,7 +49,6 @@ public final class TilemanState {
 
     // ---- Persistence ----
 
-    /** Loads save data from disk, creating a fresh file if none exists yet. */
     public void load() {
         try {
             if (Files.exists(SAVE_FILE)) {
@@ -85,9 +71,11 @@ public final class TilemanState {
             );
             data = new TilemanSaveData();
         }
+
+        activeProfileId = data.getLastActiveProfileId();
+        activeIsland = data.getLastActiveIsland();
     }
 
-    /** Writes the current in-memory state to disk, overwriting the existing file. */
     public void save() {
         try {
             Files.createDirectories(SAVE_DIR);
@@ -97,14 +85,16 @@ public final class TilemanState {
         }
     }
 
-    // ---- Active profile/island context ----
-
     public void setActiveProfile(String profileId) {
         this.activeProfileId = profileId == null ? "unknown" : profileId;
+        data.setLastActiveProfileId(this.activeProfileId);
+        save();
     }
 
     public void setActiveIsland(String island) {
         this.activeIsland = island == null ? "unknown" : island;
+        data.setLastActiveIsland(this.activeIsland);
+        save();
     }
 
     public String getActiveProfileId() {
@@ -135,7 +125,6 @@ public final class TilemanState {
         save();
     }
 
-    /** Attempts to spend one token. Returns true if a token was available and spent. */
     public boolean spendToken() {
         ProfileData profile = activeProfile();
         if (profile.getTokens() <= 0) {
@@ -145,8 +134,6 @@ public final class TilemanState {
         save();
         return true;
     }
-
-    // ---- Skill XP / token cost scaling ----
 
     public double getTotalSkillXp() {
         return activeProfile().getTotalSkillXp();
@@ -162,34 +149,35 @@ public final class TilemanState {
         save();
     }
 
-    /**
-     * Cost, in Skill XP, of the next token at the current total XP.
-     * Base cost is 1,000 XP, increasing by 1,000 XP for every 1,000,000 total XP earned
-     * (e.g. at 10,000,000 total XP, one token costs 11,000 XP).
-     */
+    // Only raises totalSkillXp never lowers it, since the Hypixel API can lag behind local tracking
+    public void setTotalSkillXpBaseline(double xp) {
+        ProfileData profile = activeProfile();
+        if (xp > profile.getTotalSkillXp()) {
+            profile.setTotalSkillXp(xp);
+            save();
+        }
+    }
+
+    // Cost of the next token. Starts at 1000 xp. +1000 for every 1m total xp earned
     public int getCurrentTokenCost() {
         return tokenCostFor(activeProfile());
     }
 
     private int tokenCostFor(ProfileData profile) {
-        long millionsEarned = (long) (profile.getTotalSkillXp() / 1_000_000.0);
-        return 1000 + (int) (millionsEarned * 1000);
+        TilemanConfig config = TilemanConfig.getInstance();
+        int baseCost = config.getBaseTokenCost();
+        int scaleInterval = config.getCostScaleInterval();
+        long scaleSteps = scaleInterval > 0
+            ? (long) (profile.getTotalSkillXp() / (double) scaleInterval)
+            : 0;
+        return baseCost + (int) (scaleSteps * baseCost);
     }
 
     public double getBankedXp() {
         return activeProfile().getBankedXp();
     }
 
-    // ---- Real-time XP intake (called by the action bar mixin) ----
-
-    /**
-     * Called whenever the action bar mixin detects a Skill XP gain.
-     * Adds the XP to the active profile's lifetime total, banks it toward
-     * the next token, and converts banked XP into tokens using the current
-     * (scaling) token cost. A single large XP gain can grant multiple tokens.
-     *
-     * @return the number of tokens granted from this XP gain (usually 0 or 1).
-     */
+    // Called from the action bar mixin whenever we detect a skill xp gain
     public int onSkillXpGained(double xpGained) {
         if (xpGained <= 0) {
             return 0;
@@ -205,12 +193,11 @@ public final class TilemanState {
             profile.addBankedXp(-cost);
             profile.addTokens(1);
             tokensGranted++;
-            // Cost may shift mid-loop if totalSkillXp just crossed a new million-XP threshold.
             cost = tokenCostFor(profile);
         }
 
         if (tokensGranted > 0) {
-            LOGGER.info(
+            TilemanLog.debug(
                 "Granted {} Tileman token(s) from Skill XP gain on profile {}",
                 tokensGranted,
                 activeProfileId
@@ -221,14 +208,19 @@ public final class TilemanState {
         return tokensGranted;
     }
 
-    // ---- Unlocked blocks ----
+    public int getRuleBreaks() {
+        return activeProfile().getRuleBreaks();
+    }
 
-    /** Unlocked blocks for the currently active profile + island. */
+    public void addRuleBreak() {
+        activeProfile().addRuleBreak();
+        save();
+    }
+
     public Set<BlockCoord> getUnlockedBlocks() {
         return activeProfile().getUnlockedBlocks(activeIsland);
     }
 
-    /** Unlocked blocks for an arbitrary profile + island. */
     public Set<BlockCoord> getUnlockedBlocks(String profileId, String island) {
         return data.getOrCreateProfile(profileId).getUnlockedBlocks(island);
     }
@@ -237,7 +229,6 @@ public final class TilemanState {
         return getUnlockedBlocks().contains(BlockCoord.of(pos));
     }
 
-    /** Adds a block to the active profile/island's unlocked set and saves. Returns false if already unlocked. */
     public boolean unlockBlock(BlockPos pos) {
         boolean added = getUnlockedBlocks().add(BlockCoord.of(pos));
         if (added) {

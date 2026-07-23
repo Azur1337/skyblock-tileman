@@ -1,5 +1,6 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'com.gradleup.shadow' version '9.4.2'
 	id 'maven-publish'
 }
 
@@ -7,22 +8,27 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+	maven {
+		name = 'NEU Maven'
+		url = 'https://maven.notenoughupdates.org/releases/'
+	}
 }
 
 loom {
-	splitEnvironmentSourceSets()
 
 	mods {
-		"modid" {
+		"skyblocktileman" {
 			sourceSet sourceSets.main
-			sourceSet sourceSets.client
 		}
 	}
+
+	accessWidenerPath = file("src/main/resources/moulconfig.accesswidener")
+}
+
+configurations {
+	shadowModImpl
+	modImplementation.extendsFrom(shadowModImpl)
+	implementation.extendsFrom(shadowModImpl)
 }
 
 dependencies {
@@ -32,6 +38,37 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// MoulConfig — SkyHanni-style config GUI (uses Kotlin internally)
+	shadowModImpl "org.notenoughupdates.moulconfig:modern-26.2:4.7.2"
+	shadowModImpl "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"
+}
+
+shadowJar {
+	configurations = [project.configurations.shadowModImpl]
+	relocate 'io.github.notenoughupdates.moulconfig', 'com.azur.skyblocktileman.deps.moulconfig'
+	archiveClassifier.set('shadow')
+
+	mergeServiceFiles()
+}
+
+// Wire shadowJar into remapJar if Loom registers it (pre-26.x),
+// otherwise just make 'build' depend on shadowJar directly (26.x unobfuscated).
+afterEvaluate {
+	def remapTask = tasks.findByName('remapJar')
+	if (remapTask != null) {
+		remapTask.dependsOn shadowJar
+		remapTask.inputFile.set(shadowJar.archiveFile)
+	} else {
+		// No remap needed — ensure build produces the shadowed jar
+		tasks.named('jar') {
+			dependsOn shadowJar
+			archiveClassifier.set('slim')
+		}
+		tasks.named('build') {
+			dependsOn shadowJar
+		}
+	}
 }
 
 processResources {

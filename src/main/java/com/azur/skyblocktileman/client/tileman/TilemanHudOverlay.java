@@ -59,8 +59,8 @@ public final class TilemanHudOverlay {
         TilemanState state = TilemanState.getInstance();
         int tokens = state.getTokens();
         int unlockedBlocks = state.getUnlockedBlocks().size();
-        double totalXp = state.getTotalSkillXp();
-        double bankedXp = state.getBankedXp();
+        long totalXp = state.getTotalSkillXp();
+        long xpToNext = state.getXpToNextToken();
         int nextCost = state.getCurrentTokenCost();
         int ruleBreaks = state.getRuleBreaks();
 
@@ -68,8 +68,8 @@ public final class TilemanHudOverlay {
             "Tileman",
             "Tokens: " + tokens,
             "Unlocked: " + unlockedBlocks,
-            "XP: " + String.format("%,.0f", totalXp),
-            "Next Token: " + String.format("%,.0f / %,d", bankedXp, nextCost),
+            "XP: " + String.format("%,d", totalXp),
+            "Next Token: " + String.format("%,d XP", xpToNext),
             "Rule Breaks: " + ruleBreaks,
         };
 

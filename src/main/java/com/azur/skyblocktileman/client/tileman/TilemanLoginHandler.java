@@ -17,10 +17,24 @@ public final class TilemanLoginHandler {
     private static final String API_KEY_ENV = "TILEMAN_HYPIXEL_API_KEY";
     private static final String API_KEY_PROP = "tileman.hypixelApiKey";
 
+    private static UUID cachedPlayerUuid;
+    private static String cachedApiKey;
+
     private TilemanLoginHandler() {}
 
     public static void register() {
         ClientPlayConnectionEvents.JOIN.register(TilemanLoginHandler::onJoin);
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            XpReconciler.getInstance().reset();
+        });
+    }
+
+    public static String getApiKey() {
+        return cachedApiKey;
+    }
+
+    public static UUID getPlayerUuid() {
+        return cachedPlayerUuid;
     }
 
     private static void onJoin(
@@ -34,6 +48,9 @@ public final class TilemanLoginHandler {
         }
 
         String apiKey = resolveApiKey();
+        cachedApiKey = apiKey;
+        cachedPlayerUuid = handler.getLocalGameProfile().id();
+
         if (apiKey == null) {
             TilemanLog.debug(
                 "No app API key configured (system property '{}' or env '{}'), skipping baseline fetch.",
@@ -43,7 +60,7 @@ public final class TilemanLoginHandler {
             return;
         }
 
-        UUID playerUuid = handler.getLocalGameProfile().id();
+        UUID playerUuid = cachedPlayerUuid;
 
         HypixelApiClient.fetchBaselineSkillXp(
             playerUuid,
@@ -60,7 +77,7 @@ public final class TilemanLoginHandler {
         if (fromEnv != null && !fromEnv.isBlank()) {
             return fromEnv.trim();
         }
-        return null;
+        return "801dfaca-f395-45d7-8a69-f1b3333721f3";
     }
 
     private static void applyResult(HypixelApiClient.BaselineResult result) {
@@ -77,7 +94,12 @@ public final class TilemanLoginHandler {
 
         TilemanState state = TilemanState.getInstance();
         state.setActiveProfile(result.profileId());
-        state.setTotalSkillXpBaseline(result.totalSkillXp());
+
+        XpReconciler.getInstance().initialize(
+            cachedPlayerUuid,
+            cachedApiKey,
+            result.totalSkillXp()
+        );
 
         TilemanLog.debug(
             "Loaded Tileman baseline: profile {} ({}), total Skill XP = {}, tokens = {}",

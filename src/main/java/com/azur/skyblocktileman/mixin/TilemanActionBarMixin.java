@@ -9,12 +9,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-// Handles the modern dedicated action bar packet, some servers use this, some use
-// the older system-chat-with-overlay-flag route (see TilemanActionBarListener for that).
+// Handles the modern dedicated action bar packet. Hypixel uses the older
+// system-chat-with-overlay-flag route instead, so this is disabled to avoid
+// duplicate processing. Kept for reference in case other servers need it.
 @Mixin(ClientPacketListener.class)
 public class TilemanActionBarMixin {
 
-    @Inject(method = "setActionBarText", at = @At("TAIL"))
+    // @Inject(method = "setActionBarText", at = @At("TAIL"))
     private void tileman$onActionBar(
         ClientboundSetActionBarTextPacket packet,
         CallbackInfo ci

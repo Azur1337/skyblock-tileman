@@ -88,6 +88,20 @@ public final class HypixelApiClient {
         }
     }
 
+    public record XpFetchResult(
+        boolean success,
+        double totalSkillXp,
+        String errorMessage
+    ) {
+        static XpFetchResult failure(String message) {
+            return new XpFetchResult(false, 0, message);
+        }
+
+        static XpFetchResult of(double totalSkillXp) {
+            return new XpFetchResult(true, totalSkillXp, null);
+        }
+    }
+
     public static CompletableFuture<BaselineResult> fetchBaselineSkillXp(
         UUID playerUuid,
         String apiKey
@@ -126,6 +140,93 @@ public final class HypixelApiClient {
                     "Network error: " + e.getMessage()
                 );
             });
+    }
+
+    public static CompletableFuture<XpFetchResult> fetchTotalSkillXp(
+        UUID playerUuid,
+        String apiKey
+    ) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return CompletableFuture.completedFuture(
+                XpFetchResult.failure("No Hypixel API key configured.")
+            );
+        }
+
+        String undashed = playerUuid.toString().replace("-", "");
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(String.format(PROFILES_URL, undashed)))
+            .header("API-Key", apiKey)
+            .timeout(Duration.ofSeconds(10))
+            .GET()
+            .build();
+
+        return HTTP_CLIENT.sendAsync(
+            request,
+            HttpResponse.BodyHandlers.ofString()
+        )
+            .thenApply(response ->
+                parseXpResponse(
+                    response.body(),
+                    response.statusCode(),
+                    playerUuid
+                )
+            )
+            .exceptionally(e -> {
+                LOGGER.error(
+                    "Failed to fetch SkyBlock XP from Hypixel API.",
+                    e
+                );
+                return XpFetchResult.failure(
+                    "Network error: " + e.getMessage()
+                );
+            });
+    }
+
+    private static XpFetchResult parseXpResponse(
+        String body,
+        int statusCode,
+        UUID playerUuid
+    ) {
+        JsonObject root;
+        try {
+            root = JsonParser.parseString(body).getAsJsonObject();
+        } catch (Exception e) {
+            return XpFetchResult.failure(
+                "Malformed response from Hypixel API (status " + statusCode + ")."
+            );
+        }
+
+        if (!root.has("success") || !root.get("success").getAsBoolean()) {
+            String cause = root.has("cause")
+                ? root.get("cause").getAsString()
+                : "HTTP " + statusCode;
+            return XpFetchResult.failure("Hypixel API request failed: " + cause);
+        }
+
+        JsonArray profiles = root.getAsJsonArray("profiles");
+        if (profiles == null || profiles.isEmpty()) {
+            return XpFetchResult.failure("Player has no SkyBlock profiles.");
+        }
+
+        JsonObject selected = findSelectedProfile(profiles);
+        if (selected == null) {
+            selected = profiles.get(0).getAsJsonObject();
+        }
+
+        JsonObject members = selected.getAsJsonObject("members");
+        if (members == null) {
+            return XpFetchResult.failure("Profile response had no member data.");
+        }
+
+        JsonObject member = findMember(members, playerUuid);
+        if (member == null) {
+            return XpFetchResult.failure(
+                "Could not find player's member entry in selected profile."
+            );
+        }
+
+        double totalXp = sumSkillXp(member);
+        return XpFetchResult.of(totalXp);
     }
 
     private static BaselineResult parseResponse(

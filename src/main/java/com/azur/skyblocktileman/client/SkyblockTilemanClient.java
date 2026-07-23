@@ -10,6 +10,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanPunishmentHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanRenderer;
 import com.azur.skyblocktileman.client.tileman.TilemanSelectionMode;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
@@ -29,8 +30,9 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanPunishmentHandler.register();
         TilemanHudOverlay.register();
 
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client ->
-            TilemanState.getInstance().save()
-        );
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            TilemanState.getInstance().save();
+            XpReconciler.getInstance().shutdown();
+        });
     }
 }

@@ -12,7 +12,13 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.ARGB;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.CarpetBlock;
+import net.minecraft.world.level.block.PressurePlateBlock;
+import net.minecraft.world.level.block.SnowLayerBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 // Fills the top face of unlocked blocks near the player with green overlay
 public final class TilemanRenderer {
@@ -73,7 +79,7 @@ public final class TilemanRenderer {
             RenderTypes.debugFilledBox(),
             (pose, buffer) -> {
                 for (BlockPos pos : nearby) {
-                    submitTopFaceQuad(buffer, pose, pos);
+                    submitTopFaceQuad(buffer, pose, pos, client.level);
                 }
             }
         );
@@ -83,15 +89,35 @@ public final class TilemanRenderer {
     private static void submitTopFaceQuad(
         VertexConsumer buffer,
         PoseStack.Pose pose,
-        BlockPos pos
+        BlockPos pos,
+        Level level
     ) {
         float x0 = pos.getX();
-        float y = pos.getY() + TOP_FACE_Y_OFFSET;
+
+        BlockPos above = pos.above();
+        BlockState stateAbove = level.getBlockState(above);
+        float yOffset = getOverlayOffset(stateAbove, level, above);
+
+        float y = pos.getY() + yOffset;
         float z0 = pos.getZ();
 
         buffer.addVertex(pose, x0, y, z0).setColor(UNLOCKED_COLOR);
         buffer.addVertex(pose, x0 + 1, y, z0).setColor(UNLOCKED_COLOR);
         buffer.addVertex(pose, x0 + 1, y, z0 + 1).setColor(UNLOCKED_COLOR);
         buffer.addVertex(pose, x0, y, z0 + 1).setColor(UNLOCKED_COLOR);
+    }
+
+    private static float getOverlayOffset(BlockState state, Level level, BlockPos pos) {
+        if (state.isAir()) {
+            return TOP_FACE_Y_OFFSET;
+        }
+
+        var shape = state.getCollisionShape(level, pos, CollisionContext.empty());
+        if (shape.isEmpty()) {
+            return TOP_FACE_Y_OFFSET;
+        }
+
+        double maxY = shape.max(net.minecraft.core.Direction.Axis.Y);
+        return 1.0F + (float) maxY + 0.002F;
     }
 }

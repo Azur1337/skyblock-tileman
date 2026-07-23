@@ -12,12 +12,9 @@ import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// Handles all the Tileman save data: tokens, xp, unlocked blocks, active profile/island
 public final class TilemanState {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(
-        "TilemanState"
-    );
+    private static final Logger LOGGER = LoggerFactory.getLogger("TilemanState");
 
     private static final Gson GSON = new GsonBuilder()
         .setPrettyPrinting()
@@ -53,10 +50,7 @@ public final class TilemanState {
         try {
             if (Files.exists(SAVE_FILE)) {
                 String json = Files.readString(SAVE_FILE);
-                TilemanSaveData loaded = GSON.fromJson(
-                    json,
-                    TilemanSaveData.class
-                );
+                TilemanSaveData loaded = GSON.fromJson(json, TilemanSaveData.class);
                 data = loaded != null ? loaded : new TilemanSaveData();
                 LOGGER.info("Loaded Tileman data from {}", SAVE_FILE);
             } else {
@@ -65,10 +59,7 @@ public final class TilemanState {
                 LOGGER.info("Created new Tileman data file at {}", SAVE_FILE);
             }
         } catch (IOException | JsonSyntaxException e) {
-            LOGGER.error(
-                "Failed to load Tileman data, starting with a blank state.",
-                e
-            );
+            LOGGER.error("Failed to load Tileman data, starting with a blank state.", e);
             data = new TilemanSaveData();
         }
 
@@ -109,104 +100,110 @@ public final class TilemanState {
         return data.getOrCreateProfile(activeProfileId);
     }
 
+    // ---- Skill XP ----
+
+    public void setSkillXp(String skill, long xp) {
+        ProfileData profile = activeProfile();
+        long oldXp = profile.getSkillXp(skill);
+        if (xp > oldXp) {
+            profile.setSkillXp(skill, xp);
+            save();
+            
+            TilemanLog.debug(
+                "Updated {} XP: {} -> {} (total now {})",
+                skill,
+                oldXp,
+                xp,
+                profile.getTotalSkillXp()
+            );
+        }
+    }
+
+    public long getSkillXp(String skill) {
+        return activeProfile().getSkillXp(skill);
+    }
+
+    public long getTotalSkillXp() {
+        return activeProfile().getTotalSkillXp();
+    }
+
     // ---- Tokens ----
 
+    public int getTokensEarned() {
+        TilemanConfig config = TilemanConfig.getInstance();
+        int baseCost = config.getBaseTokenCost();
+        int scaleInterval = config.getCostScaleInterval();
+        
+        long totalXp = activeProfile().getTotalSkillXp();
+        int tokens = 0;
+        long xpUsed = 0;
+        
+        while (true) {
+            long scaleSteps = scaleInterval > 0 ? xpUsed / scaleInterval : 0;
+            int cost = baseCost + (int) (scaleSteps * baseCost);
+            
+            if (xpUsed + cost > totalXp) {
+                break;
+            }
+            
+            xpUsed += cost;
+            tokens++;
+        }
+        
+        return tokens;
+    }
+
+    public int getTokensSpent() {
+        return activeProfile().getTokensSpent();
+    }
+
     public int getTokens() {
-        return activeProfile().getTokens();
-    }
-
-    public void setTokens(int tokens) {
-        activeProfile().setTokens(tokens);
-        save();
-    }
-
-    public void addTokens(int amount) {
-        activeProfile().addTokens(amount);
-        save();
+        return getTokensEarned() - getTokensSpent();
     }
 
     public boolean spendToken() {
-        ProfileData profile = activeProfile();
-        if (profile.getTokens() <= 0) {
+        if (getTokens() <= 0) {
             return false;
         }
-        profile.addTokens(-1);
+        activeProfile().addTokensSpent(1);
         save();
         return true;
     }
 
-    public double getTotalSkillXp() {
-        return activeProfile().getTotalSkillXp();
-    }
+    // ---- Token Cost ----
 
-    public void setTotalSkillXp(double xp) {
-        activeProfile().setTotalSkillXp(xp);
-        save();
-    }
-
-    public void addSkillXp(double delta) {
-        activeProfile().addSkillXp(delta);
-        save();
-    }
-
-    // Only raises totalSkillXp never lowers it, since the Hypixel API can lag behind local tracking
-    public void setTotalSkillXpBaseline(double xp) {
-        ProfileData profile = activeProfile();
-        if (xp > profile.getTotalSkillXp()) {
-            profile.setTotalSkillXp(xp);
-            save();
-        }
-    }
-
-    // Cost of the next token. Starts at 1000 xp. +1000 for every 1m total xp earned
     public int getCurrentTokenCost() {
-        return tokenCostFor(activeProfile());
-    }
-
-    private int tokenCostFor(ProfileData profile) {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
         int scaleInterval = config.getCostScaleInterval();
-        long scaleSteps = scaleInterval > 0
-            ? (long) (profile.getTotalSkillXp() / (double) scaleInterval)
-            : 0;
+        
+        long totalXp = activeProfile().getTotalSkillXp();
+        long scaleSteps = scaleInterval > 0 ? totalXp / scaleInterval : 0;
+        
         return baseCost + (int) (scaleSteps * baseCost);
     }
 
-    public double getBankedXp() {
-        return activeProfile().getBankedXp();
+    public long getXpToNextToken() {
+        TilemanConfig config = TilemanConfig.getInstance();
+        int baseCost = config.getBaseTokenCost();
+        int scaleInterval = config.getCostScaleInterval();
+        
+        long totalXp = activeProfile().getTotalSkillXp();
+        long xpUsed = 0;
+        
+        while (true) {
+            long scaleSteps = scaleInterval > 0 ? xpUsed / scaleInterval : 0;
+            int cost = baseCost + (int) (scaleSteps * baseCost);
+            
+            if (xpUsed + cost > totalXp) {
+                return (xpUsed + cost) - totalXp;
+            }
+            
+            xpUsed += cost;
+        }
     }
 
-    // Called from the action bar mixin whenever we detect a skill xp gain
-    public int onSkillXpGained(double xpGained) {
-        if (xpGained <= 0) {
-            return 0;
-        }
-
-        ProfileData profile = activeProfile();
-        profile.addSkillXp(xpGained);
-        profile.addBankedXp(xpGained);
-
-        int tokensGranted = 0;
-        int cost = tokenCostFor(profile);
-        while (profile.getBankedXp() >= cost) {
-            profile.addBankedXp(-cost);
-            profile.addTokens(1);
-            tokensGranted++;
-            cost = tokenCostFor(profile);
-        }
-
-        if (tokensGranted > 0) {
-            TilemanLog.debug(
-                "Granted {} Tileman token(s) from Skill XP gain on profile {}",
-                tokensGranted,
-                activeProfileId
-            );
-        }
-
-        save();
-        return tokensGranted;
-    }
+    // ---- Rule Breaks ----
 
     public int getRuleBreaks() {
         return activeProfile().getRuleBreaks();
@@ -216,6 +213,8 @@ public final class TilemanState {
         activeProfile().addRuleBreak();
         save();
     }
+
+    // ---- Blocks ----
 
     public Set<BlockCoord> getUnlockedBlocks() {
         return activeProfile().getUnlockedBlocks(activeIsland);
@@ -235,5 +234,13 @@ public final class TilemanState {
             save();
         }
         return added;
+    }
+
+    public int getTotalUnlockedBlocks() {
+        return activeProfile().getTotalUnlockedBlocks();
+    }
+
+    public int getFreeBlocksCount() {
+        return activeProfile().getFreeBlocksCount();
     }
 }

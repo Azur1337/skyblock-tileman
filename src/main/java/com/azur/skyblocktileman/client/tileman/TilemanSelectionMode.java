@@ -128,10 +128,10 @@ public final class TilemanSelectionMode {
         }
 
         if (state.getTokens() <= 0) {
-            double xpNeeded = state.getCurrentTokenCost() - state.getBankedXp();
+            long xpNeeded = state.getXpToNextToken();
             TilemanChat.warn(
                 "You don't have any Block Unlock Tokens! Need " +
-                    String.format("%,.0f", Math.max(0, xpNeeded)) +
+                    String.format("%,d", xpNeeded) +
                     " more Skill XP for your next one."
             );
             return;

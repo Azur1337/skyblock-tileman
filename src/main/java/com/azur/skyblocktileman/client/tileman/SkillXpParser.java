@@ -8,8 +8,12 @@ import java.util.regex.Pattern;
 
 public final class SkillXpParser {
 
-    private static final Pattern SKILL_XP_PATTERN = Pattern.compile(
+    private static final Pattern SKILL_XP_ABSOLUTE_PATTERN = Pattern.compile(
         "\\+[0-9,]+(?:\\.[0-9]+)? (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9,.]+[kKmMbB]?)/([0-9,.]+[kKmMbB]?)\\)"
+    );
+
+    private static final Pattern SKILL_XP_PERCENT_PATTERN = Pattern.compile(
+        "\\+[0-9,]+(?:\\.[0-9]+)? (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9.]+)%\\)"
     );
 
     private static final Set<String> TOKEN_SKILLS = Set.of(
@@ -102,17 +106,31 @@ public final class SkillXpParser {
 
     private SkillXpParser() {}
 
+    public static void resetTracking() {
+        lastTokenCount = -1;
+        TilemanLog.debug("Reset skill XP tracking for profile switch");
+    }
+
+    public static int getLevelForXp(long totalXp) {
+        for (int i = CUMULATIVE_XP.length - 1; i >= 0; i--) {
+            if (totalXp >= CUMULATIVE_XP[i]) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     public static void parse(String text) {
         if (!TilemanConfig.getInstance().isEnabled()) {
             return;
         }
 
-        Matcher matcher = SKILL_XP_PATTERN.matcher(text);
-        while (matcher.find()) {
+        Matcher absoluteMatcher = SKILL_XP_ABSOLUTE_PATTERN.matcher(text);
+        while (absoluteMatcher.find()) {
             try {
-                String skill = matcher.group(1);
-                long current = parseXpNumber(matcher.group(2));
-                long needed = parseXpNumber(matcher.group(3));
+                String skill = absoluteMatcher.group(1);
+                long current = parseXpNumber(absoluteMatcher.group(2));
+                long needed = parseXpNumber(absoluteMatcher.group(3));
 
                 if (needed == 0) {
                     continue;
@@ -133,43 +151,81 @@ public final class SkillXpParser {
                 }
 
                 long totalXp = CUMULATIVE_XP[level] + current;
-                TilemanState state = TilemanState.getInstance();
-                long oldXp = state.getSkillXp(skill);
+                processXpUpdate(skill, totalXp, level, current, needed);
+            } catch (NumberFormatException ignored) {}
+        }
 
-                if (totalXp <= oldXp) {
+        Matcher percentMatcher = SKILL_XP_PERCENT_PATTERN.matcher(text);
+        while (percentMatcher.find()) {
+            try {
+                String skill = percentMatcher.group(1);
+                double percent = Double.parseDouble(percentMatcher.group(2));
+
+                if (!TOKEN_SKILLS.contains(skill)) {
                     continue;
                 }
 
-                int oldTokens = state.getTokens();
-                if (lastTokenCount < 0) {
-                    lastTokenCount = oldTokens;
-                }
+                TilemanState state = TilemanState.getInstance();
+                long storedXp = state.getSkillXp(skill);
 
-                state.setSkillXp(skill, totalXp);
-
-                int newTokens = state.getTokens();
-                int tokensGranted = newTokens - lastTokenCount;
-                lastTokenCount = newTokens;
-
-                TilemanLog.debug(
-                    "Detected {} XP: {} -> {} (level {}, {}/{}, tokens: {} available)",
-                    skill,
-                    oldXp,
-                    totalXp,
-                    level,
-                    current,
-                    needed,
-                    newTokens
-                );
-
-                if (tokensGranted > 0) {
-                    TilemanChat.info(
-                        "+" + tokensGranted + " Block Unlock Token" +
-                        (tokensGranted > 1 ? "s" : "") +
-                        "! (Total: " + newTokens + ")"
+                if (storedXp == 0) {
+                    TilemanLog.debug(
+                        "No stored XP for {} to calculate from percentage, skipping",
+                        skill
                     );
+                    continue;
                 }
+
+                int level = getLevelForXp(storedXp);
+                if (level >= XP_REQUIRED.length - 1) {
+                    continue;
+                }
+
+                long xpForNextLevel = XP_REQUIRED[level + 1];
+                long currentInLevel = (long) (percent / 100.0 * xpForNextLevel);
+                long totalXp = CUMULATIVE_XP[level] + currentInLevel;
+
+                processXpUpdate(skill, totalXp, level, currentInLevel, xpForNextLevel);
             } catch (NumberFormatException ignored) {}
+        }
+    }
+
+    private static void processXpUpdate(String skill, long totalXp, int level, long current, long needed) {
+        TilemanState state = TilemanState.getInstance();
+        long oldXp = state.getSkillXp(skill);
+
+        if (totalXp <= oldXp) {
+            return;
+        }
+
+        int oldTokens = state.getTokens();
+        if (lastTokenCount < 0) {
+            lastTokenCount = oldTokens;
+        }
+
+        state.setSkillXp(skill, totalXp);
+
+        int newTokens = state.getTokens();
+        int tokensGranted = newTokens - lastTokenCount;
+        lastTokenCount = newTokens;
+
+        TilemanLog.debug(
+            "Detected {} XP: {} -> {} (level {}, {}/{}, tokens: {} available)",
+            skill,
+            oldXp,
+            totalXp,
+            level,
+            current,
+            needed,
+            newTokens
+        );
+
+        if (tokensGranted > 0) {
+            TilemanChat.info(
+                "+" + tokensGranted + " Block Unlock Token" +
+                (tokensGranted > 1 ? "s" : "") +
+                "! (Total: " + newTokens + ")"
+            );
         }
     }
 

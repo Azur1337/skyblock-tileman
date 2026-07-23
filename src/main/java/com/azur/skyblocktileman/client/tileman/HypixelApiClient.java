@@ -9,6 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -41,19 +42,34 @@ public final class HypixelApiClient {
         "SKILL_HUNTING"
     );
 
-    private static final Set<String> LEGACY_SKILL_XP_KEYS = Set.of(
-        "experience_skill_farming",
-        "experience_skill_mining",
-        "experience_skill_combat",
-        "experience_skill_foraging",
-        "experience_skill_fishing",
-        "experience_skill_enchanting",
-        "experience_skill_alchemy",
-        "experience_skill_taming",
-        "experience_skill_carpentry",
-        "experience_skill_runecrafting",
-        "experience_skill_social2",
-        "experience_skill_hunting"
+    private static final Map<String, String> SKILL_KEY_TO_NAME = Map.ofEntries(
+        Map.entry("SKILL_FARMING", "Farming"),
+        Map.entry("SKILL_MINING", "Mining"),
+        Map.entry("SKILL_COMBAT", "Combat"),
+        Map.entry("SKILL_FORAGING", "Foraging"),
+        Map.entry("SKILL_FISHING", "Fishing"),
+        Map.entry("SKILL_ENCHANTING", "Enchanting"),
+        Map.entry("SKILL_ALCHEMY", "Alchemy"),
+        Map.entry("SKILL_TAMING", "Taming"),
+        Map.entry("SKILL_CARPENTRY", "Carpentry"),
+        Map.entry("SKILL_RUNECRAFTING", "Runecrafting"),
+        Map.entry("SKILL_SOCIAL", "Social"),
+        Map.entry("SKILL_HUNTING", "Hunting")
+    );
+
+    private static final Map<String, String> LEGACY_KEY_TO_NAME = Map.ofEntries(
+        Map.entry("experience_skill_farming", "Farming"),
+        Map.entry("experience_skill_mining", "Mining"),
+        Map.entry("experience_skill_combat", "Combat"),
+        Map.entry("experience_skill_foraging", "Foraging"),
+        Map.entry("experience_skill_fishing", "Fishing"),
+        Map.entry("experience_skill_enchanting", "Enchanting"),
+        Map.entry("experience_skill_alchemy", "Alchemy"),
+        Map.entry("experience_skill_taming", "Taming"),
+        Map.entry("experience_skill_carpentry", "Carpentry"),
+        Map.entry("experience_skill_runecrafting", "Runecrafting"),
+        Map.entry("experience_skill_social2", "Social"),
+        Map.entry("experience_skill_hunting", "Hunting")
     );
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
@@ -66,39 +82,49 @@ public final class HypixelApiClient {
         boolean success,
         String profileId,
         String cuteName,
-        double totalSkillXp,
+        Map<String, Long> skillXp,
         String errorMessage
     ) {
         static BaselineResult failure(String message) {
-            return new BaselineResult(false, null, null, 0, message);
+            return new BaselineResult(false, null, null, null, message);
         }
 
         static BaselineResult of(
             String profileId,
             String cuteName,
-            double totalSkillXp
+            Map<String, Long> skillXp
         ) {
             return new BaselineResult(
                 true,
                 profileId,
                 cuteName,
-                totalSkillXp,
+                skillXp,
                 null
             );
+        }
+
+        public long totalSkillXp() {
+            if (skillXp == null) return 0;
+            return skillXp.values().stream().mapToLong(Long::longValue).sum();
         }
     }
 
     public record XpFetchResult(
         boolean success,
-        double totalSkillXp,
+        Map<String, Long> skillXp,
         String errorMessage
     ) {
         static XpFetchResult failure(String message) {
-            return new XpFetchResult(false, 0, message);
+            return new XpFetchResult(false, null, message);
         }
 
-        static XpFetchResult of(double totalSkillXp) {
-            return new XpFetchResult(true, totalSkillXp, null);
+        static XpFetchResult of(Map<String, Long> skillXp) {
+            return new XpFetchResult(true, skillXp, null);
+        }
+
+        public long totalSkillXp() {
+            if (skillXp == null) return 0;
+            return skillXp.values().stream().mapToLong(Long::longValue).sum();
         }
     }
 
@@ -225,8 +251,8 @@ public final class HypixelApiClient {
             );
         }
 
-        double totalXp = sumSkillXp(member);
-        return XpFetchResult.of(totalXp);
+                Map<String, Long> skillXp = getSkillXpMap(member);
+                return XpFetchResult.of(skillXp);
     }
 
     private static BaselineResult parseResponse(
@@ -285,8 +311,8 @@ public final class HypixelApiClient {
             );
         }
 
-        double totalXp = sumSkillXp(member);
-        return BaselineResult.of(profileId, cuteName, totalXp);
+                Map<String, Long> skillXp = getSkillXpMap(member);
+                return BaselineResult.of(profileId, cuteName, skillXp);
     }
 
     private static JsonObject findSelectedProfile(JsonArray profiles) {
@@ -316,8 +342,8 @@ public final class HypixelApiClient {
         return null;
     }
 
-    private static double sumSkillXp(JsonObject member) {
-        double total = 0;
+    private static Map<String, Long> getSkillXpMap(JsonObject member) {
+        Map<String, Long> result = new HashMap<>();
 
         JsonObject playerData = member.has("player_data")
             ? member.getAsJsonObject("player_data")
@@ -328,21 +354,21 @@ public final class HypixelApiClient {
                 : null;
 
         if (experience != null) {
-            for (String key : SKILL_XP_KEYS) {
-                if (experience.has(key)) {
-                    total += experience.get(key).getAsDouble();
+            for (Map.Entry<String, String> entry : SKILL_KEY_TO_NAME.entrySet()) {
+                if (experience.has(entry.getKey())) {
+                    result.put(entry.getValue(), (long) experience.get(entry.getKey()).getAsDouble());
                 }
             }
         }
 
-        if (total == 0) {
-            for (String key : LEGACY_SKILL_XP_KEYS) {
-                if (member.has(key)) {
-                    total += member.get(key).getAsDouble();
+        if (result.isEmpty()) {
+            for (Map.Entry<String, String> entry : LEGACY_KEY_TO_NAME.entrySet()) {
+                if (member.has(entry.getKey())) {
+                    result.put(entry.getValue(), (long) member.get(entry.getKey()).getAsDouble());
                 }
             }
         }
 
-        return total;
+        return result;
     }
 }

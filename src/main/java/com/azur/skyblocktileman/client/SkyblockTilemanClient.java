@@ -6,6 +6,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanHudOverlay;
 import com.azur.skyblocktileman.client.tileman.TilemanIslandHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
+import com.azur.skyblocktileman.client.tileman.TilemanProfileDetector;
 import com.azur.skyblocktileman.client.tileman.TilemanPunishmentHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanRenderer;
 import com.azur.skyblocktileman.client.tileman.TilemanSelectionMode;
@@ -22,6 +23,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanConfig.getInstance();
 
         TilemanLoginHandler.register();
+        TilemanProfileDetector.register();
         TilemanIslandHandler.register();
         TilemanActionBarListener.register();
         TilemanCommands.register();

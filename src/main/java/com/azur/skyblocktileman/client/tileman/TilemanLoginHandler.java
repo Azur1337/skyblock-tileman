@@ -77,7 +77,7 @@ public final class TilemanLoginHandler {
         if (fromEnv != null && !fromEnv.isBlank()) {
             return fromEnv.trim();
         }
-        return "801dfaca-f395-45d7-8a69-f1b3333721f3";
+        return "16888893-fbe6-4c40-8776-b999187e2fe7";
     }
 
     private static void applyResult(HypixelApiClient.BaselineResult result) {
@@ -94,6 +94,12 @@ public final class TilemanLoginHandler {
 
         TilemanState state = TilemanState.getInstance();
         state.setActiveProfile(result.profileId());
+
+        if (result.skillXp() != null) {
+            for (var entry : result.skillXp().entrySet()) {
+                state.setSkillXp(entry.getKey(), entry.getValue());
+            }
+        }
 
         XpReconciler.getInstance().initialize(
             cachedPlayerUuid,
@@ -112,7 +118,7 @@ public final class TilemanLoginHandler {
             "Loaded baseline for profile " +
                 result.cuteName() +
                 ": " +
-                String.format("%,.0f", result.totalSkillXp()) +
+                String.format("%,d", result.totalSkillXp()) +
                 " total Skill XP, " +
                 state.getTokens() +
                 " token(s) available."

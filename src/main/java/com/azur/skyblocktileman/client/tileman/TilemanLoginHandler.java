@@ -8,7 +8,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// Fetches a skill xp baseline from the Hypixel API when player joims Hypixel
+// fetches skill xp baseline from hypixel api on join
 public final class TilemanLoginHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(
@@ -52,7 +52,7 @@ public final class TilemanLoginHandler {
         cachedPlayerUuid = handler.getLocalGameProfile().id();
 
         if (apiKey == null) {
-            TilemanLog.debug(
+            TilemanLog.debug(DebugCategory.PROFILE,
                 "No app API key configured (system property '{}' or env '{}'), skipping baseline fetch.",
                 API_KEY_PROP,
                 API_KEY_ENV
@@ -107,7 +107,7 @@ public final class TilemanLoginHandler {
             result.totalSkillXp()
         );
 
-        TilemanLog.debug(
+        TilemanLog.debug(DebugCategory.PROFILE,
             "Loaded Tileman baseline: profile {} ({}), total Skill XP = {}, tokens = {}",
             result.cuteName(),
             result.profileId(),

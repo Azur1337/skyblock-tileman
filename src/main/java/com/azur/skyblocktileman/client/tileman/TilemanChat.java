@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-// Local chat messages only, never sent to the server
 public final class TilemanChat {
 
     private static final String PREFIX = "[Tileman] ";

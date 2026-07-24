@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 
-// Detects the current island via /locraw and autounlocks the spawn block on a new island
 public final class TilemanIslandHandler {
 
     private static final int RECHECK_INTERVAL_TICKS = 100;
@@ -65,7 +64,7 @@ public final class TilemanIslandHandler {
     }
 
     private static void requestLocation(ClientPacketListener handler) {
-        TilemanLog.debug("Sending /locraw to check current island");
+        TilemanLog.debug(DebugCategory.ISLAND, "Sending /locraw to check current island");
         handler.send(new ServerboundChatCommandPacket("locraw"));
     }
 
@@ -98,7 +97,7 @@ public final class TilemanIslandHandler {
                 onIslandDetected(islandId, displayName);
             }
         } catch (Exception e) {
-            TilemanLog.debug("Failed to parse /locraw response: " + text, e);
+            TilemanLog.debug(DebugCategory.ISLAND, "Failed to parse /locraw response: " + text, e);
         }
 
         return false;
@@ -115,38 +114,27 @@ public final class TilemanIslandHandler {
     private static void onIslandDetected(String islandId, String displayName) {
         TilemanState state = TilemanState.getInstance();
 
-        if (islandId.equals(state.getActiveIsland())) {
-            return;
-        }
-
-        state.setActiveIsland(islandId);
-        TilemanLog.debug(
-            "Tileman detected island change: {} ({})",
+        TilemanLog.debug(DebugCategory.ISLAND,
+            "Island detected: {} (current: {}, blocks: {})",
             islandId,
-            displayName
+            state.getActiveIsland(),
+            state.getUnlockedBlocks().size()
         );
-        TilemanChat.info("Now on island: " + displayName);
 
-        if (!state.getUnlockedBlocks().isEmpty()) {
-            return;
-        }
+        boolean islandChanged = !islandId.equals(state.getActiveIsland());
+        state.setActiveIsland(islandId);
 
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null) {
-            return;
-        }
-
-        BlockPos spawnBlock = client.player.blockPosition().below();
-        boolean added = state.unlockBlock(spawnBlock);
-        if (added) {
-            TilemanLog.debug(
-                "Auto-unlocked first free block on {} at {}",
+        if (islandChanged) {
+            TilemanLog.debug(DebugCategory.ISLAND,
+                "Tileman detected island change: {} ({})",
                 islandId,
-                spawnBlock
+                displayName
             );
-            TilemanChat.info(
-                "Auto-unlocked your spawn block on " + displayName + "!"
-            );
+            TilemanChat.info("Now on island: " + displayName);
+        }
+
+        if (state.getUnlockedBlocks().isEmpty() && !TilemanFirstBlockMode.isActive()) {
+            TilemanFirstBlockMode.activate(displayName);
         }
     }
 }

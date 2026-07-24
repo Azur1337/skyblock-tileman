@@ -33,7 +33,7 @@ public final class XpReconciler {
         this.apiKey = apiKey;
         this.initialized = true;
 
-        TilemanLog.debug(
+        TilemanLog.debug(DebugCategory.PROFILE,
             "XpReconciler initialized (API baseline: {} XP)",
             baselineXp
         );
@@ -41,7 +41,7 @@ public final class XpReconciler {
 
     public void reset() {
         initialized = false;
-        TilemanLog.debug("XpReconciler reset");
+        TilemanLog.debug(DebugCategory.PROFILE, "XpReconciler reset");
     }
 
     public void shutdown() {

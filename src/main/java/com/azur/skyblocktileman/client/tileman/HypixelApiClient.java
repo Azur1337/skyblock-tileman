@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// Fetches total skill xp from the Hypixel API for the baseline on login
 public final class HypixelApiClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(

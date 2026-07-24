@@ -24,7 +24,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import org.lwjgl.glfw.GLFW;
 
-// Hold the keybind to enter Unlock Mode: yellow highlight on valid targets, left click to unlock
 public final class TilemanSelectionMode {
 
     private static final KeyMapping.Category CATEGORY =
@@ -45,26 +44,18 @@ public final class TilemanSelectionMode {
     private static final int VALID_TARGET_COLOR = ARGB.color(255, 255, 220, 0);
     private static final float LINE_WIDTH = 3.0F;
 
-    // vanilla reruns attack logic every tick while mouse is held, so debounce per click
     private static boolean clickHandled = false;
 
     private TilemanSelectionMode() {}
 
     public static void register() {
         AttackBlockCallback.EVENT.register(TilemanSelectionMode::onAttackBlock);
-        LevelRenderEvents.BEFORE_GIZMOS.register(
-            TilemanSelectionMode::onBeforeGizmos
-        );
-        ClientTickEvents.END_CLIENT_TICK.register(
-            TilemanSelectionMode::onEndTick
-        );
+        LevelRenderEvents.BEFORE_GIZMOS.register(TilemanSelectionMode::onBeforeGizmos);
+        ClientTickEvents.END_CLIENT_TICK.register(TilemanSelectionMode::onEndTick);
     }
 
     private static void onEndTick(Minecraft client) {
-        if (
-            client.options.keyAttack != null &&
-            !client.options.keyAttack.isDown()
-        ) {
+        if (client.options.keyAttack != null && !client.options.keyAttack.isDown()) {
             clickHandled = false;
         }
     }
@@ -81,17 +72,23 @@ public final class TilemanSelectionMode {
         return null;
     }
 
+    private static BlockPos resolveTargetBlock(BlockPos clicked) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null) {
+            return clicked;
+        }
+        return BlockValidation.getStandableBlock(clicked, client.level);
+    }
+
     private static boolean isValidTarget(BlockPos pos) {
         TilemanState state = TilemanState.getInstance();
-        if (state.isUnlocked(pos)) {
+        BlockPos resolved = resolveTargetBlock(pos);
+        
+        if (state.isUnlocked(resolved)) {
             return false;
         }
-        for (Direction direction : Direction.values()) {
-            if (state.isUnlocked(pos.relative(direction))) {
-                return true;
-            }
-        }
-        return false;
+        
+        return BlockValidation.isHorizontallyAdjacentToUnlocked(resolved, state);
     }
 
     private static InteractionResult onAttackBlock(
@@ -105,22 +102,27 @@ public final class TilemanSelectionMode {
             return InteractionResult.PASS;
         }
 
+        if (TilemanFirstBlockMode.isActive()) {
+            return InteractionResult.PASS;
+        }
+
         if (!clickHandled) {
             clickHandled = true;
-            tryUnlock(pos);
+            tryUnlock(pos, level);
         }
         return InteractionResult.FAIL;
     }
 
-    private static void tryUnlock(BlockPos pos) {
+    private static void tryUnlock(BlockPos clicked, Level level) {
         TilemanState state = TilemanState.getInstance();
+        BlockPos pos = BlockValidation.getStandableBlock(clicked, level);
 
         if (state.isUnlocked(pos)) {
             TilemanChat.warn("That block is already unlocked.");
             return;
         }
 
-        if (!isValidTarget(pos)) {
+        if (!BlockValidation.isHorizontallyAdjacentToUnlocked(pos, state)) {
             TilemanChat.warn(
                 "You can only unlock blocks adjacent to an already-unlocked block."
             );
@@ -142,17 +144,14 @@ public final class TilemanSelectionMode {
         }
 
         state.unlockBlock(pos);
-        TilemanChat.info(
-            "Unlocked block at " +
-                pos.getX() +
-                ", " +
-                pos.getY() +
-                ", " +
-                pos.getZ() +
-                "! (" +
-                state.getTokens() +
-                " token(s) left)"
-        );
+        
+        String message = "Unlocked block at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+        if (!pos.equals(clicked)) {
+            message += " (adjusted from non-standable block)";
+        }
+        message += "! (" + state.getTokens() + " token(s) left)";
+        
+        TilemanChat.info(message);
     }
 
     private static void onBeforeGizmos(LevelRenderContext context) {
@@ -160,8 +159,17 @@ public final class TilemanSelectionMode {
             return;
         }
 
-        BlockPos target = getTargetedBlock();
-        if (target == null || !isValidTarget(target)) {
+        if (TilemanFirstBlockMode.isActive()) {
+            return;
+        }
+
+        BlockPos clicked = getTargetedBlock();
+        if (clicked == null) {
+            return;
+        }
+
+        BlockPos target = resolveTargetBlock(clicked);
+        if (!isValidTarget(clicked)) {
             return;
         }
 

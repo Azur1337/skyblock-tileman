@@ -10,8 +10,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-// Wraps MoulConfig's ManagedConfig and provides convenient access to config values.
-// Replaces the old hand-rolled JSON config system.
 public final class TilemanConfig {
 
     private static TilemanConfig instance;
@@ -37,14 +35,9 @@ public final class TilemanConfig {
         return instance;
     }
 
-    // ---- GUI ----
-
-    /** Opens the MoulConfig GUI screen. Call from the client thread. */
     public void openConfigScreen() {
         IMinecraft.INSTANCE.openWrappedScreen(managedConfig.getEditor());
     }
-
-    // ---- Convenience getters/setters ----
 
     private TilemanMoulConfig config() {
         return managedConfig.getInstance();
@@ -54,7 +47,6 @@ public final class TilemanConfig {
         managedConfig.saveToFile();
     }
 
-    // General
     public boolean isEnabled() {
         return config().general.enabled;
     }
@@ -73,7 +65,22 @@ public final class TilemanConfig {
         save();
     }
 
-    // XP & Tokens
+    public boolean isDebugEnabled(DebugCategory category) {
+        if (!isDebugMode()) {
+            return false;
+        }
+        GeneralCategory.DebugCategories debug = config().general.debugCategories;
+        return switch (category) {
+            case ACTION_BAR -> debug.actionBar;
+            case ISLAND -> debug.island;
+            case PROFILE -> debug.profile;
+            case TOKENS -> debug.tokens;
+            case BLOCKS -> debug.blocks;
+            case RENDERING -> debug.rendering;
+            case ALL -> true;
+        };
+    }
+
     public int getBaseTokenCost() {
         return config().xpTokens.baseTokenCost;
     }
@@ -82,7 +89,6 @@ public final class TilemanConfig {
         return config().xpTokens.costScaleInterval;
     }
 
-    // Rendering
     public boolean isShowUnlockedOverlay() {
         return config().rendering.showUnlockedOverlay;
     }
@@ -98,6 +104,10 @@ public final class TilemanConfig {
 
     public boolean isStatsHudEnabled() {
         return config().rendering.showStatsHud;
+    }
+
+    public boolean isHudIconMode() {
+        return config().rendering.hudIconMode;
     }
 
     public int getHudX() {
@@ -119,7 +129,6 @@ public final class TilemanConfig {
         config().rendering.hudY = Math.max(0, hudY);
     }
 
-    // Punishment
     public boolean isPunishmentEnabled() {
         return config().punishment.enabled;
     }
@@ -155,7 +164,6 @@ public final class TilemanConfig {
             target.rendering.showUnlockedOverlay = migrated.rendering.showUnlockedOverlay;
             migrationWriter.saveToFile();
         } catch (IOException | IllegalStateException | JsonSyntaxException ignored) {
-            // If migration fails we keep defaults and continue; users can edit in /tileman config.
         }
     }
 }

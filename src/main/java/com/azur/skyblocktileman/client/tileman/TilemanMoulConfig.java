@@ -6,7 +6,6 @@ import io.github.notenoughupdates.moulconfig.annotations.Category;
 import io.github.notenoughupdates.moulconfig.common.text.StructuredText;
 import net.minecraft.client.Minecraft;
 
-// Root MoulConfig class. Defines categories shown in the sidebar of the config GUI.
 public class TilemanMoulConfig extends Config {
 
     private static final int MOVE_OVERLAY_RUNNABLE = 1;

@@ -20,10 +20,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
-// Fills the top face of unlocked blocks near the player with green overlay
+// green overlay on unlocked blocks
 public final class TilemanRenderer {
 
-    // slightly above block top so it does not z fight with the terrain
+    // above block top to avoid z fighting
     private static final float TOP_FACE_Y_OFFSET = 1.002F;
 
     private static final int UNLOCKED_COLOR = ARGB.color(100, 0, 255, 60);

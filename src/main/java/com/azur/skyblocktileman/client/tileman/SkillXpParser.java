@@ -108,7 +108,7 @@ public final class SkillXpParser {
 
     public static void resetTracking() {
         lastTokenCount = -1;
-        TilemanLog.debug("Reset skill XP tracking for profile switch");
+        TilemanLog.debug(DebugCategory.ACTION_BAR, "Reset skill XP tracking for profile switch");
     }
 
     public static int getLevelForXp(long totalXp) {
@@ -142,7 +142,7 @@ public final class SkillXpParser {
 
                 Integer level = NEEDED_TO_LEVEL.get(needed);
                 if (level == null) {
-                    TilemanLog.debug(
+                    TilemanLog.debug(DebugCategory.ACTION_BAR,
                         "Unknown XP requirement {} for {}, skipping",
                         needed,
                         skill
@@ -169,7 +169,7 @@ public final class SkillXpParser {
                 long storedXp = state.getSkillXp(skill);
 
                 if (storedXp == 0) {
-                    TilemanLog.debug(
+                    TilemanLog.debug(DebugCategory.ACTION_BAR,
                         "No stored XP for {} to calculate from percentage, skipping",
                         skill
                     );
@@ -209,7 +209,7 @@ public final class SkillXpParser {
         int tokensGranted = newTokens - lastTokenCount;
         lastTokenCount = newTokens;
 
-        TilemanLog.debug(
+        TilemanLog.debug(DebugCategory.TOKENS,
             "Detected {} XP: {} -> {} (level {}, {}/{}, tokens: {} available)",
             skill,
             oldXp,

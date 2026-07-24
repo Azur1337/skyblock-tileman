@@ -44,8 +44,6 @@ public final class TilemanState {
         return instance;
     }
 
-    // ---- Persistence ----
-
     public void load() {
         try {
             if (Files.exists(SAVE_FILE)) {
@@ -100,8 +98,6 @@ public final class TilemanState {
         return data.getOrCreateProfile(activeProfileId);
     }
 
-    // ---- Skill XP ----
-
     public void setSkillXp(String skill, long xp) {
         ProfileData profile = activeProfile();
         long oldXp = profile.getSkillXp(skill);
@@ -109,7 +105,7 @@ public final class TilemanState {
             profile.setSkillXp(skill, xp);
             save();
             
-            TilemanLog.debug(
+            TilemanLog.debug(DebugCategory.TOKENS,
                 "Updated {} XP: {} -> {} (total now {})",
                 skill,
                 oldXp,
@@ -126,8 +122,6 @@ public final class TilemanState {
     public long getTotalSkillXp() {
         return activeProfile().getTotalSkillXp();
     }
-
-    // ---- Tokens ----
 
     public int getTokensEarned() {
         TilemanConfig config = TilemanConfig.getInstance();
@@ -170,8 +164,6 @@ public final class TilemanState {
         return true;
     }
 
-    // ---- Token Cost ----
-
     public int getCurrentTokenCost() {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
@@ -184,6 +176,19 @@ public final class TilemanState {
     }
 
     public long getXpToNextToken() {
+        long[] progress = getTokenProgress();
+        return progress[1] - progress[0];
+    }
+
+    public long getXpSinceLastToken() {
+        return getTokenProgress()[0];
+    }
+
+    public long getXpForNextToken() {
+        return getTokenProgress()[1];
+    }
+
+    private long[] getTokenProgress() {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
         int scaleInterval = config.getCostScaleInterval();
@@ -196,14 +201,12 @@ public final class TilemanState {
             int cost = baseCost + (int) (scaleSteps * baseCost);
             
             if (xpUsed + cost > totalXp) {
-                return (xpUsed + cost) - totalXp;
+                return new long[] { totalXp - xpUsed, cost };
             }
             
             xpUsed += cost;
         }
     }
-
-    // ---- Rule Breaks ----
 
     public int getRuleBreaks() {
         return activeProfile().getRuleBreaks();
@@ -213,8 +216,6 @@ public final class TilemanState {
         activeProfile().addRuleBreak();
         save();
     }
-
-    // ---- Blocks ----
 
     public Set<BlockCoord> getUnlockedBlocks() {
         return activeProfile().getUnlockedBlocks(activeIsland);

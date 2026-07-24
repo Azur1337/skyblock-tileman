@@ -43,7 +43,7 @@ public final class TilemanProfileDetector {
             String profileName = switchMatcher.group(1);
             if (PROFILE_NAMES.contains(profileName)) {
                 pendingProfileName = profileName;
-                TilemanLog.debug("Detected profile switch to {}, waiting for ID", profileName);
+                TilemanLog.debug(DebugCategory.PROFILE, "Detected profile switch to {}, waiting for ID", profileName);
             }
             return;
         }
@@ -58,10 +58,10 @@ public final class TilemanProfileDetector {
                 SkillXpParser.resetTracking();
                 
                 if (pendingProfileName != null) {
-                    TilemanLog.debug("Switched to profile {} ({})", pendingProfileName, profileId);
+                    TilemanLog.debug(DebugCategory.PROFILE, "Switched to profile {} ({})", pendingProfileName, profileId);
                     TilemanChat.info("Switched to Tileman profile: " + pendingProfileName);
                 } else {
-                    TilemanLog.debug("Joined profile {}", profileId);
+                    TilemanLog.debug(DebugCategory.PROFILE, "Joined profile {}", profileId);
                     TilemanChat.info("Loaded Tileman profile: " + profileId);
                 }
             }

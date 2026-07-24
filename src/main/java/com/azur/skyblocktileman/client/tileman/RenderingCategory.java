@@ -24,6 +24,11 @@ public class RenderingCategory {
     public boolean showStatsHud = true;
 
     @Expose
+    @ConfigOption(name = "HUD Icon Mode", desc = "Show icons instead of text labels in the stats HUD.")
+    @ConfigEditorBoolean
+    public boolean hudIconMode = true;
+
+    @Expose
     @ConfigOption(name = "HUD X", desc = "Horizontal HUD position in screen pixels.")
     @ConfigEditorSlider(minValue = 0, maxValue = 600, minStep = 1)
     public int hudX = 8;

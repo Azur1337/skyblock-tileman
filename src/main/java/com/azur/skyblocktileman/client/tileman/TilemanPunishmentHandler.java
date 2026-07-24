@@ -12,11 +12,15 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ARGB;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.core.Direction;
 
-// Punishes the player for standing on a block that has not been unlocked.
 public final class TilemanPunishmentHandler {
 
-	private static final int RED = ARGB.color(255, 255, 30, 30);
+	    private static final int RED = ARGB.color(255, 255, 30, 30);
+	    private static final int GREEN = ARGB.color(255, 100, 255, 100);
 
 	private static boolean violating = false;
 	private static boolean wasOnSafeBlock = true;
@@ -33,19 +37,28 @@ public final class TilemanPunishmentHandler {
 		);
 	}
 
-	private static void onEndTick(Minecraft client) {
-		TilemanConfig config = TilemanConfig.getInstance();
-		if (client.player == null || client.level == null
-				|| !config.isEnabled()
-				|| !config.isPunishmentEnabled()) {
-			violating = false;
-			wasOnSafeBlock = true;
-			soundCooldown = 0;
-			return;
-		}
+	    private static void onEndTick(Minecraft client) {
+	        TilemanConfig config = TilemanConfig.getInstance();
+	        if (client.player == null || client.level == null
+	                || !config.isEnabled()
+	                || !config.isPunishmentEnabled()) {
+	            violating = false;
+	            wasOnSafeBlock = true;
+	            soundCooldown = 0;
+	            return;
+	        }
 
-		BlockPos standingOn = client.player.blockPosition().below();
-		violating = !TilemanState.getInstance().isUnlocked(standingOn);
+	        if (TilemanFirstBlockMode.isActive()) {
+	            violating = false;
+	            wasOnSafeBlock = true;
+	            soundCooldown = 0;
+	            return;
+	        }
+
+	        BlockPos playerPos = client.player.blockPosition();
+	        double playerY = client.player.getY();
+	        BlockPos standingOn = findStandingBlock(client.level, client.player.getX(), playerY, client.player.getZ());
+	        violating = !TilemanState.getInstance().isUnlocked(standingOn);
 
 		if (!violating) {
 			wasOnSafeBlock = true;
@@ -53,7 +66,6 @@ public final class TilemanPunishmentHandler {
 			return;
 		}
 
-		// Only count a new rule break on the transition from safe -> violating
 		if (wasOnSafeBlock) {
 			TilemanState.getInstance().addRuleBreak();
 			wasOnSafeBlock = false;
@@ -67,21 +79,63 @@ public final class TilemanPunishmentHandler {
 		}
 	}
 
-	private static void renderOverlay(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
-		Minecraft client = Minecraft.getInstance();
-		if (!TilemanConfig.getInstance().isEnabled()) {
-			return;
-		}
+	    private static void renderOverlay(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
+	        Minecraft client = Minecraft.getInstance();
+	        if (!TilemanConfig.getInstance().isEnabled()) {
+	            return;
+	        }
 
-		if (!violating) {
-			return;
-		}
+	        if (TilemanFirstBlockMode.isActive()) {
+	            int centerX = graphics.guiWidth() / 2;
+	            graphics.pose().pushMatrix();
+	            graphics.pose().translate(centerX, graphics.guiHeight() / 4);
+	            graphics.pose().scale(2.0F, 2.0F);
+	            graphics.centeredText(client.font, Component.literal("SELECT YOUR FIRST BLOCK"), 0, 0, GREEN);
+	            graphics.pose().popMatrix();
 
-		int centerX = graphics.guiWidth() / 2;
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(centerX, graphics.guiHeight() / 4);
-		graphics.pose().scale(4.0F, 4.0F);
-		graphics.centeredText(client.font, Component.literal("RULE BROKEN"), 0, 0, RED);
-		graphics.pose().popMatrix();
+	            graphics.pose().pushMatrix();
+	            graphics.pose().translate(centerX, graphics.guiHeight() / 4 + 30);
+	            graphics.centeredText(client.font, Component.literal("Hold B and click a block to start"), 0, 0, GREEN);
+	            graphics.pose().popMatrix();
+	            return;
+	        }
+
+	        if (!violating) {
+	            return;
+	        }
+
+	        int centerX = graphics.guiWidth() / 2;
+	        graphics.pose().pushMatrix();
+	        graphics.pose().translate(centerX, graphics.guiHeight() / 4);
+	        graphics.pose().scale(4.0F, 4.0F);
+	        graphics.centeredText(client.font, Component.literal("RULE BROKEN"), 0, 0, RED);
+	        graphics.pose().popMatrix();
+	    }
+
+	    private static BlockPos findStandingBlock(Level level, double x, double playerY, double z) {
+	        int blockX = (int) Math.floor(x);
+	        int blockZ = (int) Math.floor(z);
+	        
+	        for (int yOffset = 0; yOffset >= -2; yOffset--) {
+	            int checkY = (int) Math.floor(playerY) + yOffset;
+	            BlockPos pos = new BlockPos(blockX, checkY, blockZ);
+	            BlockState state = level.getBlockState(pos);
+	            
+	            if (state.isAir()) {
+	                continue;
+	            }
+	            
+	            var shape = state.getCollisionShape(level, pos, CollisionContext.empty());
+	            if (shape.isEmpty()) {
+	                continue;
+	            }
+	            
+	            double blockTop = checkY + shape.max(Direction.Axis.Y);
+	            if (playerY >= blockTop - 0.01 && playerY <= blockTop + 0.5) {
+	                return pos;
+	            }
+	        }
+	        
+	        return new BlockPos(blockX, (int) Math.floor(playerY) - 1, blockZ);
+	    }
 	}
-}

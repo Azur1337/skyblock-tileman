@@ -3,11 +3,15 @@ package com.azur.skyblocktileman.client.tileman;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,9 +130,9 @@ public final class TilemanState {
     public int getTokensEarned() {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
-        int scaleInterval = config.getCostScaleInterval();
+        int scaleInterval = getEffectiveScaleInterval();
         
-        long totalXp = activeProfile().getTotalSkillXp();
+        long totalXp = getEffectiveSkillXp();
         int tokens = 0;
         long xpUsed = 0;
         
@@ -167,9 +171,9 @@ public final class TilemanState {
     public int getCurrentTokenCost() {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
-        int scaleInterval = config.getCostScaleInterval();
+        int scaleInterval = getEffectiveScaleInterval();
         
-        long totalXp = activeProfile().getTotalSkillXp();
+        long totalXp = getEffectiveSkillXp();
         long scaleSteps = scaleInterval > 0 ? totalXp / scaleInterval : 0;
         
         return baseCost + (int) (scaleSteps * baseCost);
@@ -191,9 +195,9 @@ public final class TilemanState {
     private long[] getTokenProgress() {
         TilemanConfig config = TilemanConfig.getInstance();
         int baseCost = config.getBaseTokenCost();
-        int scaleInterval = config.getCostScaleInterval();
+        int scaleInterval = getEffectiveScaleInterval();
         
-        long totalXp = activeProfile().getTotalSkillXp();
+        long totalXp = getEffectiveSkillXp();
         long xpUsed = 0;
         
         while (true) {
@@ -243,5 +247,77 @@ public final class TilemanState {
 
     public int getFreeBlocksCount() {
         return activeProfile().getFreeBlocksCount();
+    }
+
+    private int getEffectiveScaleInterval() {
+        TilemanConfig config = TilemanConfig.getInstance();
+        int base = config.getCostScaleInterval();
+        int bonus = activeProfile().getShop().getEfficientScalingBonus();
+        return base + bonus;
+    }
+
+    private long getEffectiveSkillXp() {
+        ProfileData profile = activeProfile();
+        ShopData shop = profile.getShop();
+        long total = 0;
+        for (Map.Entry<String, Long> entry : profile.getAllSkillXp().entrySet()) {
+            String skill = entry.getKey();
+            long xp = entry.getValue();
+            double multiplier = shop.getSkillXpMultiplier(skill);
+            total += (long) (xp * multiplier);
+        }
+        return total;
+    }
+
+    public ShopData getShop() {
+        return activeProfile().getShop();
+    }
+
+    public MilestoneData getMilestones() {
+        return activeProfile().getMilestones();
+    }
+
+    public int getLifetimeTokensEarned() {
+        return activeProfile().getLifetimeTokensEarned();
+    }
+
+    public void addTokens(int amount) {
+        activeProfile().addLifetimeTokensEarned(amount);
+    }
+
+    public int getExploredIslandCount() {
+        return activeProfile().getIslands().size();
+    }
+
+    public boolean spendTokens(int amount) {
+        if (getTokens() < amount) {
+            return false;
+        }
+        activeProfile().addTokensSpent(amount);
+        activeProfile().getShop().addSpent(amount);
+        MilestoneTracker.getInstance().onShopPurchase(amount);
+        save();
+        return true;
+    }
+
+    public void tickShop(long deltaMs) {
+        ShopData shop = activeProfile().getShop();
+        boolean wasActive = shop.isXpFrenzyActive();
+        shop.tickFrenzy(deltaMs);
+        if (wasActive && !shop.isXpFrenzyActive()) {
+            onXpFrenzyExpired();
+        }
+    }
+
+    private void onXpFrenzyExpired() {
+        TilemanChat.warn("XP Frenzy has expired!");
+        Minecraft client = Minecraft.getInstance();
+        if (client.player != null) {
+            client.player.playSound(
+                net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,
+                1.0f,
+                0.5f
+            );
+        }
     }
 }

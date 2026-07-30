@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -122,6 +123,7 @@ public final class TilemanIslandHandler {
         );
 
         boolean islandChanged = !islandId.equals(state.getActiveIsland());
+        boolean isNewIsland = state.getUnlockedBlocks(state.getActiveProfileId(), islandId).isEmpty();
         state.setActiveIsland(islandId);
 
         if (islandChanged) {
@@ -131,6 +133,10 @@ public final class TilemanIslandHandler {
                 displayName
             );
             TilemanChat.info("Now on island: " + displayName);
+            
+            if (isNewIsland) {
+                MilestoneTracker.getInstance().onIslandVisited();
+            }
         }
 
         if (state.getUnlockedBlocks().isEmpty() && !TilemanFirstBlockMode.isActive()) {

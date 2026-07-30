@@ -5,12 +5,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
+
 public class ProfileData {
 
     private int tokensSpent = 0;
     private int ruleBreaks = 0;
     private final Map<String, Long> skillXp = new HashMap<>();
     private final Map<String, Set<BlockCoord>> islands = new HashMap<>();
+    private ShopData shop = new ShopData();
+    private MilestoneData milestones = new MilestoneData();
+    private int lifetimeTokensEarned = 0;
 
     public int getTokensSpent() {
         return tokensSpent;
@@ -62,5 +67,27 @@ public class ProfileData {
 
     public int getFreeBlocksCount() {
         return islands.size();
+    }
+
+    public ShopData getShop() {
+        if (shop == null) {
+            shop = new ShopData();
+        }
+        return shop;
+    }
+
+    public MilestoneData getMilestones() {
+        if (milestones == null) {
+            milestones = new MilestoneData();
+        }
+        return milestones;
+    }
+
+    public int getLifetimeTokensEarned() {
+        return lifetimeTokensEarned;
+    }
+
+    public void addLifetimeTokensEarned(int amount) {
+        lifetimeTokensEarned += amount;
     }
 }

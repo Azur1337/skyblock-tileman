@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import com.azur.skyblocktileman.client.tileman.shop.TilemanShopScreen;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
 
 public final class TilemanCommands {
 
@@ -86,6 +88,14 @@ public final class TilemanCommands {
                                     )
                                 )
                         )
+                        .then(
+                            ClientCommands.literal("shop")
+                                .executes(context -> openShop(context.getSource()))
+                        )
+                        .then(
+                            ClientCommands.literal("milestones")
+                                .executes(context -> openMilestones(context.getSource()))
+                        )
                 )
         );
     }
@@ -148,6 +158,16 @@ public final class TilemanCommands {
                 "[Tileman] Unlocked block overlay: " + (enabled ? "ON" : "OFF")
             ).withStyle(ChatFormatting.GOLD)
         );
+        return 1;
+    }
+
+    private static int openShop(FabricClientCommandSource source) {
+        TilemanShopScreen.open();
+        return 1;
+    }
+
+    private static int openMilestones(FabricClientCommandSource source) {
+        MilestoneScreen.open();
         return 1;
     }
 }

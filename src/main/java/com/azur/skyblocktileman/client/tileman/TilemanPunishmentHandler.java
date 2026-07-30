@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 
@@ -63,11 +64,14 @@ public final class TilemanPunishmentHandler {
 		if (!violating) {
 			wasOnSafeBlock = true;
 			soundCooldown = 0;
+			MilestoneTracker.getInstance().startFlawlessTracking();
 			return;
 		}
 
 		if (wasOnSafeBlock) {
 			TilemanState.getInstance().addRuleBreak();
+			MilestoneTracker.getInstance().onRuleBreak();
+			MilestoneTracker.getInstance().resetFlawlessTracking();
 			wasOnSafeBlock = false;
 		}
 
@@ -98,6 +102,20 @@ public final class TilemanPunishmentHandler {
 	            graphics.centeredText(client.font, Component.literal("Hold B and click a block to start"), 0, 0, GREEN);
 	            graphics.pose().popMatrix();
 	            return;
+	        }
+
+	        if (TilemanSelectionMode.isActive() && TilemanState.getInstance().getShop().isRemoteUnlockPending()) {
+	            int centerX = graphics.guiWidth() / 2;
+	            graphics.pose().pushMatrix();
+	            graphics.pose().translate(centerX, graphics.guiHeight() / 4);
+	            graphics.pose().scale(2.0F, 2.0F);
+	            graphics.centeredText(client.font, Component.literal("REMOTE UNLOCK READY"), 0, 0, ARGB.color(255, 100, 200, 255));
+	            graphics.pose().popMatrix();
+
+	            graphics.pose().pushMatrix();
+	            graphics.pose().translate(centerX, graphics.guiHeight() / 4 + 30);
+	            graphics.centeredText(client.font, Component.literal("Click any block to unlock"), 0, 0, ARGB.color(255, 180, 180, 180));
+	            graphics.pose().popMatrix();
 	        }
 
 	        if (!violating) {

@@ -133,6 +133,10 @@ public final class TilemanConfig {
         return config().punishment.enabled;
     }
 
+    public boolean isTileCompassEnabled() {
+        return config().rendering.showTileCompass;
+    }
+
     public int getSoundIntervalTicks() {
         return config().punishment.soundIntervalTicks;
     }

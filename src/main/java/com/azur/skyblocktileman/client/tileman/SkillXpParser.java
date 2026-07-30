@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -221,12 +222,18 @@ public final class SkillXpParser {
         );
 
         if (tokensGranted > 0) {
+            for (int i = 0; i < tokensGranted; i++) {
+                MilestoneTracker.getInstance().onTokenEarned();
+            }
             TilemanChat.info(
                 "+" + tokensGranted + " Block Unlock Token" +
                 (tokensGranted > 1 ? "s" : "") +
                 "! (Total: " + newTokens + ")"
             );
         }
+
+        long xpGained = totalXp - oldXp;
+        MilestoneTracker.getInstance().onXpGained(skill, xpGained);
     }
 
     private static long parseXpNumber(String str) {

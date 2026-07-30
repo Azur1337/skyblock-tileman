@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -88,6 +89,10 @@ public final class TilemanSelectionMode {
             return false;
         }
         
+        if (state.getShop().isRemoteUnlockPending()) {
+            return true;
+        }
+        
         return BlockValidation.isHorizontallyAdjacentToUnlocked(resolved, state);
     }
 
@@ -115,6 +120,7 @@ public final class TilemanSelectionMode {
 
     private static void tryUnlock(BlockPos clicked, Level level) {
         TilemanState state = TilemanState.getInstance();
+        ShopData shop = state.getShop();
         BlockPos pos = BlockValidation.getStandableBlock(clicked, level);
 
         if (state.isUnlocked(pos)) {
@@ -122,7 +128,9 @@ public final class TilemanSelectionMode {
             return;
         }
 
-        if (!BlockValidation.isHorizontallyAdjacentToUnlocked(pos, state)) {
+        boolean isRemote = shop.isRemoteUnlockPending();
+        
+        if (!isRemote && !BlockValidation.isHorizontallyAdjacentToUnlocked(pos, state)) {
             TilemanChat.warn(
                 "You can only unlock blocks adjacent to an already-unlocked block."
             );
@@ -143,15 +151,88 @@ public final class TilemanSelectionMode {
             return;
         }
 
-        state.unlockBlock(pos);
-        
-        String message = "Unlocked block at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
-        if (!pos.equals(clicked)) {
-            message += " (adjusted from non-standable block)";
+        if (isRemote) {
+            shop.consumeRemoteUnlock();
+            state.unlockBlock(pos);
+            state.save();
+            MilestoneTracker.getInstance().onTileUnlocked();
+            TilemanChat.info("Remote unlock used! Unlocked block at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "! (" + state.getTokens() + " token(s) left)");
+            return;
         }
-        message += "! (" + state.getTokens() + " token(s) left)";
+
+        int baseTiles = shop.getBaseTilesPerUnlock();
+        int tilesToUnlock = shop.calculateTilesToUnlock();
+        boolean luckyProc = shop.didLuckyProc(baseTiles, tilesToUnlock);
+
+        int unlocked = unlockMultipleTiles(pos, tilesToUnlock, state, level);
+        state.save();
+
+        for (int i = 0; i < unlocked; i++) {
+            MilestoneTracker.getInstance().onTileUnlocked();
+        }
+        if (luckyProc) {
+            int multiplier = tilesToUnlock / baseTiles;
+            MilestoneTracker.getInstance().onLuckyProc(multiplier);
+        }
+
+        StringBuilder message = new StringBuilder();
+        message.append("Unlocked ").append(unlocked).append(" tile(s)");
+        if (luckyProc) {
+            message.append(" (LUCKY!)");
+        }
+        message.append("! (").append(state.getTokens()).append(" token(s) left)");
         
-        TilemanChat.info(message);
+        TilemanChat.info(message.toString());
+    }
+
+    private static final Direction[] HORIZONTAL_DIRECTIONS = {
+        Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
+    };
+
+    private static int unlockMultipleTiles(BlockPos start, int count, TilemanState state, Level level) {
+        state.unlockBlock(start);
+        int unlocked = 1;
+
+        if (count <= 1) {
+            return unlocked;
+        }
+
+        java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
+        java.util.Set<BlockPos> checked = new java.util.HashSet<>();
+        checked.add(start);
+
+        for (Direction dir : HORIZONTAL_DIRECTIONS) {
+            BlockPos neighbor = start.relative(dir);
+            BlockPos standable = BlockValidation.getStandableBlock(neighbor, level);
+            if (!state.isUnlocked(standable) && !checked.contains(standable)) {
+                candidates.add(standable);
+                checked.add(standable);
+            }
+        }
+
+        java.util.Random random = new java.util.Random();
+        while (unlocked < count && !candidates.isEmpty()) {
+            int idx = random.nextInt(candidates.size());
+            BlockPos next = candidates.remove(idx);
+            
+            if (state.isUnlocked(next)) {
+                continue;
+            }
+
+            state.unlockBlock(next);
+            unlocked++;
+
+            for (Direction dir : HORIZONTAL_DIRECTIONS) {
+                BlockPos neighbor = next.relative(dir);
+                BlockPos standable = BlockValidation.getStandableBlock(neighbor, level);
+                if (!state.isUnlocked(standable) && !checked.contains(standable)) {
+                    candidates.add(standable);
+                    checked.add(standable);
+                }
+            }
+        }
+
+        return unlocked;
     }
 
     private static void onBeforeGizmos(LevelRenderContext context) {

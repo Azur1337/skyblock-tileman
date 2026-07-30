@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -107,5 +108,14 @@ public final class BlockValidation {
 
     public static boolean isNonStandableBlock(BlockState state, Level level, BlockPos pos) {
         return !isStandableBlock(state, level, pos);
+    }
+
+    public static boolean isPlayerOnUnlockedBlock() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null) {
+            return false;
+        }
+        BlockPos playerPos = client.player.blockPosition().below();
+        return TilemanState.getInstance().isUnlocked(playerPos);
     }
 }

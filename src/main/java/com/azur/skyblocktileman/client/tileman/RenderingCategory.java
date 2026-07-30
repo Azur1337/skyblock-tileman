@@ -42,4 +42,9 @@ public class RenderingCategory {
     @ConfigOption(name = "Move Overlay", desc = "Close config and drag the HUD in-game.")
     @ConfigEditorButton(runnableId = 1, buttonText = "Drag HUD")
     public int moveOverlayButton = 0;
+
+    @Expose
+    @ConfigOption(name = "Show Tile Compass", desc = "Show a beacon and outline on the nearest unlocked tile when standing on locked ground.")
+    @ConfigEditorBoolean
+    public boolean showTileCompass = true;
 }

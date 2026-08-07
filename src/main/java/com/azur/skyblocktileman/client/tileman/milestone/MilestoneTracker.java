@@ -2,6 +2,7 @@ package com.azur.skyblocktileman.client.tileman.milestone;
 
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonFloor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
@@ -67,28 +68,26 @@ public class MilestoneTracker {
             case TOKENS_EARNED -> state.getLifetimeTokensEarned();
             case ISLANDS_EXPLORED -> state.getExploredIslandCount();
             
-            case COMBAT_XP -> state.getSkillXp("Combat");
-            case MINING_XP -> state.getSkillXp("Mining");
-            case FORAGING_XP -> state.getSkillXp("Foraging");
-            case FARMING_XP -> state.getSkillXp("Farming");
-            case FISHING_XP -> state.getSkillXp("Fishing");
+            case COMBAT_LEVEL -> state.getSkillLevel("Combat");
+            case MINING_LEVEL -> state.getSkillLevel("Mining");
+            case FORAGING_LEVEL -> state.getSkillLevel("Foraging");
+            case FARMING_LEVEL -> state.getSkillLevel("Farming");
+            case FISHING_LEVEL -> state.getSkillLevel("Fishing");
             
             case NO_MISTAKES -> milestones.getNoMistakeStreak();
             case MARATHON -> milestones.getMarathonMinutes();
+            
+            case FLAWLESS_MINING -> milestones.getFlawlessMiningXp();
+            case FLAWLESS_FORAGING -> milestones.getFlawlessForagingXp();
+            case FLAWLESS_FARMING -> milestones.getFlawlessFarmingXp();
+            case FLAWLESS_COMBAT -> milestones.getFlawlessCombatXp();
+            case FLAWLESS_FISHING -> milestones.getFlawlessFishingXp();
             
             case OOPS -> state.getRuleBreaks();
             case HOARDER -> state.getTokens();
             case BIG_SPENDER -> milestones.getTotalShopSpent();
             case LUCKY_DAY -> milestones.getLuckyProcsThisSession();
             case JACKPOT -> milestones.getProgress(MilestoneType.JACKPOT);
-            
-            case SLAYER_STREAK -> milestones.getSlayerStreak();
-            case FLAWLESS_SLAYER -> milestones.getProgress(MilestoneType.FLAWLESS_SLAYER);
-            case FLAWLESS_FISHING -> milestones.getFlawlessFishingCount();
-            case FLAWLESS_MINING -> milestones.getFlawlessMiningCount();
-            case FLAWLESS_FORAGING -> milestones.getFlawlessForagingCount();
-            case FLAWLESS_FARMING -> milestones.getFlawlessFarmingCount();
-            case FLAWLESS_COMBAT -> milestones.getFlawlessCombatXp();
         };
     }
     
@@ -107,21 +106,22 @@ public class MilestoneTracker {
     public void onXpGained(String skill, long amount) {
         checkMilestone(MilestoneType.TOTAL_XP);
         
-        MilestoneType skillMilestone = switch (skill) {
-            case "Combat" -> MilestoneType.COMBAT_XP;
-            case "Mining" -> MilestoneType.MINING_XP;
-            case "Foraging" -> MilestoneType.FORAGING_XP;
-            case "Farming" -> MilestoneType.FARMING_XP;
-            case "Fishing" -> MilestoneType.FISHING_XP;
+        MilestoneType skillLevelMilestone = switch (skill) {
+            case "Combat" -> MilestoneType.COMBAT_LEVEL;
+            case "Mining" -> MilestoneType.MINING_LEVEL;
+            case "Foraging" -> MilestoneType.FORAGING_LEVEL;
+            case "Farming" -> MilestoneType.FARMING_LEVEL;
+            case "Fishing" -> MilestoneType.FISHING_LEVEL;
             default -> null;
         };
         
-        if (skillMilestone != null) {
-            checkMilestone(skillMilestone);
+        if (skillLevelMilestone != null) {
+            checkMilestone(skillLevelMilestone);
         }
         
+        // flawless xp tracking
         MilestoneData data = TilemanState.getInstance().getMilestones();
-        if (data.isFlawlessFishingActive()) {
+        if (data.isFlawlessActive()) {
             switch (skill) {
                 case "Combat" -> {
                     data.addFlawlessCombatXp(amount);
@@ -139,6 +139,10 @@ public class MilestoneTracker {
                     data.addFlawlessFarmingXp(amount);
                     checkMilestone(MilestoneType.FLAWLESS_FARMING);
                 }
+                case "Fishing" -> {
+                    data.addFlawlessFishingXp(amount);
+                    checkMilestone(MilestoneType.FLAWLESS_FISHING);
+                }
             }
         }
     }
@@ -152,12 +156,7 @@ public class MilestoneTracker {
         MilestoneData data = TilemanState.getInstance().getMilestones();
         data.resetNoMistakeStreak();
         data.resetMarathon();
-        data.onSteppedOffDuringSlayer();
-        
-        if (data.isSlayerQuestActive()) {
-            data.resetSlayerStreak();
-        }
-        
+        data.resetFlawless();
         checkMilestone(MilestoneType.OOPS);
     }
     
@@ -189,49 +188,17 @@ public class MilestoneTracker {
         }
     }
     
-    public void onSlayerQuestStart() {
-        MilestoneData data = TilemanState.getInstance().getMilestones();
-        data.startSlayerQuest();
-        TilemanChat.info("Slayer quest started! Stay on tiles for flawless completion.");
-    }
-    
-    public void onSlayerQuestComplete() {
-        MilestoneData data = TilemanState.getInstance().getMilestones();
-        boolean wasFlawless = data.wasFlawlessSlayer();
-        data.endSlayerQuest(true);
-        
-        if (wasFlawless) {
-            data.addProgress(MilestoneType.FLAWLESS_SLAYER, 1);
-            TilemanChat.info("§aFlawless slayer complete! Streak: " + data.getSlayerStreak());
-            checkMilestone(MilestoneType.FLAWLESS_SLAYER);
-        } else {
-            TilemanChat.info("Slayer complete, but you stepped off tiles.");
-        }
-        
-        checkMilestone(MilestoneType.SLAYER_STREAK);
-        TilemanState.getInstance().save();
-    }
-    
-    public void onSlayerQuestFailed() {
-        MilestoneData data = TilemanState.getInstance().getMilestones();
-        data.endSlayerQuest(false);
-    }
-    
-    public void onSeaCreatureCaught() {
-        MilestoneData data = TilemanState.getInstance().getMilestones();
-        if (data.isFlawlessFishingActive()) {
-            data.incrementFlawlessFishing();
-            checkMilestone(MilestoneType.FLAWLESS_FISHING);
-        }
-    }
-    
     public void startFlawlessTracking() {
         MilestoneData data = TilemanState.getInstance().getMilestones();
-        data.startFlawlessFishing();
+        data.startFlawless();
     }
     
     public void resetFlawlessTracking() {
         MilestoneData data = TilemanState.getInstance().getMilestones();
-        data.resetAllFlawless();
+        data.resetFlawless();
+    }
+    
+    public void onDungeonComplete(DungeonFloor floor, boolean sRank, boolean sPlusRank) {
+        // dungeon milestones tracked via api
     }
 }

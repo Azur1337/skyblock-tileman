@@ -81,12 +81,16 @@ public final class TilemanConfig {
         };
     }
 
-    public int getBaseTokenCost() {
-        return config().xpTokens.baseTokenCost;
+    public int getXpPerToken() {
+        return config().xpTokens.xpPerToken;
     }
 
-    public int getCostScaleInterval() {
-        return config().xpTokens.costScaleInterval;
+    public boolean isScalingEnabled() {
+        return config().xpTokens.enableScaling;
+    }
+
+    public int getScaleInterval() {
+        return config().xpTokens.scaleInterval;
     }
 
     public boolean isShowUnlockedOverlay() {

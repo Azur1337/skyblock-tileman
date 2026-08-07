@@ -12,20 +12,18 @@ public class MilestoneData {
     private long totalPlaytimeMinutes = 0;
     private int totalShopSpent = 0;
     
+    // session tracking (transient, not saved)
     private transient int noMistakeStreak = 0;
     private transient long marathonStartTime = 0;
     private transient int luckyProcsThisSession = 0;
     
-    private transient boolean slayerQuestActive = false;
-    private transient boolean steppedOffDuringSlayer = false;
-    private transient int slayerStreak = 0;
-    
-    private transient boolean flawlessFishingActive = false;
-    private transient long flawlessFishingCount = 0;
+    // flawless tracking (transient, resets on rule break)
+    private transient boolean flawlessActive = false;
     private transient long flawlessMiningXp = 0;
     private transient long flawlessForagingXp = 0;
     private transient long flawlessFarmingXp = 0;
     private transient long flawlessCombatXp = 0;
+    private transient long flawlessFishingXp = 0;
     
     public int getCompletedTier(MilestoneType type) {
         return completedTiers.getOrDefault(type.name(), 0);
@@ -113,71 +111,28 @@ public class MilestoneData {
         noMistakeStreak = 0;
         marathonStartTime = 0;
         luckyProcsThisSession = 0;
-        slayerQuestActive = false;
-        steppedOffDuringSlayer = false;
-        flawlessFishingActive = false;
-        flawlessFishingCount = 0;
+        resetFlawless();
     }
     
-    public boolean isSlayerQuestActive() {
-        return slayerQuestActive;
+    // flawless tracking
+    public boolean isFlawlessActive() {
+        return flawlessActive;
     }
     
-    public void startSlayerQuest() {
-        slayerQuestActive = true;
-        steppedOffDuringSlayer = false;
+    public void startFlawless() {
+        flawlessActive = true;
     }
     
-    public void endSlayerQuest(boolean completed) {
-        slayerQuestActive = false;
-        if (completed && !steppedOffDuringSlayer) {
-            slayerStreak++;
-        } else {
-            slayerStreak = 0;
-        }
-        steppedOffDuringSlayer = false;
+    public void resetFlawless() {
+        flawlessActive = false;
+        flawlessMiningXp = 0;
+        flawlessForagingXp = 0;
+        flawlessFarmingXp = 0;
+        flawlessCombatXp = 0;
+        flawlessFishingXp = 0;
     }
     
-    public void onSteppedOffDuringSlayer() {
-        if (slayerQuestActive) {
-            steppedOffDuringSlayer = true;
-        }
-    }
-    
-    public boolean wasFlawlessSlayer() {
-        return !steppedOffDuringSlayer;
-    }
-    
-    public int getSlayerStreak() {
-        return slayerStreak;
-    }
-    
-    public void resetSlayerStreak() {
-        slayerStreak = 0;
-    }
-    
-    public boolean isFlawlessFishingActive() {
-        return flawlessFishingActive;
-    }
-    
-    public void startFlawlessFishing() {
-        flawlessFishingActive = true;
-    }
-    
-    public void incrementFlawlessFishing() {
-        flawlessFishingCount++;
-    }
-    
-    public long getFlawlessFishingCount() {
-        return flawlessFishingCount;
-    }
-    
-    public void resetFlawlessFishing() {
-        flawlessFishingActive = false;
-        flawlessFishingCount = 0;
-    }
-    
-    public long getFlawlessMiningCount() {
+    public long getFlawlessMiningXp() {
         return flawlessMiningXp;
     }
     
@@ -185,7 +140,7 @@ public class MilestoneData {
         flawlessMiningXp += xp;
     }
     
-    public long getFlawlessForagingCount() {
+    public long getFlawlessForagingXp() {
         return flawlessForagingXp;
     }
     
@@ -193,7 +148,7 @@ public class MilestoneData {
         flawlessForagingXp += xp;
     }
     
-    public long getFlawlessFarmingCount() {
+    public long getFlawlessFarmingXp() {
         return flawlessFarmingXp;
     }
     
@@ -209,12 +164,11 @@ public class MilestoneData {
         flawlessCombatXp += xp;
     }
     
-    public void resetAllFlawless() {
-        flawlessFishingActive = false;
-        flawlessFishingCount = 0;
-        flawlessMiningXp = 0;
-        flawlessForagingXp = 0;
-        flawlessFarmingXp = 0;
-        flawlessCombatXp = 0;
+    public long getFlawlessFishingXp() {
+        return flawlessFishingXp;
+    }
+    
+    public void addFlawlessFishingXp(long xp) {
+        flawlessFishingXp += xp;
     }
 }

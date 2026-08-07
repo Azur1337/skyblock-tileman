@@ -10,15 +10,29 @@ import java.util.regex.Pattern;
 public final class SkillXpParser {
 
     private static final Pattern SKILL_XP_ABSOLUTE_PATTERN = Pattern.compile(
-        "\\+[0-9,]+(?:\\.[0-9]+)? (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9,.]+[kKmMbB]?)/([0-9,.]+[kKmMbB]?)\\)"
+        "\\+([0-9,]+(?:\\.[0-9]+)?) (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9,.]+[kKmMbB]?)/([0-9,.]+[kKmMbB]?)\\)"
     );
 
     private static final Pattern SKILL_XP_PERCENT_PATTERN = Pattern.compile(
-        "\\+[0-9,]+(?:\\.[0-9]+)? (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9.]+)%\\)"
+        "\\+([0-9,]+(?:\\.[0-9]+)?) (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([0-9.]+)%\\)"
     );
 
     private static final Set<String> TOKEN_SKILLS = Set.of(
         "Combat", "Mining", "Foraging", "Farming", "Fishing"
+    );
+    
+    private static final Map<String, Integer> SKILL_MAX_LEVELS = Map.ofEntries(
+        Map.entry("Combat", 60),
+        Map.entry("Mining", 60),
+        Map.entry("Farming", 60),
+        Map.entry("Foraging", 54),
+        Map.entry("Fishing", 50),
+        Map.entry("Enchanting", 60),
+        Map.entry("Alchemy", 50),
+        Map.entry("Carpentry", 50),
+        Map.entry("Taming", 60),
+        Map.entry("Runecrafting", 25),
+        Map.entry("Social", 25)
     );
 
     private static final long[] XP_REQUIRED = {
@@ -103,12 +117,9 @@ public final class SkillXpParser {
         }
     }
 
-    private static int lastTokenCount = -1;
-
     private SkillXpParser() {}
 
     public static void resetTracking() {
-        lastTokenCount = -1;
         TilemanLog.debug(DebugCategory.ACTION_BAR, "Reset skill XP tracking for profile switch");
     }
 
@@ -129,29 +140,53 @@ public final class SkillXpParser {
         Matcher absoluteMatcher = SKILL_XP_ABSOLUTE_PATTERN.matcher(text);
         while (absoluteMatcher.find()) {
             try {
-                String skill = absoluteMatcher.group(1);
-                long current = parseXpNumber(absoluteMatcher.group(2));
-                long needed = parseXpNumber(absoluteMatcher.group(3));
-
-                if (needed == 0) {
-                    continue;
-                }
+                long xpGainedFromBar = parseXpNumber(absoluteMatcher.group(1));
+                String skill = absoluteMatcher.group(2);
+                long current = parseXpNumber(absoluteMatcher.group(3));
+                long needed = parseXpNumber(absoluteMatcher.group(4));
 
                 if (!TOKEN_SKILLS.contains(skill)) {
                     continue;
                 }
 
-                Integer level = NEEDED_TO_LEVEL.get(needed);
-                if (level == null) {
-                    TilemanLog.debug(DebugCategory.ACTION_BAR,
-                        "Unknown XP requirement {} for {}, skipping",
-                        needed,
-                        skill
-                    );
-                    continue;
+                long totalXp;
+                int level;
+                
+                if (needed == 0) {
+                    // max level - current shows overflow xp beyond max
+                    // totalXp = cumulative to max level + overflow
+                    int maxLevel = SKILL_MAX_LEVELS.getOrDefault(skill, 60);
+                    level = maxLevel;
+                    totalXp = CUMULATIVE_XP[maxLevel] + current;
+                    
+                    // At max level, use direct XP gain since baseline tracking can be tricky
+                    // with the overflow values
+                    TilemanState state = TilemanState.getInstance();
+                    long oldXp = state.getSkillXp(skill);
+                    
+                    if (oldXp == 0) {
+                        // First detection at max level - set baseline, use direct gain
+                        state.setSkillXp(skill, totalXp);
+                        TilemanLog.debug(DebugCategory.TOKENS,
+                            "Initial {} XP baseline at max level set to {} (overflow: {})",
+                            skill, totalXp, current);
+                        processDirectXpGain(skill, xpGainedFromBar);
+                        continue;
+                    }
+                } else {
+                    Integer detectedLevel = NEEDED_TO_LEVEL.get(needed);
+                    if (detectedLevel == null) {
+                        TilemanLog.debug(DebugCategory.ACTION_BAR,
+                            "Unknown XP requirement {} for {}, skipping",
+                            needed,
+                            skill
+                        );
+                        continue;
+                    }
+                    level = detectedLevel;
+                    totalXp = CUMULATIVE_XP[level] + current;
                 }
 
-                long totalXp = CUMULATIVE_XP[level] + current;
                 processXpUpdate(skill, totalXp, level, current, needed);
             } catch (NumberFormatException ignored) {}
         }
@@ -159,8 +194,9 @@ public final class SkillXpParser {
         Matcher percentMatcher = SKILL_XP_PERCENT_PATTERN.matcher(text);
         while (percentMatcher.find()) {
             try {
-                String skill = percentMatcher.group(1);
-                double percent = Double.parseDouble(percentMatcher.group(2));
+                long xpGainedFromBar = parseXpNumber(percentMatcher.group(1));
+                String skill = percentMatcher.group(2);
+                double percent = Double.parseDouble(percentMatcher.group(3));
 
                 if (!TOKEN_SKILLS.contains(skill)) {
                     continue;
@@ -170,15 +206,20 @@ public final class SkillXpParser {
                 long storedXp = state.getSkillXp(skill);
 
                 if (storedXp == 0) {
+                    // No baseline, but we CAN use the XP gain directly from the actionbar
+                    // We can't determine total XP, but we can award tokens for what we see
                     TilemanLog.debug(DebugCategory.ACTION_BAR,
-                        "No stored XP for {} to calculate from percentage, skipping",
-                        skill
+                        "No stored XP for {}, using direct XP gain from actionbar: +{}",
+                        skill, xpGainedFromBar
                     );
+                    processDirectXpGain(skill, xpGainedFromBar);
                     continue;
                 }
 
                 int level = getLevelForXp(storedXp);
                 if (level >= XP_REQUIRED.length - 1) {
+                    // At max level with baseline - use direct XP gain
+                    processDirectXpGain(skill, xpGainedFromBar);
                     continue;
                 }
 
@@ -191,6 +232,38 @@ public final class SkillXpParser {
         }
     }
 
+    // max reasonable xp gain per actionbar update when we have existing baseline
+    private static final long MAX_REASONABLE_XP_GAIN = 100_000;
+
+    /**
+     * Process XP gain directly from actionbar when we don't have/need a baseline.
+     * Used for percentage format when storedXp == 0, or at max level.
+     * We can't track total XP, but we CAN award tokens for what we see.
+     */
+    private static void processDirectXpGain(String skill, long xpGained) {
+        if (xpGained <= 0 || xpGained > MAX_REASONABLE_XP_GAIN) {
+            TilemanLog.debug(DebugCategory.TOKENS,
+                "Skipping direct XP gain for {} (amount: {})",
+                skill, xpGained);
+            return;
+        }
+
+        TilemanState state = TilemanState.getInstance();
+        
+        // Award tokens for the XP gain
+        state.onXpGained(xpGained);
+
+        TilemanLog.debug(DebugCategory.TOKENS,
+            "Direct {} XP gain: +{}, tokens: {} available",
+            skill,
+            xpGained,
+            state.getTokens()
+        );
+
+        // Track for milestones
+        MilestoneTracker.getInstance().onXpGained(skill, xpGained);
+    }
+
     private static void processXpUpdate(String skill, long totalXp, int level, long current, long needed) {
         TilemanState state = TilemanState.getInstance();
         long oldXp = state.getSkillXp(skill);
@@ -199,40 +272,43 @@ public final class SkillXpParser {
             return;
         }
 
-        int oldTokens = state.getTokens();
-        if (lastTokenCount < 0) {
-            lastTokenCount = oldTokens;
-        }
-
+        long xpGained = totalXp - oldXp;
+        
+        // update stored XP regardless
         state.setSkillXp(skill, totalXp);
-
-        int newTokens = state.getTokens();
-        int tokensGranted = newTokens - lastTokenCount;
-        lastTokenCount = newTokens;
+        
+        // if no baseline existed (oldXp == 0), this is initial detection - just set baseline
+        if (oldXp == 0) {
+            TilemanLog.debug(DebugCategory.TOKENS,
+                "Initial {} XP baseline set to {} (level {})",
+                skill, totalXp, level);
+            return;
+        }
+        
+        // if gain is unreasonably large even with baseline, something is wrong - skip
+        if (xpGained > MAX_REASONABLE_XP_GAIN) {
+            TilemanLog.debug(DebugCategory.TOKENS,
+                "Unusually large XP gain for {} ({} -> {}, +{}), skipping token award",
+                skill, oldXp, totalXp, xpGained);
+            return;
+        }
+        
+        // process XP gain for tokens
+        state.onXpGained(xpGained);
 
         TilemanLog.debug(DebugCategory.TOKENS,
-            "Detected {} XP: {} -> {} (level {}, {}/{}, tokens: {} available)",
+            "Detected {} XP: {} -> {} (+{}, level {}, {}/{}, tokens: {} available)",
             skill,
             oldXp,
             totalXp,
+            xpGained,
             level,
             current,
             needed,
-            newTokens
+            state.getTokens()
         );
 
-        if (tokensGranted > 0) {
-            for (int i = 0; i < tokensGranted; i++) {
-                MilestoneTracker.getInstance().onTokenEarned();
-            }
-            TilemanChat.info(
-                "+" + tokensGranted + " Block Unlock Token" +
-                (tokensGranted > 1 ? "s" : "") +
-                "! (Total: " + newTokens + ")"
-            );
-        }
-
-        long xpGained = totalXp - oldXp;
+        // track for milestones
         MilestoneTracker.getInstance().onXpGained(skill, xpGained);
     }
 

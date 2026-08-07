@@ -1,5 +1,7 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTracker;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -66,6 +68,15 @@ public final class TilemanLoginHandler {
             playerUuid,
             apiKey
         ).thenAccept(result -> client.execute(() -> applyResult(result)));
+
+        // Also fetch collections for milestone tracking
+        HypixelApiClient.fetchMaxedCollections(
+            playerUuid,
+            apiKey
+        ).thenAccept(result -> client.execute(() -> applyCollectionResult(result)));
+        
+        // Fetch dungeon completions for baseline
+        DungeonTracker.getInstance().fetchAndUpdateCompletions();
     }
 
     private static String resolveApiKey() {
@@ -122,6 +133,25 @@ public final class TilemanLoginHandler {
                 " total Skill XP, " +
                 state.getTokens() +
                 " token(s) available."
+        );
+    }
+
+    private static void applyCollectionResult(HypixelApiClient.CollectionResult result) {
+        if (!result.success()) {
+            TilemanLog.debug(DebugCategory.PROFILE,
+                "Could not fetch collections: {}",
+                result.errorMessage()
+            );
+            return;
+        }
+
+        TilemanState state = TilemanState.getInstance();
+        state.setMaxedCollections(result.maxedCount());
+
+        TilemanLog.debug(DebugCategory.PROFILE,
+            "Loaded collections: {} maxed out of {} tracked",
+            result.maxedCount(),
+            result.totalCollections()
         );
     }
 }

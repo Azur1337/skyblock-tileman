@@ -130,8 +130,6 @@ public class MilestoneScreen extends ContainerScreen {
             case SKILL -> Items.ENCHANTED_BOOK;
             case CHALLENGE -> Items.GOLDEN_APPLE;
             case FLAWLESS -> Items.DIAMOND;
-            case SLAYER -> Items.WITHER_SKELETON_SKULL;
-            case LOCATION -> Items.COMPASS;
             case SECRET -> Items.ENDER_EYE;
         };
     }

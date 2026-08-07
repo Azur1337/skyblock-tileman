@@ -26,7 +26,7 @@ public class GeneralCategory {
         @Expose
         @ConfigOption(name = "Action Bar", desc = "Log raw action bar text and XP parsing.")
         @ConfigEditorBoolean
-        public boolean actionBar = true;
+        public boolean actionBar = false;
 
         @Expose
         @ConfigOption(name = "Island Detection", desc = "Log /locraw responses and island changes.")

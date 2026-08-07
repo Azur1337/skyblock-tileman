@@ -112,10 +112,37 @@ public final class BlockValidation {
 
     public static boolean isPlayerOnUnlockedBlock() {
         Minecraft client = Minecraft.getInstance();
-        if (client.player == null) {
+        if (client.player == null || client.level == null) {
             return false;
         }
-        BlockPos playerPos = client.player.blockPosition().below();
-        return TilemanState.getInstance().isUnlocked(playerPos);
+        BlockPos standingOn = findStandingBlock(client.level, client.player.getX(), client.player.getY(), client.player.getZ());
+        return TilemanState.getInstance().isUnlocked(standingOn);
+    }
+    
+    private static BlockPos findStandingBlock(Level level, double x, double playerY, double z) {
+        int blockX = (int) Math.floor(x);
+        int blockZ = (int) Math.floor(z);
+        
+        for (int yOffset = 0; yOffset >= -2; yOffset--) {
+            int checkY = (int) Math.floor(playerY) + yOffset;
+            BlockPos pos = new BlockPos(blockX, checkY, blockZ);
+            BlockState state = level.getBlockState(pos);
+            
+            if (state.isAir()) {
+                continue;
+            }
+            
+            var shape = state.getCollisionShape(level, pos, CollisionContext.empty());
+            if (shape.isEmpty()) {
+                continue;
+            }
+            
+            double blockTop = checkY + shape.max(Direction.Axis.Y);
+            if (playerY >= blockTop - 0.01 && playerY <= blockTop + 0.5) {
+                return pos;
+            }
+        }
+        
+        return new BlockPos(blockX, (int) Math.floor(playerY) - 1, blockZ);
     }
 }

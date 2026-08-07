@@ -15,8 +15,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanSelectionMode;
 import com.azur.skyblocktileman.client.tileman.TilemanShopTicker;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.XpReconciler;
-import com.azur.skyblocktileman.client.tileman.milestone.FishingChatListener;
-import com.azur.skyblocktileman.client.tileman.milestone.SlayerChatListener;
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonChatListener;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
@@ -39,8 +38,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanHudOverlay.register();
         TilemanShopTicker.register();
         TilemanCompassRenderer.register();
-        SlayerChatListener.register();
-        FishingChatListener.register();
+        DungeonChatListener.register();
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             TilemanState.getInstance().save();

@@ -20,28 +20,33 @@ public enum MilestoneType {
     
     ISLANDS_EXPLORED("Islands Explored", MilestoneCategory.PROGRESSION, Items.FILLED_MAP,
         new long[]{3, 5, 10, 15, 20},
-        new int[]{3, 5, 10, 20, 35}),
+        new int[]{5, 10, 20, 35, 50}),
     
-    // skill xp milestones
-    COMBAT_XP("Combat XP", MilestoneCategory.SKILL, Items.DIAMOND_SWORD,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{1, 3, 5, 10, 20}),
+    // skill level milestones
+    COMBAT_LEVEL("Combat Level", MilestoneCategory.SKILL, Items.DIAMOND_SWORD,
+        new long[]{10, 25, 40, 50, 60},
+        new int[]{5, 15, 30, 50, 100},
+        "Reach Combat skill levels"),
     
-    MINING_XP("Mining XP", MilestoneCategory.SKILL, Items.DIAMOND_PICKAXE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{1, 3, 5, 10, 20}),
+    MINING_LEVEL("Mining Level", MilestoneCategory.SKILL, Items.DIAMOND_PICKAXE,
+        new long[]{10, 25, 40, 50, 60},
+        new int[]{5, 15, 30, 50, 100},
+        "Reach Mining skill levels"),
     
-    FORAGING_XP("Foraging XP", MilestoneCategory.SKILL, Items.DIAMOND_AXE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{1, 3, 5, 10, 20}),
+    FORAGING_LEVEL("Foraging Level", MilestoneCategory.SKILL, Items.DIAMOND_AXE,
+        new long[]{10, 25, 40, 50, 54},
+        new int[]{5, 15, 30, 50, 100},
+        "Reach Foraging skill levels"),
     
-    FARMING_XP("Farming XP", MilestoneCategory.SKILL, Items.DIAMOND_HOE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{1, 3, 5, 10, 20}),
+    FARMING_LEVEL("Farming Level", MilestoneCategory.SKILL, Items.DIAMOND_HOE,
+        new long[]{10, 25, 40, 50, 60},
+        new int[]{5, 15, 30, 50, 100},
+        "Reach Farming skill levels"),
     
-    FISHING_XP("Fishing XP", MilestoneCategory.SKILL, Items.FISHING_ROD,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{1, 3, 5, 10, 20}),
+    FISHING_LEVEL("Fishing Level", MilestoneCategory.SKILL, Items.FISHING_ROD,
+        new long[]{10, 25, 40, 50},
+        new int[]{5, 15, 30, 50},
+        "Reach Fishing skill levels"),
     
     // challenge milestones
     NO_MISTAKES("No Mistakes", MilestoneCategory.CHALLENGE, Items.GOLDEN_APPLE,
@@ -53,6 +58,32 @@ public enum MilestoneType {
         new long[]{30, 60, 120, 300, 600},
         new int[]{3, 5, 10, 25, 50},
         "Play X minutes without rule breaks"),
+    
+    // flawless milestones (xp earned while on tiles, resets on rule break)
+    FLAWLESS_MINING("Flawless Mining", MilestoneCategory.FLAWLESS, Items.DIAMOND_PICKAXE,
+        new long[]{5000, 25000, 100000, 500000, 2000000},
+        new int[]{5, 10, 20, 40, 75},
+        "Earn mining XP without leaving tiles"),
+    
+    FLAWLESS_FORAGING("Flawless Foraging", MilestoneCategory.FLAWLESS, Items.DIAMOND_AXE,
+        new long[]{5000, 25000, 100000, 500000, 2000000},
+        new int[]{5, 10, 20, 40, 75},
+        "Earn foraging XP without leaving tiles"),
+    
+    FLAWLESS_FARMING("Flawless Farming", MilestoneCategory.FLAWLESS, Items.DIAMOND_HOE,
+        new long[]{5000, 25000, 100000, 500000, 2000000},
+        new int[]{5, 10, 20, 40, 75},
+        "Earn farming XP without leaving tiles"),
+    
+    FLAWLESS_COMBAT("Flawless Combat", MilestoneCategory.FLAWLESS, Items.DIAMOND_SWORD,
+        new long[]{5000, 25000, 100000, 500000, 2000000},
+        new int[]{5, 10, 20, 40, 75},
+        "Earn combat XP without leaving tiles"),
+    
+    FLAWLESS_FISHING("Flawless Fishing", MilestoneCategory.FLAWLESS, Items.FISHING_ROD,
+        new long[]{5000, 25000, 100000, 500000, 2000000},
+        new int[]{5, 10, 20, 40, 75},
+        "Earn fishing XP without leaving tiles"),
     
     // secret milestones
     OOPS("Oops", MilestoneCategory.SECRET, Items.BARRIER,
@@ -78,44 +109,7 @@ public enum MilestoneType {
     JACKPOT("Jackpot", MilestoneCategory.SECRET, Items.DIAMOND,
         new long[]{1},
         new int[]{10},
-        "Proc triple+ unlock"),
-    
-    // slayer milestones
-    SLAYER_STREAK("Slayer Streak", MilestoneCategory.SLAYER, Items.ROTTEN_FLESH,
-        new long[]{5, 15, 30, 50, 100},
-        new int[]{5, 10, 20, 35, 60},
-        "Kill slayer bosses in a row without rule breaks"),
-    
-    FLAWLESS_SLAYER("Flawless Slayer", MilestoneCategory.SLAYER, Items.WITHER_SKELETON_SKULL,
-        new long[]{1, 5, 15, 30, 50},
-        new int[]{5, 10, 20, 35, 60},
-        "Complete slayer quests without leaving tiles"),
-    
-    // flawless challenges
-    FLAWLESS_FISHING("Flawless Fishing", MilestoneCategory.FLAWLESS, Items.TROPICAL_FISH,
-        new long[]{100, 500, 2000, 10000, 50000},
-        new int[]{5, 10, 20, 40, 75},
-        "Catch sea creatures without leaving tiles"),
-    
-    FLAWLESS_MINING("Flawless Mining", MilestoneCategory.FLAWLESS, Items.DIAMOND_PICKAXE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{5, 10, 20, 40, 75},
-        "Earn mining XP without leaving tiles"),
-    
-    FLAWLESS_FORAGING("Flawless Foraging", MilestoneCategory.FLAWLESS, Items.DIAMOND_AXE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{5, 10, 20, 40, 75},
-        "Earn foraging XP without leaving tiles"),
-    
-    FLAWLESS_FARMING("Flawless Farming", MilestoneCategory.FLAWLESS, Items.DIAMOND_HOE,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{5, 10, 20, 40, 75},
-        "Earn farming XP without leaving tiles"),
-    
-    FLAWLESS_COMBAT("Flawless Combat", MilestoneCategory.FLAWLESS, Items.DIAMOND_SWORD,
-        new long[]{5000, 25000, 100000, 500000, 2000000},
-        new int[]{5, 10, 20, 40, 75},
-        "Earn combat XP without leaving tiles");
+        "Proc triple+ unlock");
 
     private final String displayName;
     private final MilestoneCategory category;

@@ -92,21 +92,37 @@ public final class ScoreboardReader {
      * Parse scoreboard lines to detect slayer quest info.
      */
     private static void parseScoreboard(List<String> lines) {
+        // Log all scoreboard lines for debugging
+        TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Reading {} lines", lines.size());
+        for (int i = 0; i < lines.size(); i++) {
+            TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Line {}: '{}'", i, lines.get(i));
+        }
+        
         boolean foundSlayerQuest = false;
         
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             
-            // Look for "Slayer Quest" header
-            if (line.contains("Slayer Quest")) {
+            // Look for "Slayer Quest" header (case insensitive, partial match)
+            if (line.toLowerCase().contains("slayer")) {
+                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Found line containing 'slayer': '{}'", line);
+                
+                // Check if this line itself contains type/tier info
+                SlayerType typeInLine = SlayerType.fromDisplayName(line);
+                int tierInLine = SlayerType.parseTier(line);
+                if (typeInLine != null && tierInLine > 0) {
+                    TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] This line has type/tier: {} T{}", typeInLine, tierInLine);
+                    SlayerChatListener.onScoreboardSlayerInfo(line);
+                    continue;
+                }
+                
                 foundSlayerQuest = true;
-                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Found 'Slayer Quest' header at line {}", i);
                 continue;
             }
             
             // If we just found "Slayer Quest", the next line should be the slayer type/tier
             if (foundSlayerQuest) {
-                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Checking line after header: '{}'", line);
+                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Checking line after slayer header: '{}'", line);
                 
                 // Try to parse slayer type and tier from lines like "Revenant Horror I" or "Inferno Demonlord IV"
                 SlayerType type = SlayerType.fromDisplayName(line);

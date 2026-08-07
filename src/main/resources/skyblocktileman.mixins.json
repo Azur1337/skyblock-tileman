@@ -2,7 +2,7 @@
   "required": true,
   "package": "com.azur.skyblocktileman.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": ["TilemanActionBarMixin", "DungeonMenuMixin", "DungeonTooltipMixin"],
+  "mixins": ["TilemanActionBarMixin", "DungeonMenuMixin"],
   "injectors": {
     "defaultRequire": 1
   },

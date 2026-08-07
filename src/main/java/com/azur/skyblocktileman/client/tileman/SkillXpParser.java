@@ -277,11 +277,14 @@ public final class SkillXpParser {
         // update stored XP regardless
         state.setSkillXp(skill, totalXp);
         
-        // if no baseline existed (oldXp == 0), this is initial detection - just set baseline
+        // if no baseline existed (oldXp == 0), this is initial detection
+        // Award tokens for all existing XP (retroactive)
         if (oldXp == 0) {
             TilemanLog.debug(DebugCategory.TOKENS,
-                "Initial {} XP baseline set to {} (level {})",
+                "Initial {} XP baseline set to {} (level {}), awarding retroactive tokens",
                 skill, totalXp, level);
+            state.onXpGained(totalXp);
+            MilestoneTracker.getInstance().onXpGained(skill, totalXp);
             return;
         }
         

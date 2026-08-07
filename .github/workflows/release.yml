@@ -32,12 +32,13 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Find JAR file
+      - name: Find Shadow JAR file
         id: find_jar
         run: |
-          JAR_FILE=$(find build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-dev.jar" | head -1)
+          JAR_FILE=$(find build/libs -name "*-shadow.jar" | head -1)
           echo "JAR_PATH=$JAR_FILE" >> $GITHUB_OUTPUT
           echo "JAR_NAME=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
+          echo "Found JAR: $JAR_FILE"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

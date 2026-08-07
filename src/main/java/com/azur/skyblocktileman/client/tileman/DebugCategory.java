@@ -7,6 +7,7 @@ public enum DebugCategory {
     TOKENS("Tokens", "Token earning and spending"),
     BLOCKS("Blocks", "Block unlocking and first block mode"),
     RENDERING("Rendering", "Overlay and HUD rendering"),
+    SLAYER("Slayer", "Slayer quest detection and tracking"),
     ALL("All", "All debug messages");
 
     private final String displayName;

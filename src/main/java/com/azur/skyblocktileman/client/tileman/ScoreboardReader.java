@@ -100,17 +100,22 @@ public final class ScoreboardReader {
             // Look for "Slayer Quest" header
             if (line.contains("Slayer Quest")) {
                 foundSlayerQuest = true;
+                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Found 'Slayer Quest' header at line {}", i);
                 continue;
             }
             
             // If we just found "Slayer Quest", the next line should be the slayer type/tier
             if (foundSlayerQuest) {
+                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Checking line after header: '{}'", line);
+                
                 // Try to parse slayer type and tier from lines like "Revenant Horror I" or "Inferno Demonlord IV"
                 SlayerType type = SlayerType.fromDisplayName(line);
                 int tier = SlayerType.parseTier(line);
                 
+                TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Parsed: type={}, tier={}", type, tier);
+                
                 if (type != null && tier > 0) {
-                    TilemanLog.debug(DebugCategory.ALL, "Scoreboard slayer detected: {} T{}", type.getDisplayName(), tier);
+                    TilemanLog.debug(DebugCategory.SLAYER, "[SCOREBOARD] Valid slayer detected: {} T{}", type.getDisplayName(), tier);
                     SlayerChatListener.onScoreboardSlayerInfo(line);
                 }
                 

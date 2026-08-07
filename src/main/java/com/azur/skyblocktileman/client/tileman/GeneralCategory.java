@@ -52,5 +52,10 @@ public class GeneralCategory {
         @ConfigOption(name = "Rendering", desc = "Log overlay and HUD rendering.")
         @ConfigEditorBoolean
         public boolean rendering = true;
+
+        @Expose
+        @ConfigOption(name = "Slayer", desc = "Log slayer quest detection and milestone tracking.")
+        @ConfigEditorBoolean
+        public boolean slayer = true;
     }
 }

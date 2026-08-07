@@ -60,7 +60,7 @@ public final class SlayerChatListener {
         // Check for boss spawned (can appear as title/subtitle)
         if (overlay) {
             if (BOSS_SPAWNED.matcher(stripped).find()) {
-                TilemanLog.debug(DebugCategory.ALL, "Slayer boss spawned detected from overlay");
+                TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Boss spawned detected from overlay: {}", stripped);
                 SlayerTracker.getInstance().onBossSpawned();
             }
             return;
@@ -68,7 +68,7 @@ public final class SlayerChatListener {
         
         // Check for quest started
         if (QUEST_STARTED.matcher(stripped).find()) {
-            TilemanLog.debug(DebugCategory.ALL, "Slayer quest started detected: type={}, tier={}", pendingType, pendingTier);
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Quest started detected, pending type={}, tier={}", pendingType, pendingTier);
             // Type/tier should have been detected from the previous slay requirement message
             SlayerTracker.getInstance().onQuestStarted(pendingType, pendingTier);
             // Don't reset pending - the requirement message might come after STARTED
@@ -84,7 +84,8 @@ public final class SlayerChatListener {
             int xpRequired = parseXpAmount(xpStr);
             int tier = getTierFromXp(type, xpRequired);
             
-            TilemanLog.debug(DebugCategory.ALL, "Detected slayer from requirement: type={}, xp={}, tier={}", type, xpRequired, tier);
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Slay requirement: mob={}, xpStr={}, xp={}, type={}, tier={}", 
+                mobType, xpStr, xpRequired, type, tier);
             
             if (type != null) {
                 pendingType = type;
@@ -92,6 +93,7 @@ public final class SlayerChatListener {
                 
                 SlayerTracker tracker = SlayerTracker.getInstance();
                 if (tracker.isQuestActive()) {
+                    TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Updating active quest with type/tier");
                     tracker.updateQuestInfo(type, tier);
                 }
             }
@@ -100,7 +102,7 @@ public final class SlayerChatListener {
         
         // Check for quest complete
         if (QUEST_COMPLETE.matcher(stripped).find()) {
-            TilemanLog.debug(DebugCategory.ALL, "Slayer quest complete detected");
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Quest COMPLETE detected");
             SlayerTracker.getInstance().onQuestComplete();
             pendingType = null;
             pendingTier = 0;
@@ -109,7 +111,7 @@ public final class SlayerChatListener {
         
         // Check for quest failed
         if (QUEST_FAILED.matcher(stripped).find()) {
-            TilemanLog.debug(DebugCategory.ALL, "Slayer quest failed detected");
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Quest FAILED detected");
             SlayerTracker.getInstance().onQuestFailed();
             pendingType = null;
             pendingTier = 0;
@@ -118,7 +120,7 @@ public final class SlayerChatListener {
         
         // Check for boss spawned in chat (backup)
         if (BOSS_SPAWNED.matcher(stripped).find()) {
-            TilemanLog.debug(DebugCategory.ALL, "Slayer boss spawned detected from chat");
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Boss spawned detected from chat: {}", stripped);
             SlayerTracker.getInstance().onBossSpawned();
         }
     }
@@ -207,17 +209,24 @@ public final class SlayerChatListener {
      * Called from scoreboard parser when slayer quest info is detected.
      */
     public static void onScoreboardSlayerInfo(String slayerLine) {
+        TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] onScoreboardSlayerInfo called with: '{}'", slayerLine);
+        
         if (slayerLine == null) return;
         
         SlayerType type = SlayerType.fromDisplayName(slayerLine);
         int tier = SlayerType.parseTier(slayerLine);
+        
+        TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Parsed scoreboard info: type={}, tier={}", type, tier);
         
         if (type != null && tier > 0) {
             pendingType = type;
             pendingTier = tier;
             
             SlayerTracker tracker = SlayerTracker.getInstance();
+            TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Tracker state: active={}", tracker.isQuestActive());
+            
             if (tracker.isQuestActive()) {
+                TilemanLog.debug(DebugCategory.SLAYER, "[CHAT] Calling tracker.updateQuestInfo");
                 tracker.updateQuestInfo(type, tier);
             }
         }

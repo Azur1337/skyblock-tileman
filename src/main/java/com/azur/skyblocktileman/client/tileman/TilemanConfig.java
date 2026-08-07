@@ -77,6 +77,7 @@ public final class TilemanConfig {
             case TOKENS -> debug.tokens;
             case BLOCKS -> debug.blocks;
             case RENDERING -> debug.rendering;
+            case SLAYER -> debug.slayer;
             case ALL -> true;
         };
     }

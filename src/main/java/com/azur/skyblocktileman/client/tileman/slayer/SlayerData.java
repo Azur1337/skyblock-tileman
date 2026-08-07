@@ -43,6 +43,7 @@ public class SlayerData {
         s.totalCompletions++;
         
         if (tier >= 4) {
+            s.t4PlusKills++;
             s.flawlessT4Plus++;
             totalFlawlessT4Plus++;
             currentFlawlessStreak++;
@@ -63,8 +64,9 @@ public class SlayerData {
         SlayerStats s = getStats(type);
         s.totalCompletions++;
         
-        // Tainted completion breaks the streak
+        // Tainted completion still counts as a T4+ kill, just not flawless
         if (tier >= 4) {
+            s.t4PlusKills++;
             currentFlawlessStreak = 0;
         }
     }
@@ -72,6 +74,9 @@ public class SlayerData {
     public static class SlayerStats {
         @Expose
         public int totalCompletions = 0;
+        
+        @Expose
+        public int t4PlusKills = 0;
         
         @Expose
         public int flawlessT4Plus = 0;

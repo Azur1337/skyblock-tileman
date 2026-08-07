@@ -3,6 +3,7 @@ package com.azur.skyblocktileman.client.tileman.milestone;
 public enum MilestoneCategory {
     PROGRESSION("Progression"),
     SKILL("Skills"),
+    SLAYER("Slayer"),
     CHALLENGE("Challenges"),
     FLAWLESS("Flawless"),
     SECRET("Secret");

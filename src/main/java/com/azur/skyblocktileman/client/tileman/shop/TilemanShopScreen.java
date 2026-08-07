@@ -61,8 +61,9 @@ public class TilemanShopScreen extends ContainerScreen {
         clearContainer();
         fillBorder();
         
-        setItem(22, createCategoryItem(ShopCategory.PERMANENT));
-        setItem(24, createCategoryItem(ShopCategory.CONSUMABLES));
+        // Center the 2 categories symmetrically (slots 21 and 23)
+        setItem(21, createCategoryItem(ShopCategory.PERMANENT));
+        setItem(23, createCategoryItem(ShopCategory.CONSUMABLES));
     }
 
     private void loadCategory(ShopCategory category) {
@@ -124,11 +125,22 @@ public class TilemanShopScreen extends ContainerScreen {
         int tokens = TilemanState.getInstance().getTokens();
         
         ItemStack remoteItem = new ItemStack(Items.ENDER_PEARL);
-        setItemName(remoteItem, "§aRemote Unlock");
+        String remoteReq = ShopRequirements.getConsumableRequirementText("remote_unlock");
+        boolean remoteLocked = remoteReq != null;
+        
+        if (remoteLocked) {
+            setItemName(remoteItem, "§cRemote Unlock §4[LOCKED]");
+        } else {
+            setItemName(remoteItem, "§aRemote Unlock");
+        }
+        
         List<Component> remoteLore = new ArrayList<>();
         remoteLore.add(Component.literal("§7Next unlock ignores adjacency"));
         remoteLore.add(Component.empty());
-        if (shop.isRemoteUnlockPending()) {
+        
+        if (remoteLocked) {
+            remoteLore.add(Component.literal("§c" + remoteReq));
+        } else if (shop.isRemoteUnlockPending()) {
             remoteLore.add(Component.literal("§6ACTIVE - Ready to use!"));
             remoteItem.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
         } else {
@@ -432,6 +444,11 @@ public class TilemanShopScreen extends ContainerScreen {
             }
         } else if (currentCategory == ShopCategory.CONSUMABLES) {
             if (name.contains("Remote Unlock") && !shop.isRemoteUnlockPending()) {
+                if (!ShopRequirements.canPurchaseConsumable("remote_unlock")) {
+                    playFail();
+                    TilemanChat.warn("Unlock required milestone first!");
+                    return;
+                }
                 if (state.spendTokens(5)) {
                     shop.setRemoteUnlockPending(true);
                     purchased = true;

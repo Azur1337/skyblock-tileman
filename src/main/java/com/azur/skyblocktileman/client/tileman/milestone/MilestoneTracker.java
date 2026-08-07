@@ -74,8 +74,25 @@ public class MilestoneTracker {
             case FARMING_LEVEL -> state.getSkillLevel("Farming");
             case FISHING_LEVEL -> state.getSkillLevel("Fishing");
             
+            // Slayer kill milestones (T4+ kills)
+            case REVENANT_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.REVENANT).t4PlusKills;
+            case TARANTULA_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.TARANTULA).t4PlusKills;
+            case SVEN_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.SVEN).t4PlusKills;
+            case VOIDGLOOM_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.VOIDGLOOM).t4PlusKills;
+            case INFERNO_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.INFERNO).t4PlusKills;
+            case RIFTSTALKER_KILLS -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.RIFTSTALKER).t4PlusKills;
+            
+            // Flawless slayer milestones (per type)
+            case FLAWLESS_REVENANT -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.REVENANT).flawlessT4Plus;
+            case FLAWLESS_TARANTULA -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.TARANTULA).flawlessT4Plus;
+            case FLAWLESS_SVEN -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.SVEN).flawlessT4Plus;
+            case FLAWLESS_VOIDGLOOM -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.VOIDGLOOM).flawlessT4Plus;
+            case FLAWLESS_INFERNO -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.INFERNO).flawlessT4Plus;
+            case FLAWLESS_RIFTSTALKER -> state.getSlayerData().getStats(com.azur.skyblocktileman.client.tileman.slayer.SlayerType.RIFTSTALKER).flawlessT4Plus;
+            
             case NO_MISTAKES -> milestones.getNoMistakeStreak();
             case MARATHON -> milestones.getMarathonMinutes();
+            case SLAYER_STREAK -> state.getSlayerData().getBestFlawlessStreak();
             
             case FLAWLESS_MINING -> milestones.getFlawlessMiningXp();
             case FLAWLESS_FORAGING -> milestones.getFlawlessForagingXp();
@@ -88,9 +105,6 @@ public class MilestoneTracker {
             case BIG_SPENDER -> milestones.getTotalShopSpent();
             case LUCKY_DAY -> milestones.getLuckyProcsThisSession();
             case JACKPOT -> milestones.getProgress(MilestoneType.JACKPOT);
-            
-            case FLAWLESS_SLAYER -> state.getSlayerData().getTotalFlawlessT4Plus();
-            case SLAYER_STREAK -> state.getSlayerData().getBestFlawlessStreak();
         };
     }
     

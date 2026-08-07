@@ -46,6 +46,9 @@ public class ShopRequirements {
         
         // xp frenzy consumable requires no mistakes milestone
         REQUIREMENTS.put("xp_frenzy", new Requirement(MilestoneType.NO_MISTAKES, 1)); // 25 tiles streak
+        
+        // remote unlock requires tiles unlocked milestone
+        REQUIREMENTS.put("remote_unlock", new Requirement(MilestoneType.TILES_UNLOCKED, 2)); // tier 2 = 100 tiles
     }
     
     public static boolean canPurchase(String itemKey, int targetLevel) {

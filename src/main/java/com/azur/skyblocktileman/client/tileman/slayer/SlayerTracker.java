@@ -110,6 +110,8 @@ public class SlayerTracker {
             if (tainted) {
                 data.recordTaintedCompletion(currentType, currentTier);
                 TilemanChat.info("§e§lSLAYER COMPLETE! §7(not flawless - stepped on locked tiles)");
+                // Still check kill milestones (tainted kills count for kills, not flawless)
+                checkSlayerKillMilestone(currentType);
             } else {
                 data.recordFlawlessCompletion(currentType, currentTier);
                 
@@ -120,8 +122,8 @@ public class SlayerTracker {
                     (currentType != null ? currentType.getDisplayName() : "Slayer") + " T" + currentTier);
                 TilemanChat.info("§7Streak: §e" + streak + " §7| Total: §e" + total);
                 
-                // Check slayer milestones
-                MilestoneTracker.getInstance().checkMilestone(MilestoneType.FLAWLESS_SLAYER);
+                // Check per-type slayer milestones
+                checkSlayerMilestones(currentType);
                 MilestoneTracker.getInstance().checkMilestone(MilestoneType.SLAYER_STREAK);
                 
                 // Play special sound
@@ -203,5 +205,45 @@ public class SlayerTracker {
     
     private SlayerData getSlayerData() {
         return TilemanState.getInstance().getSlayerData();
+    }
+    
+    /**
+     * Check both kill and flawless milestones for a slayer type.
+     */
+    private void checkSlayerMilestones(SlayerType type) {
+        checkSlayerKillMilestone(type);
+        checkSlayerFlawlessMilestone(type);
+    }
+    
+    /**
+     * Check the kill milestone for a slayer type.
+     */
+    private void checkSlayerKillMilestone(SlayerType type) {
+        if (type == null) return;
+        MilestoneType killMilestone = switch (type) {
+            case REVENANT -> MilestoneType.REVENANT_KILLS;
+            case TARANTULA -> MilestoneType.TARANTULA_KILLS;
+            case SVEN -> MilestoneType.SVEN_KILLS;
+            case VOIDGLOOM -> MilestoneType.VOIDGLOOM_KILLS;
+            case INFERNO -> MilestoneType.INFERNO_KILLS;
+            case RIFTSTALKER -> MilestoneType.RIFTSTALKER_KILLS;
+        };
+        MilestoneTracker.getInstance().checkMilestone(killMilestone);
+    }
+    
+    /**
+     * Check the flawless milestone for a slayer type.
+     */
+    private void checkSlayerFlawlessMilestone(SlayerType type) {
+        if (type == null) return;
+        MilestoneType flawlessMilestone = switch (type) {
+            case REVENANT -> MilestoneType.FLAWLESS_REVENANT;
+            case TARANTULA -> MilestoneType.FLAWLESS_TARANTULA;
+            case SVEN -> MilestoneType.FLAWLESS_SVEN;
+            case VOIDGLOOM -> MilestoneType.FLAWLESS_VOIDGLOOM;
+            case INFERNO -> MilestoneType.FLAWLESS_INFERNO;
+            case RIFTSTALKER -> MilestoneType.FLAWLESS_RIFTSTALKER;
+        };
+        MilestoneTracker.getInstance().checkMilestone(flawlessMilestone);
     }
 }

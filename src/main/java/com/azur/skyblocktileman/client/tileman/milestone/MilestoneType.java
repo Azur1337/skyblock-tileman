@@ -48,6 +48,37 @@ public enum MilestoneType {
         new int[]{5, 15, 30, 50},
         "Reach Fishing skill levels"),
     
+    // slayer milestones - kills (T4+ only, starts at harder amounts)
+    REVENANT_KILLS("Revenant Slayer", MilestoneCategory.SLAYER, Items.ROTTEN_FLESH,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4+ Revenant Horror bosses"),
+    
+    TARANTULA_KILLS("Tarantula Slayer", MilestoneCategory.SLAYER, Items.STRING,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4 Tarantula Broodfather bosses"),
+    
+    SVEN_KILLS("Sven Slayer", MilestoneCategory.SLAYER, Items.BONE,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4 Sven Packmaster bosses"),
+    
+    VOIDGLOOM_KILLS("Voidgloom Slayer", MilestoneCategory.SLAYER, Items.ENDER_PEARL,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4 Voidgloom Seraph bosses"),
+    
+    INFERNO_KILLS("Inferno Slayer", MilestoneCategory.SLAYER, Items.BLAZE_ROD,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4+ Inferno Demonlord bosses"),
+    
+    RIFTSTALKER_KILLS("Riftstalker Slayer", MilestoneCategory.SLAYER, Items.GLASS_BOTTLE,
+        new long[]{10, 50, 150, 500, 1000},
+        new int[]{5, 15, 30, 75, 150},
+        "Kill T4+ Riftstalker Bloodfiend bosses"),
+    
     // challenge milestones
     NO_MISTAKES("No Mistakes", MilestoneCategory.CHALLENGE, Items.GOLDEN_APPLE,
         new long[]{25, 100, 500, 1000, 2500},
@@ -58,6 +89,11 @@ public enum MilestoneType {
         new long[]{30, 60, 120, 300, 600},
         new int[]{3, 5, 10, 25, 50},
         "Play X minutes without rule breaks"),
+    
+    SLAYER_STREAK("Slayer Streak", MilestoneCategory.CHALLENGE, Items.WITHER_SKELETON_SKULL,
+        new long[]{3, 5, 10, 25, 50},
+        new int[]{10, 20, 50, 100, 250},
+        "T4+ flawless kills in a row (any slayer)"),
     
     // flawless milestones (xp earned while on tiles, resets on rule break)
     FLAWLESS_MINING("Flawless Mining", MilestoneCategory.FLAWLESS, Items.DIAMOND_PICKAXE,
@@ -85,6 +121,37 @@ public enum MilestoneType {
         new int[]{5, 10, 20, 40, 75},
         "Earn fishing XP without leaving tiles"),
     
+    // flawless slayer (per type) - kill T4+ without stepping on locked tiles
+    FLAWLESS_REVENANT("Flawless Revenant", MilestoneCategory.FLAWLESS, Items.ZOMBIE_HEAD,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4+ Revenant without leaving tiles"),
+    
+    FLAWLESS_TARANTULA("Flawless Tarantula", MilestoneCategory.FLAWLESS, Items.SPIDER_EYE,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4 Tarantula without leaving tiles"),
+    
+    FLAWLESS_SVEN("Flawless Sven", MilestoneCategory.FLAWLESS, Items.BONE,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4 Sven without leaving tiles"),
+    
+    FLAWLESS_VOIDGLOOM("Flawless Voidgloom", MilestoneCategory.FLAWLESS, Items.ENDER_EYE,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4 Voidgloom without leaving tiles"),
+    
+    FLAWLESS_INFERNO("Flawless Inferno", MilestoneCategory.FLAWLESS, Items.BLAZE_POWDER,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4+ Inferno without leaving tiles"),
+    
+    FLAWLESS_RIFTSTALKER("Flawless Riftstalker", MilestoneCategory.FLAWLESS, Items.REDSTONE,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4+ Riftstalker without leaving tiles"),
+    
     // secret milestones
     OOPS("Oops", MilestoneCategory.SECRET, Items.BARRIER,
         new long[]{100},
@@ -109,18 +176,7 @@ public enum MilestoneType {
     JACKPOT("Jackpot", MilestoneCategory.SECRET, Items.DIAMOND,
         new long[]{1},
         new int[]{10},
-        "Proc triple+ unlock"),
-    
-    // slayer flawless milestones
-    FLAWLESS_SLAYER("Flawless Slayer", MilestoneCategory.FLAWLESS, Items.WITHER_SKELETON_SKULL,
-        new long[]{1, 5, 15, 50, 100},
-        new int[]{10, 25, 50, 100, 200},
-        "Kill T4+ boss without leaving tiles"),
-    
-    SLAYER_STREAK("Slayer Streak", MilestoneCategory.CHALLENGE, Items.BLAZE_ROD,
-        new long[]{3, 5, 10, 25, 50},
-        new int[]{10, 20, 50, 100, 250},
-        "T4+ flawless kills in a row");
+        "Proc triple+ unlock");
 
     private final String displayName;
     private final MilestoneCategory category;

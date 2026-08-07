@@ -57,13 +57,14 @@ public class MilestoneScreen extends ContainerScreen {
         clearContainer();
         fillBorder();
 
-        int slot = 10;
-        for (MilestoneCategory category : MilestoneCategory.values()) {
-            if (slot == 17) slot = 19;
-            if (slot > 25) break;
-            
-            setItem(slot, createCategoryItem(category));
-            slot++;
+        // 6 categories - lay them out in 2 rows of 3 for better centering
+        MilestoneCategory[] categories = MilestoneCategory.values();
+        // Row 1: slots 11, 13, 15 (centered in row 2)
+        // Row 2: slots 20, 22, 24 (centered in row 3)
+        int[] slots = {11, 13, 15, 20, 22, 24};
+        
+        for (int i = 0; i < categories.length && i < slots.length; i++) {
+            setItem(slots[i], createCategoryItem(categories[i]));
         }
 
         setItem(40, createStatsItem());
@@ -128,6 +129,7 @@ public class MilestoneScreen extends ContainerScreen {
         return switch (category) {
             case PROGRESSION -> Items.GOLDEN_PICKAXE;
             case SKILL -> Items.ENCHANTED_BOOK;
+            case SLAYER -> Items.WITHER_SKELETON_SKULL;
             case CHALLENGE -> Items.GOLDEN_APPLE;
             case FLAWLESS -> Items.DIAMOND;
             case SECRET -> Items.ENDER_EYE;

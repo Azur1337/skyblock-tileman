@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client;
 
+import com.azur.skyblocktileman.client.tileman.ScoreboardReader;
 import com.azur.skyblocktileman.client.tileman.TilemanActionBarListener;
 import com.azur.skyblocktileman.client.tileman.TilemanCommands;
 import com.azur.skyblocktileman.client.tileman.TilemanCompassRenderer;
@@ -43,6 +44,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         DungeonChatListener.register();
         DungeonTooltipHandler.register();
         SlayerChatListener.register();
+        ScoreboardReader.register();
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             TilemanState.getInstance().save();

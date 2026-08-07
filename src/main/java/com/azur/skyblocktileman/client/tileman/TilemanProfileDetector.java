@@ -37,6 +37,11 @@ public final class TilemanProfileDetector {
         }
 
         String text = message.getString();
+        
+        // Skip messages sent by this mod to prevent infinite recursion
+        if (text.contains("[Tileman]")) {
+            return;
+        }
 
         Matcher switchMatcher = PROFILE_SWITCH_PATTERN.matcher(text);
         if (switchMatcher.find()) {

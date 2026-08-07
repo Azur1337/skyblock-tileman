@@ -68,6 +68,11 @@ public final class DungeonChatListener {
         String stripped = ChatFormatting.stripFormatting(text);
         if (stripped == null) return;
         
+        // Skip messages sent by this mod to prevent infinite recursion
+        if (stripped.startsWith("[Tileman]")) {
+            return;
+        }
+        
         TilemanLog.debug(DebugCategory.ALL, "Chat message: {}", stripped);
         
         // Check for dungeon entry

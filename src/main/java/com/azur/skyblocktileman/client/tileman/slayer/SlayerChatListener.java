@@ -52,6 +52,11 @@ public final class SlayerChatListener {
         String stripped = ChatFormatting.stripFormatting(text);
         if (stripped == null) return;
         
+        // Skip messages sent by this mod to prevent infinite recursion
+        if (stripped.startsWith("[Tileman]")) {
+            return;
+        }
+        
         // Check for boss spawned (can appear as title/subtitle)
         if (overlay) {
             if (BOSS_SPAWNED.matcher(stripped).find()) {

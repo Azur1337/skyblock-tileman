@@ -73,7 +73,8 @@ public final class DungeonChatListener {
             return;
         }
         
-        TilemanLog.debug(DebugCategory.ALL, "Chat message: {}", stripped);
+        // Log all chat messages if CHAT debug is enabled (very spammy!)
+        TilemanLog.debug(DebugCategory.CHAT, "Chat: {}", stripped);
         
         // Check for dungeon entry
         checkDungeonEntry(stripped);

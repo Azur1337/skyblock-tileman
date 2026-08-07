@@ -78,6 +78,8 @@ public final class TilemanConfig {
             case BLOCKS -> debug.blocks;
             case RENDERING -> debug.rendering;
             case SLAYER -> debug.slayer;
+            case DUNGEON -> debug.dungeon;
+            case CHAT -> debug.chat;
             case ALL -> true;
         };
     }

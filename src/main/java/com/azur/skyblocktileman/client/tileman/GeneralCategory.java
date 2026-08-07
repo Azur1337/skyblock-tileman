@@ -51,11 +51,21 @@ public class GeneralCategory {
         @Expose
         @ConfigOption(name = "Rendering", desc = "Log overlay and HUD rendering.")
         @ConfigEditorBoolean
-        public boolean rendering = true;
+        public boolean rendering = false;
 
         @Expose
         @ConfigOption(name = "Slayer", desc = "Log slayer quest detection and milestone tracking.")
         @ConfigEditorBoolean
         public boolean slayer = true;
+
+        @Expose
+        @ConfigOption(name = "Dungeon", desc = "Log dungeon floor detection and blocking.")
+        @ConfigEditorBoolean
+        public boolean dungeon = true;
+
+        @Expose
+        @ConfigOption(name = "Chat (Spammy!)", desc = "Log ALL chat messages. Very spammy, only for debugging!")
+        @ConfigEditorBoolean
+        public boolean chat = false;
     }
 }

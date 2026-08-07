@@ -109,7 +109,18 @@ public enum MilestoneType {
     JACKPOT("Jackpot", MilestoneCategory.SECRET, Items.DIAMOND,
         new long[]{1},
         new int[]{10},
-        "Proc triple+ unlock");
+        "Proc triple+ unlock"),
+    
+    // slayer flawless milestones
+    FLAWLESS_SLAYER("Flawless Slayer", MilestoneCategory.FLAWLESS, Items.WITHER_SKELETON_SKULL,
+        new long[]{1, 5, 15, 50, 100},
+        new int[]{10, 25, 50, 100, 200},
+        "Kill T4+ boss without leaving tiles"),
+    
+    SLAYER_STREAK("Slayer Streak", MilestoneCategory.CHALLENGE, Items.BLAZE_ROD,
+        new long[]{3, 5, 10, 25, 50},
+        new int[]{10, 20, 50, 100, 250},
+        "T4+ flawless kills in a row");
 
     private final String displayName;
     private final MilestoneCategory category;

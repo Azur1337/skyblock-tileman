@@ -1,6 +1,7 @@
 package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerTracker;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 
@@ -72,6 +73,7 @@ public final class TilemanPunishmentHandler {
 			TilemanState.getInstance().addRuleBreak();
 			MilestoneTracker.getInstance().onRuleBreak();
 			MilestoneTracker.getInstance().resetFlawlessTracking();
+			SlayerTracker.getInstance().onSteppedOnLockedTile();
 			wasOnSafeBlock = false;
 		}
 

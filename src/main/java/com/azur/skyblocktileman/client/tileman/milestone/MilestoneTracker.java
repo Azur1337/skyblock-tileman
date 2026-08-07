@@ -88,6 +88,9 @@ public class MilestoneTracker {
             case BIG_SPENDER -> milestones.getTotalShopSpent();
             case LUCKY_DAY -> milestones.getLuckyProcsThisSession();
             case JACKPOT -> milestones.getProgress(MilestoneType.JACKPOT);
+            
+            case FLAWLESS_SLAYER -> state.getSlayerData().getTotalFlawlessT4Plus();
+            case SLAYER_STREAK -> state.getSlayerData().getBestFlawlessStreak();
         };
     }
     

@@ -452,6 +452,10 @@ public final class TilemanState {
         return activeProfile().getDungeons();
     }
 
+    public com.azur.skyblocktileman.client.tileman.slayer.SlayerData getSlayerData() {
+        return activeProfile().getSlayers();
+    }
+
     public int getLifetimeTokensEarned() {
         return activeProfile().getTokensEarned();
     }

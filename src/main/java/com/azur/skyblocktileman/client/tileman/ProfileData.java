@@ -7,6 +7,7 @@ import java.util.Set;
 
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonData;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerData;
 
 public class ProfileData {
 
@@ -20,6 +21,7 @@ public class ProfileData {
     private ShopData shop = new ShopData();
     private MilestoneData milestones = new MilestoneData();
     private DungeonData dungeons = new DungeonData();
+    private SlayerData slayers = new SlayerData();
     
     // legacy field - kept for migration but no longer used
     private int lifetimeTokensEarned = 0;
@@ -123,6 +125,13 @@ public class ProfileData {
             dungeons = new DungeonData();
         }
         return dungeons;
+    }
+
+    public SlayerData getSlayers() {
+        if (slayers == null) {
+            slayers = new SlayerData();
+        }
+        return slayers;
     }
 
     // legacy method - redirects to new field

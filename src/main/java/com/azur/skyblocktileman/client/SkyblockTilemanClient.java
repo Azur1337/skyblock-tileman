@@ -17,6 +17,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonChatListener;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTooltipHandler;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerChatListener;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
@@ -41,6 +42,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanCompassRenderer.register();
         DungeonChatListener.register();
         DungeonTooltipHandler.register();
+        SlayerChatListener.register();
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             TilemanState.getInstance().save();

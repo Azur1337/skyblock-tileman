@@ -54,14 +54,24 @@ public class SlayerTracker {
     }
     
     /**
-     * Called when slayer type/tier is detected from scoreboard.
+     * Called when slayer type/tier is detected from chat requirement or scoreboard.
      */
     public void updateQuestInfo(SlayerType type, int tier) {
-        if (questActive && currentType == null) {
-            currentType = type;
-            currentTier = tier;
-            TilemanLog.debug(DebugCategory.ALL, "Slayer quest info updated: {} T{}", 
-                type != null ? type.getDisplayName() : "Unknown", tier);
+        // Update if we don't have info yet, or if quest is active and we have better info
+        if (type != null && tier > 0) {
+            if (currentType == null || currentTier == 0) {
+                boolean wasTracking = questActive && currentTier >= 4;
+                currentType = type;
+                currentTier = tier;
+                TilemanLog.debug(DebugCategory.ALL, "Slayer quest info updated: {} T{}", 
+                    type.getDisplayName(), tier);
+                
+                // If quest is active and this is T4+, notify about flawless tracking
+                if (questActive && tier >= 4 && !wasTracking) {
+                    TilemanChat.info("§d§lFLAWLESS TRACKING: §r" + type.getDisplayName() + " T" + tier);
+                    TilemanChat.info("§7Don't step on locked tiles to complete flawlessly!");
+                }
+            }
         }
     }
     

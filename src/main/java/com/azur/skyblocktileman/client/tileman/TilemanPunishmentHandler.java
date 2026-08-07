@@ -60,7 +60,9 @@ public final class TilemanPunishmentHandler {
 	        BlockPos playerPos = client.player.blockPosition();
 	        double playerY = client.player.getY();
 	        BlockPos standingOn = findStandingBlock(client.level, client.player.getX(), playerY, client.player.getZ());
-	        violating = !TilemanState.getInstance().isUnlocked(standingOn);
+	        
+	        // Use column-based unlock check to handle jumping and caves properly
+	        violating = !TilemanState.getInstance().isUnlockedColumn(standingOn, client.level);
 
 		if (!violating) {
 			wasOnSafeBlock = true;
@@ -136,6 +138,7 @@ public final class TilemanPunishmentHandler {
 	        int blockX = (int) Math.floor(x);
 	        int blockZ = (int) Math.floor(z);
 	        
+	        // Check a wider range to handle stairs and slabs
 	        for (int yOffset = 0; yOffset >= -2; yOffset--) {
 	            int checkY = (int) Math.floor(playerY) + yOffset;
 	            BlockPos pos = new BlockPos(blockX, checkY, blockZ);
@@ -151,11 +154,14 @@ public final class TilemanPunishmentHandler {
 	            }
 	            
 	            double blockTop = checkY + shape.max(Direction.Axis.Y);
-	            if (playerY >= blockTop - 0.01 && playerY <= blockTop + 0.5) {
+	            // More tolerant range for stairs/slabs (allow up to 1.0 above the block top)
+	            // This handles jumping and partial blocks better
+	            if (playerY >= blockTop - 0.1 && playerY <= blockTop + 1.0) {
 	                return pos;
 	            }
 	        }
 	        
+	        // Fallback: return the block directly below the player's feet
 	        return new BlockPos(blockX, (int) Math.floor(playerY) - 1, blockZ);
 	    }
 	}

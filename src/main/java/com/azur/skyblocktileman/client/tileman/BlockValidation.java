@@ -116,7 +116,8 @@ public final class BlockValidation {
             return false;
         }
         BlockPos standingOn = findStandingBlock(client.level, client.player.getX(), client.player.getY(), client.player.getZ());
-        return TilemanState.getInstance().isUnlocked(standingOn);
+        // Use column-based check for consistency with punishment handler
+        return TilemanState.getInstance().isUnlockedColumn(standingOn, client.level);
     }
     
     private static BlockPos findStandingBlock(Level level, double x, double playerY, double z) {

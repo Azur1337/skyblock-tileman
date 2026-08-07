@@ -13,6 +13,8 @@ import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -418,6 +420,88 @@ public final class TilemanState {
 
     public Set<BlockCoord> getUnlockedBlocks(String profileId, String island) {
         return data.getOrCreateProfile(profileId).getUnlockedBlocks(island);
+    }
+
+    /**
+     * Check if a position is unlocked, considering vertical columns.
+     * A position is considered unlocked if there's an unlocked block at the same X,Z
+     * and there's no solid block separating the player from that unlocked block.
+     */
+    public boolean isUnlockedColumn(BlockPos pos, Level level) {
+        Set<BlockCoord> unlocked = getUnlockedBlocks();
+        int x = pos.getX();
+        int z = pos.getZ();
+        int playerY = pos.getY();
+        
+        // Find all unlocked blocks at this X,Z coordinate
+        for (BlockCoord coord : unlocked) {
+            if (coord.x() == x && coord.z() == z) {
+                // Found an unlocked block at same X,Z
+                // Check if there's a clear path between player and this block
+                if (hasVerticalClearance(level, x, z, playerY, coord.y())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Check if there's vertical clearance between two Y levels.
+     * Returns true if there's no solid block completely blocking the path.
+     */
+    private boolean hasVerticalClearance(Level level, int x, int z, int y1, int y2) {
+        if (level == null) {
+            return true; // Assume clear if no level
+        }
+        
+        int minY = Math.min(y1, y2);
+        int maxY = Math.max(y1, y2);
+        
+        // If they're the same or adjacent, always clear
+        if (maxY - minY <= 1) {
+            return true;
+        }
+        
+        // Check blocks between them (not including the endpoints)
+        for (int y = minY + 1; y < maxY; y++) {
+            BlockPos checkPos = new BlockPos(x, y, z);
+            BlockState state = level.getBlockState(checkPos);
+            
+            // If there's a solid full block, it breaks the column
+            if (isFullSolidBlock(state, level, checkPos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    /**
+     * Check if a block is a full solid block that would break vertical continuity.
+     */
+    private boolean isFullSolidBlock(BlockState state, Level level, BlockPos pos) {
+        if (state.isAir()) {
+            return false;
+        }
+        
+        var shape = state.getCollisionShape(level, pos, net.minecraft.world.phys.shapes.CollisionContext.empty());
+        if (shape.isEmpty()) {
+            return false;
+        }
+        
+        // Check if the block covers the full horizontal area and has significant height
+        double minX = shape.min(net.minecraft.core.Direction.Axis.X);
+        double maxX = shape.max(net.minecraft.core.Direction.Axis.X);
+        double minZ = shape.min(net.minecraft.core.Direction.Axis.Z);
+        double maxZ = shape.max(net.minecraft.core.Direction.Axis.Z);
+        double minY = shape.min(net.minecraft.core.Direction.Axis.Y);
+        double maxY = shape.max(net.minecraft.core.Direction.Axis.Y);
+        
+        // A full solid block covers most of the space
+        boolean fullHorizontal = (maxX - minX) >= 0.9 && (maxZ - minZ) >= 0.9;
+        boolean significantHeight = (maxY - minY) >= 0.9;
+        
+        return fullHorizontal && significantHeight;
     }
 
     public boolean isUnlocked(BlockPos pos) {

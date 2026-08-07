@@ -13,7 +13,7 @@ public class PunishmentCategory {
     public boolean enabled = true;
 
     @Expose
-    @ConfigOption(name = "Sound Interval (ticks)", desc = "How often the thunder sound plays while violating. 10 ticks = 0.5 seconds.")
-    @ConfigEditorSlider(minValue = 5, maxValue = 20, minStep = 1)
-    public int soundIntervalTicks = 10;
+    @ConfigOption(name = "Sound Interval (ticks)", desc = "How often the thunder sound plays while violating. 20 ticks = 1 second.")
+    @ConfigEditorSlider(minValue = 5, maxValue = 200, minStep = 5)
+    public int soundIntervalTicks = 100;
 }

@@ -7,7 +7,14 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
+// Build against the local MoulConfig fork by default. Pass -PmoulconfigFork=false to build
+// against the released artifact, for before/after comparison shots when upstreaming fixes.
+def moulconfigFork = project.findProperty('moulconfigFork') != 'false'
+def moulconfigVersion = moulconfigFork ? '9999.9999.9999' : '4.7.2'
+
 repositories {
+	// local fork of MoulConfig (vendor/MoulConfig), published via ./gradlew :modern:modern-26.2:publishToMavenLocal
+	mavenLocal()
 	maven {
 		name = 'NEU Maven'
 		url = 'https://maven.notenoughupdates.org/releases/'
@@ -39,8 +46,9 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// MoulConfig — SkyHanni-style config GUI (uses Kotlin internally)
-	shadowModImpl "org.notenoughupdates.moulconfig:modern-26.2:4.7.2"
+	// MoulConfig - SkyHanni-style config GUI (uses Kotlin internally).
+	// 9999.9999.9999 is the fork's dev version from mavenLocal; 4.7.2 is the NEU release.
+	shadowModImpl "org.notenoughupdates.moulconfig:modern-26.2:${moulconfigVersion}"
 	shadowModImpl "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"
 }
 
@@ -77,6 +85,12 @@ processResources {
 
 	filesMatching("fabric.mod.json") {
 		expand "version": version
+	}
+
+	// bundle the local .env (gitignored) into the jar as the shared App key
+	from(projectDir) {
+		include '.env'
+		rename '\\.env', 'tileman.env'
 	}
 }
 

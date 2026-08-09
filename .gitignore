@@ -42,10 +42,15 @@ replay_*.log
 # docs
 
 docs/
+AGENTS.md
+UI-DESIGN.md
 
 # misc
 
+.env
 *.png
 meow.md
 youtuberinfo/
 crash-*.txt
+
+vendor/

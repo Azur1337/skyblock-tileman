@@ -3,10 +3,10 @@ package com.azur.skyblocktileman.client.tileman;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import java.io.IOException;
 import io.github.notenoughupdates.moulconfig.common.IMinecraft;
 import io.github.notenoughupdates.moulconfig.managed.ManagedConfig;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -15,8 +15,12 @@ public final class TilemanConfig {
     private static TilemanConfig instance;
 
     private static final Path CONFIG_DIR = Path.of("config", "tileman");
-    private static final Path MOULCONFIG_FILE = CONFIG_DIR.resolve("moulconfig.json");
-    private static final Path LEGACY_CONFIG_FILE = CONFIG_DIR.resolve("config.json");
+    private static final Path MOULCONFIG_FILE = CONFIG_DIR.resolve(
+        "moulconfig.json"
+    );
+    private static final Path LEGACY_CONFIG_FILE = CONFIG_DIR.resolve(
+        "config.json"
+    );
 
     private final ManagedConfig<TilemanMoulConfig> managedConfig;
 
@@ -69,7 +73,8 @@ public final class TilemanConfig {
         if (!isDebugMode()) {
             return false;
         }
-        GeneralCategory.DebugCategories debug = config().general.debugCategories;
+        GeneralCategory.DebugCategories debug =
+            config().general.debugCategories;
         return switch (category) {
             case ACTION_BAR -> debug.actionBar;
             case ISLAND -> debug.island;
@@ -82,18 +87,6 @@ public final class TilemanConfig {
             case CHAT -> debug.chat;
             case ALL -> true;
         };
-    }
-
-    public int getXpPerToken() {
-        return config().xpTokens.xpPerToken;
-    }
-
-    public boolean isScalingEnabled() {
-        return config().xpTokens.enableScaling;
-    }
-
-    public int getScaleInterval() {
-        return config().xpTokens.scaleInterval;
     }
 
     public boolean isShowUnlockedOverlay() {
@@ -140,6 +133,10 @@ public final class TilemanConfig {
         return config().punishment.enabled;
     }
 
+    public boolean isHealthPunishmentEnabled() {
+        return config().punishment.healthEnabled;
+    }
+
     public boolean isTileCompassEnabled() {
         return config().rendering.showTileCompass;
     }
@@ -148,8 +145,14 @@ public final class TilemanConfig {
         return config().punishment.soundIntervalTicks;
     }
 
+    public KeybindCategory getKeybinds() {
+        return config().keybinds;
+    }
+
     private static void migrateLegacyIfNeeded() {
-        if (Files.exists(MOULCONFIG_FILE) || !Files.exists(LEGACY_CONFIG_FILE)) {
+        if (
+            Files.exists(MOULCONFIG_FILE) || !Files.exists(LEGACY_CONFIG_FILE)
+        ) {
             return;
         }
 
@@ -160,21 +163,30 @@ public final class TilemanConfig {
 
             TilemanMoulConfig migrated = new TilemanMoulConfig();
             if (legacy.has("debugMode")) {
-                migrated.general.debugMode = legacy.get("debugMode").getAsBoolean();
+                migrated.general.debugMode = legacy
+                    .get("debugMode")
+                    .getAsBoolean();
             }
             if (legacy.has("showUnlockedOverlay")) {
-                migrated.rendering.showUnlockedOverlay = legacy.get("showUnlockedOverlay").getAsBoolean();
+                migrated.rendering.showUnlockedOverlay = legacy
+                    .get("showUnlockedOverlay")
+                    .getAsBoolean();
             }
 
-            ManagedConfig<TilemanMoulConfig> migrationWriter = ManagedConfig.create(
-                new File(MOULCONFIG_FILE.toString()),
-                TilemanMoulConfig.class
-            );
+            ManagedConfig<TilemanMoulConfig> migrationWriter =
+                ManagedConfig.create(
+                    new File(MOULCONFIG_FILE.toString()),
+                    TilemanMoulConfig.class
+                );
             TilemanMoulConfig target = migrationWriter.getInstance();
             target.general.debugMode = migrated.general.debugMode;
-            target.rendering.showUnlockedOverlay = migrated.rendering.showUnlockedOverlay;
+            target.rendering.showUnlockedOverlay =
+                migrated.rendering.showUnlockedOverlay;
             migrationWriter.saveToFile();
-        } catch (IOException | IllegalStateException | JsonSyntaxException ignored) {
-        }
+        } catch (
+            IOException
+            | IllegalStateException
+            | JsonSyntaxException ignored
+        ) {}
     }
 }

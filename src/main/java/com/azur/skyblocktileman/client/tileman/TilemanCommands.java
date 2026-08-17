@@ -1,5 +1,12 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonData;
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonFloor;
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonProgressScreen;
+import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTracker;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
+import com.azur.skyblocktileman.client.tileman.shop.TilemanShopScreen;
+import com.azur.skyblocktileman.client.tileman.ui.TilemanHubScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -7,12 +14,6 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import com.azur.skyblocktileman.client.tileman.dungeon.DungeonData;
-import com.azur.skyblocktileman.client.tileman.dungeon.DungeonFloor;
-import com.azur.skyblocktileman.client.tileman.dungeon.DungeonProgressScreen;
-import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTracker;
-import com.azur.skyblocktileman.client.tileman.shop.TilemanShopScreen;
-import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
 
 public final class TilemanCommands {
 
@@ -23,9 +24,11 @@ public final class TilemanCommands {
             (dispatcher, registryAccess) ->
                 dispatcher.register(
                     ClientCommands.literal("tileman")
+                        .executes(context -> openHub(context.getSource()))
                         .then(
-                            ClientCommands.literal("config")
-                                .executes(context -> openConfig(context.getSource()))
+                            ClientCommands.literal("config").executes(context ->
+                                openConfig(context.getSource())
+                            )
                         )
                         .then(
                             ClientCommands.literal("debug")
@@ -70,6 +73,21 @@ public final class TilemanCommands {
                                 )
                         )
                         .then(
+                            ClientCommands.literal("optin")
+                                .then(
+                                    ClientCommands.literal("on").executes(
+                                        context ->
+                                            setOptIn(context.getSource(), true)
+                                    )
+                                )
+                                .then(
+                                    ClientCommands.literal("off").executes(
+                                        context ->
+                                            setOptIn(context.getSource(), false)
+                                    )
+                                )
+                        )
+                        .then(
                             ClientCommands.literal("overlay")
                                 .executes(context ->
                                     toggleOverlay(context.getSource())
@@ -94,26 +112,36 @@ public final class TilemanCommands {
                                 )
                         )
                         .then(
-                            ClientCommands.literal("shop")
-                                .executes(context -> openShop(context.getSource()))
+                            ClientCommands.literal("shop").executes(context ->
+                                openShop(context.getSource())
+                            )
                         )
                         .then(
-                            ClientCommands.literal("milestones")
-                                .executes(context -> openMilestones(context.getSource()))
+                            ClientCommands.literal("milestones").executes(
+                                context -> openMilestones(context.getSource())
+                            )
                         )
                         .then(
-                            ClientCommands.literal("dungeons")
-                                .executes(context -> showDungeonProgress(context.getSource()))
+                            ClientCommands.literal("dungeons").executes(
+                                context ->
+                                    showDungeonProgress(context.getSource())
+                            )
                         )
                         .then(
-                            ClientCommands.literal("unlock")
-                                .then(
-                                    ClientCommands.argument("floor", StringArgumentType.word())
-                                        .executes(context -> unlockFloor(
-                                            context.getSource(),
-                                            StringArgumentType.getString(context, "floor")
-                                        ))
+                            ClientCommands.literal("unlock").then(
+                                ClientCommands.argument(
+                                    "floor",
+                                    StringArgumentType.word()
+                                ).executes(context ->
+                                    unlockFloor(
+                                        context.getSource(),
+                                        StringArgumentType.getString(
+                                            context,
+                                            "floor"
+                                        )
+                                    )
                                 )
+                            )
                         )
                 )
         );
@@ -121,6 +149,33 @@ public final class TilemanCommands {
 
     private static int toggleEnabled(FabricClientCommandSource source) {
         return setEnabled(source, !TilemanConfig.getInstance().isEnabled());
+    }
+
+    private static int setOptIn(
+        FabricClientCommandSource source,
+        boolean mode
+    ) {
+        TilemanState state = TilemanState.getInstance();
+        if (
+            mode &&
+            !state.hasProgress() &&
+            !TilemanLoginHandler.isCurrentProfileNew()
+        ) {
+            source.sendError(
+                Component.literal(
+                    "[Tileman] Tileman mode can only be enabled on profiles created after the mod was installed."
+                )
+            );
+            return 0;
+        }
+        state.setTilemanMode(mode);
+        source.sendFeedback(
+            Component.literal(
+                "[Tileman] Tileman mode for this profile: " +
+                    (mode ? "ON" : "OFF")
+            ).withStyle(ChatFormatting.GOLD)
+        );
+        return 1;
     }
 
     private static int setEnabled(
@@ -133,6 +188,11 @@ public final class TilemanCommands {
                 "[Tileman] Mod enabled: " + (enabled ? "ON" : "OFF")
             ).withStyle(ChatFormatting.GOLD)
         );
+        return 1;
+    }
+
+    private static int openHub(FabricClientCommandSource source) {
+        TilemanHubScreen.open();
         return 1;
     }
 
@@ -195,43 +255,61 @@ public final class TilemanCommands {
         return 1;
     }
 
-    private static int unlockFloor(FabricClientCommandSource source, String floorId) {
+    private static int unlockFloor(
+        FabricClientCommandSource source,
+        String floorId
+    ) {
         DungeonFloor floor = DungeonFloor.fromId(floorId.toUpperCase());
-        
+
         if (floor == null) {
-            source.sendError(Component.literal(
-                "[Tileman] Unknown floor: " + floorId + ". Valid floors: F1-F7, M1-M7"
-            ));
+            source.sendError(
+                Component.literal(
+                    "[Tileman] Unknown floor: " +
+                        floorId +
+                        ". Valid floors: F1-F7, M1-M7"
+                )
+            );
             return 0;
         }
-        
+
         DungeonData data = TilemanState.getInstance().getDungeonData();
-        
+
         if (data.isUnlocked(floor)) {
-            source.sendFeedback(Component.literal(
-                "[Tileman] " + floor.getDisplayName() + " is already unlocked!"
-            ).withStyle(ChatFormatting.YELLOW));
+            source.sendFeedback(
+                Component.literal(
+                    "[Tileman] " +
+                        floor.getDisplayName() +
+                        " is already unlocked!"
+                ).withStyle(ChatFormatting.YELLOW)
+            );
             return 1;
         }
-        
+
         int cost = floor.getUnlockCost();
         int tokens = TilemanState.getInstance().getTokens();
-        
+
         if (tokens < cost) {
-            source.sendError(Component.literal(
-                "[Tileman] Not enough tokens! Need " + cost + ", have " + tokens
-            ));
+            source.sendError(
+                Component.literal(
+                    "[Tileman] Not enough tokens! Need " +
+                        cost +
+                        ", have " +
+                        tokens
+                )
+            );
             return 0;
         }
-        
+
         boolean success = DungeonTracker.getInstance().tryUnlockFloor(floor);
-        
+
         if (success) {
-            source.sendFeedback(Component.literal(
-                "[Tileman] Unlocked " + floor.getDisplayName() + "!"
-            ).withStyle(ChatFormatting.GREEN));
+            source.sendFeedback(
+                Component.literal(
+                    "[Tileman] Unlocked " + floor.getDisplayName() + "!"
+                ).withStyle(ChatFormatting.GREEN)
+            );
         }
-        
+
         return success ? 1 : 0;
     }
 }

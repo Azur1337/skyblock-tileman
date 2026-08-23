@@ -3,508 +3,443 @@ package com.azur.skyblocktileman.client.tileman.shop;
 import com.azur.skyblocktileman.client.tileman.ShopData;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import com.azur.skyblocktileman.client.tileman.ui.Theme;
+import com.azur.skyblocktileman.client.tileman.ui.TilemanChestScreen;
+import com.azur.skyblocktileman.client.tileman.ui.TilemanItem;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.IntUnaryOperator;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.inventory.ContainerScreen;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ContainerInput;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ItemLore;
-import java.util.ArrayList;
-import java.util.List;
 
-public class TilemanShopScreen extends ContainerScreen {
+public class TilemanShopScreen extends TilemanChestScreen {
 
-    private static final int ROWS = 6;
-    private static final int COLS = 9;
-    private static final int SIZE = ROWS * COLS;
+    private static final String[] SKILLS = {
+        "Combat",
+        "Mining",
+        "Foraging",
+        "Farming",
+        "Fishing",
+    };
 
     private ShopCategory currentCategory = null;
-    private final SimpleContainer container;
 
-    public TilemanShopScreen(ChestMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
-        this.container = (SimpleContainer) menu.getContainer();
+    private TilemanShopScreen() {
+        super(6, Component.literal("Tileman Shop"));
     }
 
     public static void open() {
+        open(null);
+    }
+
+    public static void open(Runnable back) {
         Minecraft client = Minecraft.getInstance();
-        if (client.player == null) return;
-        
+        if (client.player == null) {
+            return;
+        }
         client.schedule(() -> {
-            SimpleContainer container = new SimpleContainer(SIZE);
-            ChestMenu menu = new ChestMenu(MenuType.GENERIC_9x6, 0, client.player.getInventory(), container, ROWS);
-            TilemanShopScreen screen = new TilemanShopScreen(menu, client.player.getInventory(), Component.literal("Tileman Shop"));
-            screen.loadMainMenu();
+            TilemanShopScreen screen = new TilemanShopScreen();
+            screen.setReturnTo(back);
+            screen.loadView();
             client.gui.setScreen(screen);
         });
     }
 
+    // rebuilds dynamic content (balances, frenzy countdown) while open
     @Override
-    protected void init() {
-        super.init();
+    protected void refresh() {
+        loadView();
+    }
+
+    private void loadView() {
         if (currentCategory == null) {
             loadMainMenu();
+        } else {
+            loadCategory(currentCategory);
         }
     }
 
     private void loadMainMenu() {
-        currentCategory = null;
-        clearContainer();
-        fillBorder();
-        
-        // Center the 2 categories symmetrically (slots 21 and 23)
-        setItem(21, createCategoryItem(ShopCategory.PERMANENT));
-        setItem(23, createCategoryItem(ShopCategory.CONSUMABLES));
+        buildFrame();
+        addCategory(slot(2, 3), ShopCategory.PERMANENT);
+        addCategory(slot(2, 5), ShopCategory.CONSUMABLES);
+    }
+
+    private void addCategory(int slot, ShopCategory category) {
+        Item icon =
+            category == ShopCategory.PERMANENT
+                ? Items.NETHER_STAR
+                : Items.BREWING_STAND;
+        setItem(
+            slot,
+            TilemanItem.of(icon)
+                .name(Theme.GOOD + category.getDisplayName())
+                .blank()
+                .action("Click to browse")
+                .build()
+        );
+        onClick(slot, () -> {
+            playNav();
+            currentCategory = category;
+            loadView();
+        });
     }
 
     private void loadCategory(ShopCategory category) {
-        currentCategory = category;
-        clearContainer();
-        fillBorder();
-        
-        setItem(45, createBackItem());
-        
-        switch (category) {
-            case PERMANENT -> loadPermanentItems();
-            case CONSUMABLES -> loadConsumableItems();
+        buildFrame();
+        addBack(this::goMainMenu);
+        if (category == ShopCategory.PERMANENT) {
+            loadPermanentItems();
+        } else {
+            loadConsumableItems();
         }
+    }
+
+    private void goMainMenu() {
+        currentCategory = null;
+        loadView();
     }
 
     private void loadPermanentItems() {
         ShopData shop = TilemanState.getInstance().getShop();
-        int tokens = TilemanState.getInstance().getTokens();
-        
-        setItem(11, createShopItem("Multi Unlock", "multi_unlock", Items.DIAMOND_PICKAXE, 
-            shop.getMultiUnlockLevel(), ShopData.getMultiUnlockPrice(shop.getMultiUnlockLevel()), tokens,
+
+        addUpgrade(
+            slot(1, 2),
+            "Multi Unlock",
+            "multi_unlock",
+            Items.DIAMOND_PICKAXE,
+            Integer.MAX_VALUE,
+            shop::getMultiUnlockLevel,
+            ShopData::getMultiUnlockPrice,
+            shop::setMultiUnlockLevel,
             "Unlock multiple tiles at once",
             "Current: " + shop.getBaseTilesPerUnlock() + " tiles",
-            "Next: " + (shop.getBaseTilesPerUnlock() + 1) + " tiles"));
-        
-        setItem(12, createShopItem("Lucky Unlock", "lucky_unlock", Items.RABBIT_FOOT,
-            shop.getLuckyUnlockLevel(), ShopData.getLuckyUnlockPrice(shop.getLuckyUnlockLevel()), tokens,
-            "Chance to unlock double tiles",
-            "Current: " + shop.getLuckyPercent() + "% chance",
-            "Next: " + (shop.getLuckyPercent() + 5) + "% chance"));
-        
-        setItem(13, createShopItem("Efficient Scaling", "efficient_scaling", Items.GOLD_INGOT,
-            shop.getEfficientScalingLevel(), ShopData.getEfficientScalingPrice(shop.getEfficientScalingLevel()), tokens,
-            "Reduce token cost scaling",
-            "Current: " + (shop.getEfficientScalingLevel() * 2) + "% reduction",
-            "Next: " + ((shop.getEfficientScalingLevel() + 1) * 2) + "% reduction"));
-        
-        setItem(20, createSkillAffinityItem("Combat", tokens));
-        setItem(21, createSkillAffinityItem("Mining", tokens));
-        setItem(22, createSkillAffinityItem("Foraging", tokens));
-        setItem(23, createSkillAffinityItem("Farming", tokens));
-        setItem(24, createSkillAffinityItem("Fishing", tokens));
-        
-        setItem(29, createShopItem("Frenzy Duration", "frenzy_duration", Items.CLOCK,
-            shop.getFrenzyDurationLevel(), ShopData.getFrenzyDurationPrice(shop.getFrenzyDurationLevel()), tokens,
-            "Increase XP Frenzy duration",
-            "Current: " + (15 + shop.getFrenzyDurationLevel() * 5) + " minutes",
-            "Next: " + (15 + (shop.getFrenzyDurationLevel() + 1) * 5) + " minutes"));
-        
-        setItem(30, createShopItem("Frenzy Power", "frenzy_power", Items.BLAZE_POWDER,
-            shop.getFrenzyPowerLevel(), ShopData.getFrenzyPowerPrice(shop.getFrenzyPowerLevel()), tokens,
-            "Increase XP Frenzy bonus",
+            "Next: " + (shop.getBaseTilesPerUnlock() + 1) + " tiles"
+        );
+
+        addUpgrade(
+            slot(1, 3),
+            "Lucky Unlock",
+            "lucky_unlock",
+            Items.RABBIT_FOOT,
+            Integer.MAX_VALUE,
+            shop::getLuckyUnlockLevel,
+            ShopData::getLuckyUnlockPrice,
+            shop::setLuckyUnlockLevel,
+            "Chance to unlock extra tiles per token",
+            "Current: " + shop.getLuckyPercent() + "%",
+            "Next: " + (shop.getLuckyPercent() + 5) + "%"
+        );
+
+        addUpgrade(
+            slot(1, 4),
+            "Efficient Scaling",
+            "efficient_scaling",
+            Items.SUNFLOWER,
+            ShopData.EFFICIENT_SCALING_MAX,
+            shop::getEfficientScalingLevel,
+            ShopData::getEfficientScalingPrice,
+            shop::setEfficientScalingLevel,
+            "Tokens cost less Skill XP to earn",
+            "Current: -" + shop.getEfficientScalingBonus() + "% token cost",
+            "Next: -" +
+                (shop.getEfficientScalingLevel() + 1) * 2 +
+                "% token cost"
+        );
+
+        addUpgrade(
+            slot(1, 5),
+            "Frenzy Duration",
+            "frenzy_duration",
+            Items.CLOCK,
+            Integer.MAX_VALUE,
+            shop::getFrenzyDurationLevel,
+            ShopData::getFrenzyDurationPrice,
+            shop::setFrenzyDurationLevel,
+            "Longer XP Frenzy",
+            "Current: " + (15 + shop.getFrenzyDurationLevel() * 5) + " min",
+            "Next: " + (15 + (shop.getFrenzyDurationLevel() + 1) * 5) + " min"
+        );
+
+        addUpgrade(
+            slot(1, 6),
+            "Frenzy Power",
+            "frenzy_power",
+            Items.BLAZE_POWDER,
+            Integer.MAX_VALUE,
+            shop::getFrenzyPowerLevel,
+            ShopData::getFrenzyPowerPrice,
+            shop::setFrenzyPowerLevel,
+            "Stronger XP Frenzy",
             "Current: +" + (50 + shop.getFrenzyPowerLevel() * 10) + "% XP",
-            "Next: +" + (50 + (shop.getFrenzyPowerLevel() + 1) * 10) + "% XP"));
+            "Next: +" + (50 + (shop.getFrenzyPowerLevel() + 1) * 10) + "% XP"
+        );
+
+        for (int i = 0; i < SKILLS.length; i++) {
+            addAffinity(slot(3, 2 + i), SKILLS[i]);
+        }
+    }
+
+    private void addUpgrade(
+        int slot,
+        String label,
+        String reqKey,
+        Item icon,
+        int maxLevel,
+        IntSupplier levelGet,
+        IntUnaryOperator priceFn,
+        IntConsumer levelSet,
+        String... desc
+    ) {
+        int tokens = TilemanState.getInstance().getTokens();
+        int level = levelGet.getAsInt();
+        int price = priceFn.applyAsInt(level);
+
+        TilemanItem item = TilemanItem.of(icon);
+        String status = null;
+        String denyText = null;
+
+        if (level >= maxLevel) {
+            status = Theme.GOOD + "[MAX]";
+            denyText = "Already at max level!";
+        } else {
+            denyText = ShopRequirements.getRequirementText(reqKey, level + 1);
+            if (denyText != null) {
+                status = Theme.BAD + "[LOCKED]";
+            } else if (tokens < price) {
+                status = Theme.BAD + "[LOCKED]";
+                denyText =
+                    "Not enough tokens! Need " + (price - tokens) + " more.";
+            } else {
+                status = Theme.GOOD + "[READY]";
+                denyText = null;
+            }
+        }
+
+        item.name(
+            Theme.NAME +
+                label +
+                " " +
+                Theme.DESC +
+                "(Lvl " +
+                level +
+                ") " +
+                status
+        );
+        item.blank();
+        for (String line : desc) {
+            item.desc(line);
+        }
+        item.blank();
+        if (denyText != null) {
+            item.bad(denyText);
+        } else {
+            item.action("Click to purchase");
+        }
+        item.value("Cost: " + price + " tokens");
+        if (level > 0) {
+            item.glint();
+        }
+        setItem(slot, item.build());
+
+        onClick(slot, () ->
+            buyUpgrade(label, reqKey, maxLevel, levelGet, priceFn, levelSet)
+        );
+    }
+
+    private void addAffinity(int slot, String skill) {
+        ShopData shop = TilemanState.getInstance().getShop();
+        Item icon = switch (skill) {
+            case "Combat" -> Items.DIAMOND_SWORD;
+            case "Mining" -> Items.DIAMOND_PICKAXE;
+            case "Foraging" -> Items.DIAMOND_AXE;
+            case "Farming" -> Items.DIAMOND_HOE;
+            default -> Items.FISHING_ROD;
+        };
+        addUpgrade(
+            slot,
+            skill + " Affinity",
+            skill.toLowerCase() + "_affinity",
+            icon,
+            Integer.MAX_VALUE,
+            () -> shop.getSkillAffinityLevel(skill),
+            ShopData::getSkillAffinityPrice,
+            level -> shop.setSkillAffinityLevel(skill, level),
+            "Earn more token XP from " + skill,
+            "Current: +" +
+                ShopData.getSkillAffinityBonusPercent(
+                    shop.getSkillAffinityLevel(skill)
+                ) +
+                "%",
+            "Next: +" +
+                ShopData.getSkillAffinityBonusPercent(
+                    shop.getSkillAffinityLevel(skill) + 1
+                ) +
+                "%"
+        );
     }
 
     private void loadConsumableItems() {
         ShopData shop = TilemanState.getInstance().getShop();
         int tokens = TilemanState.getInstance().getTokens();
-        
-        ItemStack remoteItem = new ItemStack(Items.ENDER_PEARL);
-        String remoteReq = ShopRequirements.getConsumableRequirementText("remote_unlock");
-        boolean remoteLocked = remoteReq != null;
-        
-        if (remoteLocked) {
-            setItemName(remoteItem, "§cRemote Unlock §4[LOCKED]");
+
+        String remoteReq = ShopRequirements.getConsumableRequirementText(
+            "remote_unlock"
+        );
+        boolean remoteReady = shop.isRemoteUnlockPending();
+        int remotePrice = ShopData.getRemoteUnlockPrice();
+
+        TilemanItem remote = TilemanItem.of(Items.ENDER_PEARL)
+            .name(
+                Theme.NAME +
+                    "Remote Unlock " +
+                    (remoteReq != null
+                        ? Theme.BAD + "[LOCKED]"
+                        : remoteReady
+                          ? Theme.GOOD + "[ACTIVE]"
+                          : Theme.GOOD + "[READY]")
+            )
+            .blank()
+            .desc("Next unlock ignores adjacency");
+        if (remoteReq != null) {
+            remote.bad(remoteReq);
+        } else if (remoteReady) {
+            remote.good("Ready to use!");
+            remote.glint();
         } else {
-            setItemName(remoteItem, "§aRemote Unlock");
+            remote.action(
+                tokens >= remotePrice
+                    ? "Click to purchase"
+                    : "Not enough tokens! Need " +
+                          (remotePrice - tokens) +
+                          " more."
+            );
+            remote.value("Cost: " + remotePrice + " tokens");
         }
-        
-        List<Component> remoteLore = new ArrayList<>();
-        remoteLore.add(Component.literal("§7Next unlock ignores adjacency"));
-        remoteLore.add(Component.empty());
-        
-        if (remoteLocked) {
-            remoteLore.add(Component.literal("§c" + remoteReq));
-        } else if (shop.isRemoteUnlockPending()) {
-            remoteLore.add(Component.literal("§6ACTIVE - Ready to use!"));
-            remoteItem.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
-        } else {
-            remoteLore.add(Component.literal("§7Cost: §6" + 5 + " tokens"));
-            if (tokens >= 5) {
-                remoteLore.add(Component.literal("§eClick to purchase!"));
-            } else {
-                remoteLore.add(Component.literal("§cNot enough tokens!"));
+        int remoteSlot = slot(2, 3);
+        setItem(remoteSlot, remote.build());
+        onClick(remoteSlot, () -> {
+            if (shop.isRemoteUnlockPending()) {
+                TilemanChat.warn("Remote Unlock is already pending!");
+                return;
             }
-        }
-        setItemLore(remoteItem, remoteLore);
-        setItem(21, remoteItem);
-        
-        ItemStack frenzyItem = new ItemStack(Items.EXPERIENCE_BOTTLE);
-        String frenzyReq = ShopRequirements.getConsumableRequirementText("xp_frenzy");
-        boolean frenzyLocked = frenzyReq != null;
-        
-        if (frenzyLocked) {
-            setItemName(frenzyItem, "§cXP Frenzy §4[LOCKED]");
+            buyConsumable("remote_unlock", remotePrice, "Remote Unlock", () ->
+                shop.setRemoteUnlockPending(true)
+            );
+        });
+
+        String frenzyReq = ShopRequirements.getConsumableRequirementText(
+            "xp_frenzy"
+        );
+        boolean frenzyActive = shop.isXpFrenzyActive();
+        int frenzyPrice = ShopData.getXpFrenzyPrice();
+        int power = 50 + shop.getFrenzyPowerLevel() * 10;
+        int duration = 15 + shop.getFrenzyDurationLevel() * 5;
+
+        TilemanItem frenzy = TilemanItem.of(Items.EXPERIENCE_BOTTLE)
+            .name(
+                Theme.NAME +
+                    "XP Frenzy " +
+                    (frenzyReq != null
+                        ? Theme.BAD + "[LOCKED]"
+                        : frenzyActive
+                          ? Theme.GOOD + "[ACTIVE]"
+                          : Theme.GOOD + "[READY]")
+            )
+            .blank()
+            .desc("+" + power + "% XP for " + duration + " minutes");
+        if (frenzyReq != null) {
+            frenzy.bad(frenzyReq);
+        } else if (frenzyActive) {
+            frenzy.good(
+                Math.max(1, shop.getXpFrenzyRemainingMs() / 60000) +
+                    " min remaining"
+            );
+            frenzy.glint();
         } else {
-            setItemName(frenzyItem, "§aXP Frenzy");
+            frenzy.action(
+                tokens >= frenzyPrice
+                    ? "Click to purchase"
+                    : "Not enough tokens! Need " +
+                          (frenzyPrice - tokens) +
+                          " more."
+            );
+            frenzy.value("Cost: " + frenzyPrice + " tokens");
         }
-        
-        List<Component> frenzyLore = new ArrayList<>();
-        int frenzyPower = 50 + shop.getFrenzyPowerLevel() * 10;
-        int frenzyDuration = 15 + shop.getFrenzyDurationLevel() * 5;
-        frenzyLore.add(Component.literal("§7Gain +" + frenzyPower + "% XP for " + frenzyDuration + " min"));
-        frenzyLore.add(Component.empty());
-        
-        if (frenzyLocked) {
-            frenzyLore.add(Component.literal("§c" + frenzyReq));
-        } else if (shop.isXpFrenzyActive()) {
-            int remaining = (int) (shop.getXpFrenzyRemainingMs() / 1000 / 60);
-            frenzyLore.add(Component.literal("§6ACTIVE - " + remaining + " min remaining"));
-            frenzyItem.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
-        } else {
-            frenzyLore.add(Component.literal("§7Cost: §6" + 15 + " tokens"));
-            if (tokens >= 15) {
-                frenzyLore.add(Component.literal("§eClick to purchase!"));
-            } else {
-                frenzyLore.add(Component.literal("§cNot enough tokens!"));
+        int frenzySlot = slot(2, 5);
+        setItem(frenzySlot, frenzy.build());
+        onClick(frenzySlot, () -> {
+            if (shop.isXpFrenzyActive()) {
+                TilemanChat.warn("XP Frenzy is already active!");
+                return;
             }
-        }
-        setItemLore(frenzyItem, frenzyLore);
-        setItem(23, frenzyItem);
+            buyConsumable(
+                "xp_frenzy",
+                frenzyPrice,
+                "XP Frenzy",
+                shop::activateXpFrenzy
+            );
+        });
     }
 
-    private ItemStack createCategoryItem(ShopCategory category) {
-        ItemStack stack = switch (category) {
-            case PERMANENT -> new ItemStack(Items.NETHER_STAR);
-            case CONSUMABLES -> new ItemStack(Items.BREWING_STAND);
-        };
-        setItemName(stack, "§a" + category.getDisplayName());
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.literal("§7Click to browse"));
-        setItemLore(stack, lore);
-        return stack;
-    }
-
-    private ItemStack createBackItem() {
-        ItemStack stack = new ItemStack(Items.ARROW);
-        setItemName(stack, "§cBack");
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.literal("§7Return to main menu"));
-        setItemLore(stack, lore);
-        return stack;
-    }
-
-    private ItemStack createShopItem(String name, String itemKey, net.minecraft.world.item.Item item, int level, int price, int tokens, String... desc) {
-        ItemStack stack = new ItemStack(item);
-        int nextLevel = level + 1;
-        String requirementText = ShopRequirements.getRequirementText(itemKey, nextLevel);
-        boolean locked = requirementText != null;
-        
-        if (locked) {
-            setItemName(stack, "§c" + name + " §7(Level " + level + ") §4[LOCKED]");
-        } else {
-            setItemName(stack, "§a" + name + " §7(Level " + level + ")");
-        }
-        
-        List<Component> lore = new ArrayList<>();
-        for (String line : desc) {
-            lore.add(Component.literal("§7" + line));
-        }
-        lore.add(Component.empty());
-        
-        if (locked) {
-            lore.add(Component.literal("§c" + requirementText));
-        } else {
-            lore.add(Component.literal("§7Cost: §6" + price + " tokens"));
-            if (tokens >= price) {
-                lore.add(Component.literal("§eClick to purchase!"));
-            } else {
-                lore.add(Component.literal("§cNot enough tokens!"));
-            }
-        }
-        setItemLore(stack, lore);
-        if (level > 0) {
-            stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
-        }
-        return stack;
-    }
-
-    private ItemStack createSkillAffinityItem(String skill, int tokens) {
-        ShopData shop = TilemanState.getInstance().getShop();
-        int level = shop.getSkillAffinityLevel(skill);
-        int price = ShopData.getSkillAffinityPrice(level);
-        String itemKey = skill.toLowerCase() + "_affinity";
-        int nextLevel = level + 1;
-        String requirementText = ShopRequirements.getRequirementText(itemKey, nextLevel);
-        boolean locked = requirementText != null;
-        
-        net.minecraft.world.item.Item item = switch (skill) {
-            case "Combat" -> Items.DIAMOND_SWORD;
-            case "Mining" -> Items.DIAMOND_PICKAXE;
-            case "Foraging" -> Items.DIAMOND_AXE;
-            case "Farming" -> Items.DIAMOND_HOE;
-            case "Fishing" -> Items.FISHING_ROD;
-            default -> Items.PAPER;
-        };
-        
-        ItemStack stack = new ItemStack(item);
-        if (locked) {
-            setItemName(stack, "§c" + skill + " Affinity §7(Level " + level + ") §4[LOCKED]");
-        } else {
-            setItemName(stack, "§a" + skill + " Affinity §7(Level " + level + ")");
-        }
-        
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.literal("§7Bonus XP from " + skill));
-        int currentBonus = (int) ((shop.getSkillXpMultiplier(skill) - 1.0) * 100);
-        int nextBonus = (int) ((1.0 + (1.0 - Math.pow(0.9, level + 1)) - 1.0) * 100);
-        lore.add(Component.literal("§7Current: +" + currentBonus + "%"));
-        lore.add(Component.literal("§7Next: +" + nextBonus + "%"));
-        lore.add(Component.empty());
-        
-        if (locked) {
-            lore.add(Component.literal("§c" + requirementText));
-        } else {
-            lore.add(Component.literal("§7Cost: §6" + price + " tokens"));
-            if (tokens >= price) {
-                lore.add(Component.literal("§eClick to purchase!"));
-            } else {
-                lore.add(Component.literal("§cNot enough tokens!"));
-            }
-        }
-        setItemLore(stack, lore);
-        if (level > 0) {
-            stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
-        }
-        return stack;
-    }
-
-    private void clearContainer() {
-        for (int i = 0; i < SIZE; i++) {
-            container.setItem(i, ItemStack.EMPTY);
-        }
-    }
-
-    private void fillBorder() {
-        ItemStack pane = new ItemStack(Items.STAINED_GLASS_PANE.black());
-        setItemName(pane, " ");
-        for (int i = 0; i < SIZE; i++) {
-            container.setItem(i, pane.copy());
-        }
-    }
-
-    private void setItem(int slot, ItemStack stack) {
-        container.setItem(slot, stack);
-    }
-
-    private void setItemName(ItemStack stack, String name) {
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
-    }
-
-    private void setItemLore(ItemStack stack, List<Component> lore) {
-        stack.set(DataComponents.LORE, new ItemLore(lore));
-    }
-
-    @Override
-    protected void slotClicked(Slot slot, int slotId, int button, ContainerInput type) {
-        if (slot == null || slotId < 0 || slotId >= SIZE) {
-            return;
-        }
-        
-        ItemStack clicked = slot.getItem();
-        if (clicked.isEmpty()) return;
-        
-        String name = clicked.getHoverName().getString();
-        
-        if (currentCategory == null) {
-            if (name.contains("Permanent")) {
-                playClick();
-                loadCategory(ShopCategory.PERMANENT);
-            } else if (name.contains("Consumables")) {
-                playClick();
-                loadCategory(ShopCategory.CONSUMABLES);
-            }
-            return;
-        }
-        
-        if (name.contains("Back")) {
-            playClick();
-            loadMainMenu();
-            return;
-        }
-        
-        handlePurchase(slotId, name);
-    }
-
-    private void handlePurchase(int slot, String name) {
-        ShopData shop = TilemanState.getInstance().getShop();
+    private void buyUpgrade(
+        String label,
+        String reqKey,
+        int maxLevel,
+        IntSupplier levelGet,
+        IntUnaryOperator priceFn,
+        IntConsumer levelSet
+    ) {
         TilemanState state = TilemanState.getInstance();
-        
-        boolean purchased = false;
-        String purchaseName = "";
-        
-        if (currentCategory == ShopCategory.PERMANENT) {
-            if (name.contains("Multi Unlock")) {
-                int nextLevel = shop.getMultiUnlockLevel() + 1;
-                if (!ShopRequirements.canPurchase("multi_unlock", nextLevel)) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                int price = ShopData.getMultiUnlockPrice(shop.getMultiUnlockLevel());
-                if (state.spendTokens(price)) {
-                    shop.setMultiUnlockLevel(nextLevel);
-                    purchased = true;
-                    purchaseName = "Multi Unlock level " + shop.getMultiUnlockLevel();
-                }
-            } else if (name.contains("Lucky Unlock")) {
-                int nextLevel = shop.getLuckyUnlockLevel() + 1;
-                if (!ShopRequirements.canPurchase("lucky_unlock", nextLevel)) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                int price = ShopData.getLuckyUnlockPrice(shop.getLuckyUnlockLevel());
-                if (state.spendTokens(price)) {
-                    shop.setLuckyUnlockLevel(nextLevel);
-                    purchased = true;
-                    purchaseName = "Lucky Unlock level " + shop.getLuckyUnlockLevel();
-                }
-            } else if (name.contains("Efficient Scaling")) {
-                int nextLevel = shop.getEfficientScalingLevel() + 1;
-                if (!ShopRequirements.canPurchase("efficient_scaling", nextLevel)) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                int price = ShopData.getEfficientScalingPrice(shop.getEfficientScalingLevel());
-                if (state.spendTokens(price)) {
-                    shop.setEfficientScalingLevel(nextLevel);
-                    purchased = true;
-                    purchaseName = "Efficient Scaling level " + shop.getEfficientScalingLevel();
-                }
-            } else if (name.contains("Frenzy Duration")) {
-                int nextLevel = shop.getFrenzyDurationLevel() + 1;
-                if (!ShopRequirements.canPurchase("frenzy_duration", nextLevel)) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                int price = ShopData.getFrenzyDurationPrice(shop.getFrenzyDurationLevel());
-                if (state.spendTokens(price)) {
-                    shop.setFrenzyDurationLevel(nextLevel);
-                    purchased = true;
-                    purchaseName = "Frenzy Duration level " + shop.getFrenzyDurationLevel();
-                }
-            } else if (name.contains("Frenzy Power")) {
-                int nextLevel = shop.getFrenzyPowerLevel() + 1;
-                if (!ShopRequirements.canPurchase("frenzy_power", nextLevel)) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                int price = ShopData.getFrenzyPowerPrice(shop.getFrenzyPowerLevel());
-                if (state.spendTokens(price)) {
-                    shop.setFrenzyPowerLevel(nextLevel);
-                    purchased = true;
-                    purchaseName = "Frenzy Power level " + shop.getFrenzyPowerLevel();
-                }
-            } else if (name.contains("Affinity")) {
-                String skill = extractSkill(name);
-                if (skill != null) {
-                    String itemKey = skill.toLowerCase() + "_affinity";
-                    int nextLevel = shop.getSkillAffinityLevel(skill) + 1;
-                    if (!ShopRequirements.canPurchase(itemKey, nextLevel)) {
-                        playFail();
-                        TilemanChat.warn("Unlock required milestone first!");
-                        return;
-                    }
-                    int price = ShopData.getSkillAffinityPrice(shop.getSkillAffinityLevel(skill));
-                    if (state.spendTokens(price)) {
-                        shop.setSkillAffinityLevel(skill, nextLevel);
-                        purchased = true;
-                        purchaseName = skill + " Affinity level " + shop.getSkillAffinityLevel(skill);
-                    }
-                }
-            }
-        } else if (currentCategory == ShopCategory.CONSUMABLES) {
-            if (name.contains("Remote Unlock") && !shop.isRemoteUnlockPending()) {
-                if (!ShopRequirements.canPurchaseConsumable("remote_unlock")) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                if (state.spendTokens(5)) {
-                    shop.setRemoteUnlockPending(true);
-                    purchased = true;
-                    purchaseName = "Remote Unlock";
-                }
-            } else if (name.contains("XP Frenzy") && !shop.isXpFrenzyActive()) {
-                if (!ShopRequirements.canPurchaseConsumable("xp_frenzy")) {
-                    playFail();
-                    TilemanChat.warn("Unlock required milestone first!");
-                    return;
-                }
-                if (state.spendTokens(15)) {
-                    shop.activateXpFrenzy();
-                    purchased = true;
-                    purchaseName = "XP Frenzy";
-                }
-            }
+        int level = levelGet.getAsInt();
+
+        if (level >= maxLevel) {
+            TilemanChat.warn(label + " is already at max level!");
+            return;
         }
-        
-        if (purchased) {
-            playPurchase();
-            state.save();
-            TilemanChat.info("Purchased " + purchaseName + "!");
-            loadCategory(currentCategory);
-        } else {
-            playFail();
+        String reqText = ShopRequirements.getRequirementText(reqKey, level + 1);
+        if (reqText != null) {
+            TilemanChat.warn(reqText);
+            return;
         }
-    }
-
-    private String extractSkill(String name) {
-        String[] skills = {"Combat", "Mining", "Foraging", "Farming", "Fishing"};
-        for (String skill : skills) {
-            if (name.contains(skill)) return skill;
+        int price = priceFn.applyAsInt(level);
+        if (!state.spendTokens(price)) {
+            TilemanChat.warn(
+                "Not enough tokens! Need " +
+                    (price - state.getTokens()) +
+                    " more."
+            );
+            return;
         }
-        return null;
+        levelSet.accept(level + 1);
+        playConfirm();
+        TilemanChat.bought(label + " level " + (level + 1));
     }
 
-    private void playClick() {
-        Minecraft.getInstance().player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 1.0f, 1.0f);
-    }
-
-    private void playPurchase() {
-        Minecraft.getInstance().player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-    }
-
-    private void playFail() {
-        Minecraft.getInstance().player.playSound(SoundEvents.VILLAGER_NO, 1.0f, 1.0f);
-    }
-
-    @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractBackground(graphics, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
+    private void buyConsumable(
+        String reqKey,
+        int price,
+        String label,
+        Runnable apply
+    ) {
+        TilemanState state = TilemanState.getInstance();
+        String reqText = ShopRequirements.getConsumableRequirementText(reqKey);
+        if (reqText != null) {
+            TilemanChat.warn(reqText);
+            return;
+        }
+        if (!state.spendTokens(price)) {
+            TilemanChat.warn(
+                "Not enough tokens! Need " +
+                    (price - state.getTokens()) +
+                    " more."
+            );
+            return;
+        }
+        apply.run();
+        playConfirm();
+        TilemanChat.bought(label);
     }
 }

@@ -8,12 +8,23 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 public class PunishmentCategory {
 
     @Expose
-    @ConfigOption(name = "Punishment Enabled", desc = "Enable the punishment system when standing on unlocked blocks.")
+    @ConfigOption(
+        name = "Punishment Enabled",
+        desc = "Enable punishment when standing on a locked tile."
+    )
     @ConfigEditorBoolean
     public boolean enabled = true;
 
     @Expose
-    @ConfigOption(name = "Sound Interval (ticks)", desc = "How often the thunder sound plays while violating. 20 ticks = 1 second.")
+    @ConfigOption(
+        name = "Health Bar",
+        desc = "Peak-style health bar that drains while you stand on a locked tile; an empty bar warps you to the hub."
+    )
+    @ConfigEditorBoolean
+    public boolean healthEnabled = true;
+
+    @Expose
+    @ConfigOption(name = "Thunder Interval", desc = "Ticks between thunder.")
     @ConfigEditorSlider(minValue = 5, maxValue = 200, minStep = 5)
     public int soundIntervalTicks = 100;
 }

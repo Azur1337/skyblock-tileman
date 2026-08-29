@@ -9,42 +9,54 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 public class RenderingCategory {
 
     @Expose
-    @ConfigOption(name = "Show Unlocked Overlay", desc = "Render a green highlight on the top face of unlocked blocks near you.")
+    @ConfigOption(
+        name = "Unlocked Block Overlay",
+        desc = "Render a highlight on the top face of nearby unlocked tiles."
+    )
     @ConfigEditorBoolean
     public boolean showUnlockedOverlay = true;
 
     @Expose
-    @ConfigOption(name = "Highlight Radius", desc = "How far away (in blocks) unlocked block highlights are rendered.")
+    @ConfigOption(name = "Highlight Radius", desc = "Tile highlight range.")
     @ConfigEditorSlider(minValue = 5, maxValue = 30, minStep = 1)
     public int highlightRadius = 15;
 
     @Expose
-    @ConfigOption(name = "Show Stats HUD", desc = "Show Tileman stats HUD with tokens, unlocked blocks, XP and rule breaks.")
+    @ConfigOption(
+        name = "Stats HUD",
+        desc = "Show the stats HUD with tokens, unlocked tiles, XP and rule breaks."
+    )
     @ConfigEditorBoolean
     public boolean showStatsHud = true;
 
     @Expose
-    @ConfigOption(name = "HUD Icon Mode", desc = "Show icons instead of text labels in the stats HUD.")
+    @ConfigOption(
+        name = "HUD Icon Mode",
+        desc = "Show icons instead of text labels in the stats HUD."
+    )
     @ConfigEditorBoolean
     public boolean hudIconMode = true;
 
     @Expose
-    @ConfigOption(name = "HUD X", desc = "Horizontal HUD position in screen pixels.")
-    @ConfigEditorSlider(minValue = 0, maxValue = 600, minStep = 1)
-    public int hudX = 8;
-
-    @Expose
-    @ConfigOption(name = "HUD Y", desc = "Vertical HUD position in screen pixels.")
-    @ConfigEditorSlider(minValue = 0, maxValue = 400, minStep = 1)
-    public int hudY = 8;
-
-    @Expose
-    @ConfigOption(name = "Move Overlay", desc = "Close config and drag the HUD in-game.")
+    @ConfigOption(
+        name = "Move HUD",
+        desc = "Close the config and drag the HUD into place, then click Save."
+    )
     @ConfigEditorButton(runnableId = 1, buttonText = "Drag HUD")
     public int moveOverlayButton = 0;
 
     @Expose
-    @ConfigOption(name = "Show Tile Compass", desc = "Show a beacon and outline on the nearest unlocked tile when standing on locked ground.")
+    @ConfigOption(
+        name = "Tile Compass",
+        desc = "Show a beacon and outline on the nearest unlocked tile when standing on a locked one."
+    )
     @ConfigEditorBoolean
     public boolean showTileCompass = true;
+
+    // saved HUD position, written only by move mode, not edited via config
+    @Expose
+    public int hudX = 8;
+
+    @Expose
+    public int hudY = 8;
 }

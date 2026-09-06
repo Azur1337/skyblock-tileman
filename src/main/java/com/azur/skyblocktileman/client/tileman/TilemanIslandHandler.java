@@ -18,6 +18,11 @@ public final class TilemanIslandHandler {
     private static final int RECHECK_INTERVAL_TICKS = 100;
 
     private static int tickCounter = 0;
+    private static boolean inSkyblock = false;
+
+    public static boolean isInSkyblock() {
+        return inSkyblock;
+    }
 
     private TilemanIslandHandler() {}
 
@@ -36,6 +41,8 @@ public final class TilemanIslandHandler {
         PacketSender sender,
         Minecraft client
     ) {
+        inSkyblock = false;
+        // must run even before opt-in so we know when the player is actually on Skyblock
         if (
             TilemanConfig.getInstance().isEnabled() &&
             HypixelUtil.isConnectedToHypixel(client)
@@ -65,7 +72,10 @@ public final class TilemanIslandHandler {
     }
 
     private static void requestLocation(ClientPacketListener handler) {
-        TilemanLog.debug(DebugCategory.ISLAND, "Sending /locraw to check current island");
+        TilemanLog.debug(
+            DebugCategory.ISLAND,
+            "Sending /locraw to check current island"
+        );
         handler.send(new ServerboundChatCommandPacket("locraw"));
     }
 
@@ -85,8 +95,12 @@ public final class TilemanIslandHandler {
                 ? json.get("gametype").getAsString()
                 : null;
             if (!"SKYBLOCK".equalsIgnoreCase(gameType)) {
+                inSkyblock = false;
                 return false;
             }
+
+            inSkyblock = true;
+            TilemanLoginHandler.maybeHandleOptIn();
 
             String islandId = json.has("mode")
                 ? json.get("mode").getAsString()
@@ -94,11 +108,17 @@ public final class TilemanIslandHandler {
             String displayName = json.has("map")
                 ? json.get("map").getAsString()
                 : islandId;
-            if (islandId != null) {
+            if (
+                islandId != null && TilemanState.getInstance().isTilemanActive()
+            ) {
                 onIslandDetected(islandId, displayName);
             }
         } catch (Exception e) {
-            TilemanLog.debug(DebugCategory.ISLAND, "Failed to parse /locraw response: " + text, e);
+            TilemanLog.debug(
+                DebugCategory.ISLAND,
+                "Failed to parse /locraw response: " + text,
+                e
+            );
         }
 
         return false;
@@ -115,7 +135,8 @@ public final class TilemanIslandHandler {
     private static void onIslandDetected(String islandId, String displayName) {
         TilemanState state = TilemanState.getInstance();
 
-        TilemanLog.debug(DebugCategory.ISLAND,
+        TilemanLog.debug(
+            DebugCategory.ISLAND,
             "Island detected: {} (current: {}, blocks: {})",
             islandId,
             state.getActiveIsland(),
@@ -123,23 +144,29 @@ public final class TilemanIslandHandler {
         );
 
         boolean islandChanged = !islandId.equals(state.getActiveIsland());
-        boolean isNewIsland = state.getUnlockedBlocks(state.getActiveProfileId(), islandId).isEmpty();
+        boolean isNewIsland = state
+            .getUnlockedBlocks(state.getActiveProfileId(), islandId)
+            .isEmpty();
         state.setActiveIsland(islandId);
 
         if (islandChanged) {
-            TilemanLog.debug(DebugCategory.ISLAND,
+            TilemanLog.debug(
+                DebugCategory.ISLAND,
                 "Tileman detected island change: {} ({})",
                 islandId,
                 displayName
             );
             TilemanChat.info("Now on island: " + displayName);
-            
+
             if (isNewIsland) {
                 MilestoneTracker.getInstance().onIslandVisited();
             }
         }
 
-        if (state.getUnlockedBlocks().isEmpty() && !TilemanFirstBlockMode.isActive()) {
+        if (
+            state.getUnlockedBlocks().isEmpty() &&
+            !TilemanFirstBlockMode.isActive()
+        ) {
             TilemanFirstBlockMode.activate(displayName);
         }
     }

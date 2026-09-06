@@ -10,225 +10,282 @@ import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
-/**
- * Tracks active slayer quest state and flawless progress.
- */
 public class SlayerTracker {
-    
+
     private static SlayerTracker instance;
-    
-    // Current quest state
+
     private boolean questActive = false;
     private SlayerType currentType = null;
     private int currentTier = 0;
     private boolean bossSpawned = false;
     private boolean tainted = false; // stepped on locked tile during quest
-    
+
     public static SlayerTracker getInstance() {
         if (instance == null) {
             instance = new SlayerTracker();
         }
         return instance;
     }
-    
+
     private SlayerTracker() {}
-    
-    /**
-     * Called when a slayer quest starts.
-     */
+
     public void onQuestStarted(SlayerType type, int tier) {
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] onQuestStarted called: type={}, tier={}", type, tier);
-        
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] onQuestStarted called: type={}, tier={}",
+            type,
+            tier
+        );
+
         questActive = true;
         currentType = type;
         currentTier = tier;
         bossSpawned = false;
         tainted = false;
-        
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Quest state: active={}, type={}, tier={}", 
-            questActive, currentType, currentTier);
-        
+
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] Quest state: active={}, type={}, tier={}",
+            questActive,
+            currentType,
+            currentTier
+        );
+
         if (tier >= 4) {
-            TilemanChat.info("§d§lFLAWLESS TRACKING: §r" + 
-                (type != null ? type.getDisplayName() : "Slayer") + " T" + tier);
-            TilemanChat.info("§7Don't step on locked tiles to complete flawlessly!");
+            TilemanChat.info(
+                "§d§lFLAWLESS TRACKING: §r" +
+                    (type != null ? type.getDisplayName() : "Slayer") +
+                    " T" +
+                    tier
+            );
+            TilemanChat.info(
+                "§7Don't step on locked tiles to complete flawlessly!"
+            );
         }
     }
-    
-    /**
-     * Called when slayer type/tier is detected from chat requirement or scoreboard.
-     */
+
     public void updateQuestInfo(SlayerType type, int tier) {
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] updateQuestInfo called: type={}, tier={}, currentType={}, currentTier={}", 
-            type, tier, currentType, currentTier);
-        
-        // Update if we don't have info yet, or if quest is active and we have better info
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] updateQuestInfo called: type={}, tier={}, currentType={}, currentTier={}",
+            type,
+            tier,
+            currentType,
+            currentTier
+        );
+
         if (type != null && tier > 0) {
             if (currentType == null || currentTier == 0) {
                 boolean wasTracking = questActive && currentTier >= 4;
                 currentType = type;
                 currentTier = tier;
-                TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Quest info updated: type={}, tier={}", 
-                    type.getDisplayName(), tier);
-                
-                // If quest is active and this is T4+, notify about flawless tracking
+                TilemanLog.debug(
+                    DebugCategory.SLAYER,
+                    "[TRACKER] Quest info updated: type={}, tier={}",
+                    type.getDisplayName(),
+                    tier
+                );
+
                 if (questActive && tier >= 4 && !wasTracking) {
-                    TilemanChat.info("§d§lFLAWLESS TRACKING: §r" + type.getDisplayName() + " T" + tier);
-                    TilemanChat.info("§7Don't step on locked tiles to complete flawlessly!");
+                    TilemanChat.info(
+                        "§d§lFLAWLESS TRACKING: §r" +
+                            type.getDisplayName() +
+                            " T" +
+                            tier
+                    );
+                    TilemanChat.info(
+                        "§7Don't step on locked tiles to complete flawlessly!"
+                    );
                 }
             } else {
-                TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Skipping update - already have type/tier");
+                TilemanLog.debug(
+                    DebugCategory.SLAYER,
+                    "[TRACKER] Skipping update - already have type/tier"
+                );
             }
         } else {
-            TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Skipping update - invalid type or tier");
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] Skipping update - invalid type or tier"
+            );
         }
     }
-    
-    /**
-     * Called when boss spawns.
-     */
+
     public void onBossSpawned() {
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] onBossSpawned called, questActive={}", questActive);
-        
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] onBossSpawned called, questActive={}",
+            questActive
+        );
+
         if (!questActive) {
-            // Quest started without us detecting the start message
-            TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Boss spawned but quest not active - activating now");
+            // boss can spawn without a quest-start message ever arriving
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] Boss spawned but quest not active - activating now"
+            );
             questActive = true;
             tainted = false;
         }
         bossSpawned = true;
-        
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Boss spawned state: type={}, tier={}, tainted={}", 
-            currentType, currentTier, tainted);
-        
+
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] Boss spawned state: type={}, tier={}, tainted={}",
+            currentType,
+            currentTier,
+            tainted
+        );
+
         if (currentTier >= 4 && !tainted) {
-            TilemanChat.info("§a§lBoss spawned! §7Stay on unlocked tiles for flawless!");
+            TilemanChat.info(
+                "§a§lBoss spawned! §7Stay on unlocked tiles for flawless!"
+            );
         }
     }
-    
-    /**
-     * Called when player steps on a locked tile during an active quest.
-     */
+
     public void onSteppedOnLockedTile() {
         if (!questActive) return;
-        
+
         if (!tainted && currentTier >= 4) {
             tainted = true;
-            TilemanLog.debug(DebugCategory.ALL, "Slayer quest tainted - stepped on locked tile");
-            TilemanChat.warn("§c§lFLAWLESS BROKEN! §7You stepped on a locked tile.");
+            TilemanLog.debug(
+                DebugCategory.ALL,
+                "Slayer quest tainted - stepped on locked tile"
+            );
+            TilemanChat.warn(
+                "§c§lFLAWLESS BROKEN! §7You stepped on a locked tile."
+            );
         } else if (!tainted) {
             tainted = true;
         }
     }
-    
-    /**
-     * Called when slayer quest is completed successfully.
-     */
+
     public void onQuestComplete() {
-        TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] onQuestComplete called: active={}, type={}, tier={}, tainted={}", 
-            questActive, currentType, currentTier, tainted);
-        
+        TilemanLog.debug(
+            DebugCategory.SLAYER,
+            "[TRACKER] onQuestComplete called: active={}, type={}, tier={}, tainted={}",
+            questActive,
+            currentType,
+            currentTier,
+            tainted
+        );
+
         if (!questActive) {
-            TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Quest not active, ignoring complete");
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] Quest not active, ignoring complete"
+            );
             return;
         }
-        
+
         SlayerData data = getSlayerData();
-        
+
         if (currentTier >= 4) {
-            TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] T4+ completion: tainted={}", tainted);
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] T4+ completion: tainted={}",
+                tainted
+            );
             if (tainted) {
                 data.recordTaintedCompletion(currentType, currentTier);
-                TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Recorded tainted T4+ completion");
-                TilemanChat.info("§e§lSLAYER COMPLETE! §7(not flawless - stepped on locked tiles)");
-                // Still check kill milestones (tainted kills count for kills, not flawless)
+                TilemanLog.debug(
+                    DebugCategory.SLAYER,
+                    "[TRACKER] Recorded tainted T4+ completion"
+                );
+                TilemanChat.info(
+                    "§e§lSLAYER COMPLETE! §7(not flawless - stepped on locked tiles)"
+                );
+                // tainted kills still count toward kill milestones, just not flawless ones
                 checkSlayerKillMilestone(currentType);
             } else {
                 data.recordFlawlessCompletion(currentType, currentTier);
-                TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Recorded FLAWLESS T4+ completion");
-                
+                TilemanLog.debug(
+                    DebugCategory.SLAYER,
+                    "[TRACKER] Recorded FLAWLESS T4+ completion"
+                );
+
                 int streak = data.getCurrentFlawlessStreak();
                 int total = data.getTotalFlawlessT4Plus();
-                
-                TilemanChat.info("§d§l✦ FLAWLESS SLAYER! §r" + 
-                    (currentType != null ? currentType.getDisplayName() : "Slayer") + " T" + currentTier);
-                TilemanChat.info("§7Streak: §e" + streak + " §7| Total: §e" + total);
-                
-                // Check per-type slayer milestones
+
+                TilemanChat.info(
+                    "§d§l✦ FLAWLESS SLAYER! §r" +
+                        (currentType != null
+                            ? currentType.getDisplayName()
+                            : "Slayer") +
+                        " T" +
+                        currentTier
+                );
+                TilemanChat.info(
+                    "§7Streak: §e" + streak + " §7| Total: §e" + total
+                );
+
                 checkSlayerMilestones(currentType);
-                MilestoneTracker.getInstance().checkMilestone(MilestoneType.SLAYER_STREAK);
-                
-                // Play special sound
+                MilestoneTracker.getInstance().checkMilestone(
+                    MilestoneType.SLAYER_STREAK
+                );
+
                 Minecraft client = Minecraft.getInstance();
                 if (client.player != null) {
-                    client.player.playSound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.2f);
+                    client.player.playSound(
+                        SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
+                        1.0f,
+                        1.2f
+                    );
                 }
             }
         } else {
-            // Lower tier, just track completion
-            TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Lower tier completion (T{}), tracking only", currentTier);
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] Lower tier completion (T{}), tracking only",
+                currentTier
+            );
             data.recordFlawlessCompletion(currentType, currentTier);
         }
-        
+
         TilemanState.getInstance().save();
         resetQuestState();
         TilemanLog.debug(DebugCategory.SLAYER, "[TRACKER] Quest state reset");
     }
-    
-    /**
-     * Called when slayer quest fails.
-     */
+
     public void onQuestFailed() {
         if (!questActive) return;
-        
+
         SlayerData data = getSlayerData();
-        
+
         if (currentTier >= 4) {
             int oldStreak = data.getCurrentFlawlessStreak();
             data.recordFailedQuest();
-            
+
             if (oldStreak > 0) {
-                TilemanChat.warn("§c§lSLAYER FAILED! §7Flawless streak lost: " + oldStreak);
+                TilemanChat.warn(
+                    "§c§lSLAYER FAILED! §7Flawless streak lost: " + oldStreak
+                );
             } else {
                 TilemanChat.warn("§c§lSLAYER FAILED!");
             }
         }
-        
+
         TilemanState.getInstance().save();
         resetQuestState();
     }
-    
-    /**
-     * Check if a slayer quest is currently active.
-     */
+
     public boolean isQuestActive() {
         return questActive;
     }
-    
-    /**
-     * Check if the current quest is tainted (player stepped on locked tile).
-     */
+
     public boolean isTainted() {
         return tainted;
     }
-    
-    /**
-     * Get the current slayer type.
-     */
+
     public SlayerType getCurrentType() {
         return currentType;
     }
-    
-    /**
-     * Get the current slayer tier.
-     */
+
     public int getCurrentTier() {
         return currentTier;
     }
-    
-    /**
-     * Reset quest state (on completion, failure, or island change).
-     */
+
     public void resetQuestState() {
         questActive = false;
         currentType = null;
@@ -236,22 +293,16 @@ public class SlayerTracker {
         bossSpawned = false;
         tainted = false;
     }
-    
+
     private SlayerData getSlayerData() {
         return TilemanState.getInstance().getSlayerData();
     }
-    
-    /**
-     * Check both kill and flawless milestones for a slayer type.
-     */
+
     private void checkSlayerMilestones(SlayerType type) {
         checkSlayerKillMilestone(type);
         checkSlayerFlawlessMilestone(type);
     }
-    
-    /**
-     * Check the kill milestone for a slayer type.
-     */
+
     private void checkSlayerKillMilestone(SlayerType type) {
         if (type == null) return;
         MilestoneType killMilestone = switch (type) {
@@ -264,10 +315,7 @@ public class SlayerTracker {
         };
         MilestoneTracker.getInstance().checkMilestone(killMilestone);
     }
-    
-    /**
-     * Check the flawless milestone for a slayer type.
-     */
+
     private void checkSlayerFlawlessMilestone(SlayerType type) {
         if (type == null) return;
         MilestoneType flawlessMilestone = switch (type) {

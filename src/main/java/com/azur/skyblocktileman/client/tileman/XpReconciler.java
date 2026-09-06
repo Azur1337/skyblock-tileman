@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+// Stub: stores the API baseline and lifecycle flags only, it does not reconcile xp yet.
 public final class XpReconciler {
 
     private static XpReconciler instance;
@@ -33,7 +34,8 @@ public final class XpReconciler {
         this.apiKey = apiKey;
         this.initialized = true;
 
-        TilemanLog.debug(DebugCategory.PROFILE,
+        TilemanLog.debug(
+            DebugCategory.PROFILE,
             "XpReconciler initialized (API baseline: {} XP)",
             baselineXp
         );

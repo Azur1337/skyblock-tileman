@@ -6,6 +6,8 @@ import java.util.Random;
 
 public class ShopData {
 
+    public static final int EFFICIENT_SCALING_MAX = 10;
+
     private int multiUnlockLevel = 0;
     private int luckyUnlockLevel = 0;
     private int efficientScalingLevel = 0;
@@ -42,7 +44,10 @@ public class ShopData {
     }
 
     public void setEfficientScalingLevel(int level) {
-        this.efficientScalingLevel = Math.min(10, Math.max(0, level));
+        this.efficientScalingLevel = Math.min(
+            EFFICIENT_SCALING_MAX,
+            Math.max(0, level)
+        );
     }
 
     public int getSkillAffinityLevel(String skill) {
@@ -102,8 +107,8 @@ public class ShopData {
     }
 
     public void activateXpFrenzy() {
-        int durationMinutes = 15 + (frenzyDurationLevel * 5);
-        int power = 50 + (frenzyPowerLevel * 10);
+        int durationMinutes = 15 + frenzyDurationLevel * 5;
+        int power = 50 + frenzyPowerLevel * 10;
         this.xpFrenzyRemainingMs = durationMinutes * 60 * 1000L;
         this.xpFrenzyActivePower = power;
     }
@@ -153,44 +158,46 @@ public class ShopData {
         return actualTiles > baseTiles;
     }
 
-    public double getSkillXpMultiplier(String skill) {
-        int level = getSkillAffinityLevel(skill);
-        double base = 1.0;
-        if (level > 0) {
-            base = 1.0 + (1.0 - Math.pow(0.9, level));
-        }
-        if (isXpFrenzyActive()) {
-            base *= 1.0 + (xpFrenzyActivePower / 100.0);
-        }
-        return base;
+    // diminishing toward 100 percent: (1 - 0.9^level) * 100
+    public static int getSkillAffinityBonusPercent(int level) {
+        if (level <= 0) return 0;
+        return (int) Math.round((1.0 - Math.pow(0.9, level)) * 100);
     }
 
+    public double getSkillAffinityMultiplier(String skill) {
+        return (
+            1.0 +
+            getSkillAffinityBonusPercent(getSkillAffinityLevel(skill)) / 100.0
+        );
+    }
+
+    // percent reduction of the XP cost per token, 2% per level
     public int getEfficientScalingBonus() {
-        return efficientScalingLevel * 100_000;
+        return efficientScalingLevel * 2;
     }
 
     public static int getMultiUnlockPrice(int currentLevel) {
-        return 25 + (currentLevel * 15);
+        return 25 + currentLevel * 15;
     }
 
     public static int getLuckyUnlockPrice(int currentLevel) {
-        return 10 + (currentLevel * 5);
+        return 10 + currentLevel * 5;
     }
 
     public static int getEfficientScalingPrice(int currentLevel) {
-        return 20 + (currentLevel * 10);
+        return 20 + currentLevel * 10;
     }
 
     public static int getSkillAffinityPrice(int currentLevel) {
-        return 8 + (currentLevel * 3);
+        return 8 + currentLevel * 3;
     }
 
     public static int getFrenzyDurationPrice(int currentLevel) {
-        return 20 + (currentLevel * 15);
+        return 20 + currentLevel * 15;
     }
 
     public static int getFrenzyPowerPrice(int currentLevel) {
-        return 25 + (currentLevel * 20);
+        return 25 + currentLevel * 20;
     }
 
     public static int getRemoteUnlockPrice() {

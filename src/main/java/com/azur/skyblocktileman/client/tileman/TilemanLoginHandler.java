@@ -1,10 +1,16 @@
 package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTracker;
-import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
+import com.azur.skyblocktileman.client.tileman.ui.ConfirmScreen;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import org.slf4j.Logger;
@@ -21,6 +27,11 @@ public final class TilemanLoginHandler {
 
     private static UUID cachedPlayerUuid;
     private static String cachedApiKey;
+    // last profile id we ran a baseline fetch for; island warps re-fire JOIN for the
+    // same profile, so we only hit the API when the active profile actually changes
+    private static String lastFetchedProfileId = null;
+    private static HypixelApiClient.ProfilesResult lastProfilesResult = null;
+    private static String promptedProfileId = null;
 
     private TilemanLoginHandler() {}
 
@@ -52,33 +63,42 @@ public final class TilemanLoginHandler {
         String apiKey = resolveApiKey();
         cachedApiKey = apiKey;
         cachedPlayerUuid = handler.getLocalGameProfile().id();
+        lastProfilesResult = null;
+        promptedProfileId = null;
 
         if (apiKey == null) {
-            TilemanLog.debug(DebugCategory.PROFILE,
-                "No app API key configured (system property '{}' or env '{}'), skipping baseline fetch.",
-                API_KEY_PROP,
-                API_KEY_ENV
+            TilemanLog.debug(
+                DebugCategory.PROFILE,
+                "No app API key found (property, env, .env, or bundled), skipping baseline fetch."
             );
             return;
         }
 
-        UUID playerUuid = cachedPlayerUuid;
-
-        HypixelApiClient.fetchBaselineSkillXp(
-            playerUuid,
-            apiKey
-        ).thenAccept(result -> client.execute(() -> applyResult(result)));
-
-        // Also fetch collections for milestone tracking
-        HypixelApiClient.fetchMaxedCollections(
-            playerUuid,
-            apiKey
-        ).thenAccept(result -> client.execute(() -> applyCollectionResult(result)));
-        
-        // Fetch dungeon completions for baseline
-        DungeonTracker.getInstance().fetchAndUpdateCompletions();
+        // one profiles request covers baseline xp, collections and dungeon completions
+        fetchBaselineIfNeeded();
     }
 
+    // only refetch on a real profile change: island warps re-fire JOIN and would burn the shared key
+    public static void fetchBaselineIfNeeded() {
+        String apiKey = cachedApiKey;
+        UUID playerUuid = cachedPlayerUuid;
+        if (apiKey == null || playerUuid == null) {
+            return;
+        }
+        String activeProfile = TilemanState.getInstance().getActiveProfileId();
+        if (activeProfile.equals(lastFetchedProfileId)) {
+            return;
+        }
+        // profile genuinely changed: never serve the previous profile's cached payload
+        HypixelApiClient.invalidateCache();
+        lastProfilesResult = null;
+        Minecraft client = Minecraft.getInstance();
+        HypixelApiClient.getProfiles(playerUuid, apiKey, 0).thenAccept(result ->
+            client.execute(() -> applyProfilesResult(result))
+        );
+    }
+
+    // resolution order: jvm property, env var, .env in game dir, .env bundled into the jar
     private static String resolveApiKey() {
         String fromProperty = System.getProperty(API_KEY_PROP);
         if (fromProperty != null && !fromProperty.isBlank()) {
@@ -88,13 +108,70 @@ public final class TilemanLoginHandler {
         if (fromEnv != null && !fromEnv.isBlank()) {
             return fromEnv.trim();
         }
-        return "16888893-fbe6-4c40-8776-b999187e2fe7";
+        String fromFile = readApiKeyFrom(
+            FabricLoader.getInstance().getGameDir().resolve(".env")
+        );
+        if (fromFile != null) {
+            return fromFile;
+        }
+        try (
+            InputStream in = TilemanLoginHandler.class.getResourceAsStream(
+                "/tileman.env"
+            )
+        ) {
+            if (in != null) {
+                return extractApiKey(
+                    new String(in.readAllBytes(), StandardCharsets.UTF_8)
+                );
+            }
+        } catch (IOException ignored) {}
+        return null;
     }
 
-    private static void applyResult(HypixelApiClient.BaselineResult result) {
+    private static String readApiKeyFrom(Path file) {
+        try {
+            if (Files.isRegularFile(file)) {
+                return extractApiKey(Files.readString(file));
+            }
+        } catch (IOException ignored) {}
+        return null;
+    }
+
+    // minimal dotenv parsing: KEY=VALUE lines, # comments, optional quotes
+    private static String extractApiKey(String content) {
+        for (String line : content.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;
+            }
+            int eq = trimmed.indexOf('=');
+            if (eq < 0) {
+                continue;
+            }
+            if (!trimmed.substring(0, eq).trim().equals(API_KEY_ENV)) {
+                continue;
+            }
+            String value = trimmed.substring(eq + 1).trim();
+            if (
+                value.length() >= 2 &&
+                ((value.startsWith("\"") && value.endsWith("\"")) ||
+                    (value.startsWith("'") && value.endsWith("'")))
+            ) {
+                value = value.substring(1, value.length() - 1);
+            }
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private static void applyProfilesResult(
+        HypixelApiClient.ProfilesResult result
+    ) {
         if (!result.success()) {
             LOGGER.warn(
-                "Could not fetch Tileman Skill XP baseline: {}",
+                "Could not fetch Tileman profiles baseline: {}",
                 result.errorMessage()
             );
             TilemanChat.warn(
@@ -105,6 +182,11 @@ public final class TilemanLoginHandler {
 
         TilemanState state = TilemanState.getInstance();
         state.setActiveProfile(result.profileId());
+        lastFetchedProfileId = result.profileId();
+        lastProfilesResult = result;
+
+        // the opt-in question waits until we know the player is really on Skyblock
+        maybeHandleOptIn();
 
         if (result.skillXp() != null) {
             for (var entry : result.skillXp().entrySet()) {
@@ -118,40 +200,119 @@ public final class TilemanLoginHandler {
             result.totalSkillXp()
         );
 
-        TilemanLog.debug(DebugCategory.PROFILE,
+        TilemanLog.debug(
+            DebugCategory.PROFILE,
             "Loaded Tileman baseline: profile {} ({}), total Skill XP = {}, tokens = {}",
             result.cuteName(),
             result.profileId(),
             result.totalSkillXp(),
             state.getTokens()
         );
-        TilemanChat.info(
-            "Loaded baseline for profile " +
-                result.cuteName() +
-                ": " +
-                String.format("%,d", result.totalSkillXp()) +
-                " total Skill XP, " +
-                state.getTokens() +
-                " token(s) available."
+        if (state.isTilemanActive()) {
+            TilemanChat.info(
+                "Loaded baseline for profile " +
+                    result.cuteName() +
+                    ": " +
+                    String.format("%,d", result.totalSkillXp()) +
+                    " total Skill XP, " +
+                    state.getTokens() +
+                    " token(s) available."
+            );
+        }
+
+        state.setMaxedCollections(result.maxedCollections());
+        TilemanLog.debug(
+            DebugCategory.PROFILE,
+            "Loaded collections: {} maxed out of {} tracked",
+            result.maxedCollections(),
+            result.totalCollections()
         );
+
+        DungeonTracker.getInstance().applyProfilesResult(result);
     }
 
-    private static void applyCollectionResult(HypixelApiClient.CollectionResult result) {
-        if (!result.success()) {
-            TilemanLog.debug(DebugCategory.PROFILE,
-                "Could not fetch collections: {}",
-                result.errorMessage()
+    // true only if the API told us the active profile was created after Tileman was installed
+    public static boolean isCurrentProfileNew() {
+        HypixelApiClient.ProfilesResult result = lastProfilesResult;
+        if (result == null || !result.success()) {
+            return false;
+        }
+        TilemanState state = TilemanState.getInstance();
+        if (!result.profileId().equals(state.getActiveProfileId())) {
+            return false;
+        }
+        long createdAtMs = result.createdAtMs();
+        return createdAtMs > 0 && createdAtMs >= state.getFirstInstallMs();
+    }
+
+    // called from the baseline fetch and from /locraw Skyblock detection; either may arrive second
+    public static void maybeHandleOptIn() {
+        if (!TilemanIslandHandler.isInSkyblock()) {
+            return;
+        }
+        HypixelApiClient.ProfilesResult result = lastProfilesResult;
+        if (result == null || !result.success()) {
+            return;
+        }
+        TilemanState state = TilemanState.getInstance();
+        if (!result.profileId().equals(state.getActiveProfileId())) {
+            return;
+        }
+        // one prompt per profile per connection; re-opening would fire onClose on the old screen
+        if (result.profileId().equals(promptedProfileId)) {
+            return;
+        }
+        promptedProfileId = result.profileId();
+        handleOptInDecision(result);
+    }
+
+    // Tileman only runs on profiles created after the mod was installed; new ones get asked once
+    private static void handleOptInDecision(
+        HypixelApiClient.ProfilesResult result
+    ) {
+        TilemanState state = TilemanState.getInstance();
+        if (state.getTilemanMode() != null) {
+            return;
+        }
+
+        long createdAtMs = result.createdAtMs();
+        if (createdAtMs <= 0) {
+            TilemanLog.debug(
+                DebugCategory.PROFILE,
+                "No profile creation date from API, postponing opt-in decision."
             );
             return;
         }
 
-        TilemanState state = TilemanState.getInstance();
-        state.setMaxedCollections(result.maxedCount());
+        if (createdAtMs < state.getFirstInstallMs()) {
+            state.setTilemanMode(false);
+            TilemanChat.warn(
+                "Tileman mode is not available on profile " +
+                    result.cuteName() +
+                    ": it was created before Tileman was installed. No retroactive rewards."
+            );
+            return;
+        }
 
-        TilemanLog.debug(DebugCategory.PROFILE,
-            "Loaded collections: {} maxed out of {} tracked",
-            result.maxedCount(),
-            result.totalCollections()
+        ConfirmScreen.open(
+            "Enable Tileman mode?",
+            "New profile detected. You may only stand on blocks you unlock with tokens, earned from XP from now on.",
+            () -> {
+                state.setTilemanMode(true);
+                TilemanChat.info(
+                    "Tileman mode enabled for profile " +
+                        result.cuteName() +
+                        ". Good luck."
+                );
+            },
+            () -> {
+                state.setTilemanMode(false);
+                TilemanChat.warn(
+                    "Tileman mode declined for profile " +
+                        result.cuteName() +
+                        ". Use /tileman optin on to change your mind."
+                );
+            }
         );
     }
 }

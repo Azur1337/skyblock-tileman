@@ -11,12 +11,13 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// one profiles request serves baseline xp, collections and dungeon completions;
+// every live endpoint shares the same 300 req / 5 min counter, so we never fetch twice
 public final class HypixelApiClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(
@@ -25,21 +26,6 @@ public final class HypixelApiClient {
 
     private static final String PROFILES_URL =
         "https://api.hypixel.net/v2/skyblock/profiles?uuid=%s";
-
-    private static final Set<String> SKILL_XP_KEYS = Set.of(
-        "SKILL_FARMING",
-        "SKILL_MINING",
-        "SKILL_COMBAT",
-        "SKILL_FORAGING",
-        "SKILL_FISHING",
-        "SKILL_ENCHANTING",
-        "SKILL_ALCHEMY",
-        "SKILL_TAMING",
-        "SKILL_CARPENTRY",
-        "SKILL_RUNECRAFTING",
-        "SKILL_SOCIAL",
-        "SKILL_HUNTING"
-    );
 
     private static final Map<String, String> SKILL_KEY_TO_NAME = Map.ofEntries(
         Map.entry("SKILL_FARMING", "Farming"),
@@ -75,30 +61,107 @@ public final class HypixelApiClient {
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
+    // after a 429 we skip all requests until the window resets; a 429 still costs 1 request
+    private static volatile long backoffUntilMs = 0;
+
+    // last successful profiles payload, shared by all consumers to avoid duplicate requests
+    private static UUID cachedUuid;
+    private static ProfilesResult cachedResult;
+    private static long cachedAtMs;
+    private static CompletableFuture<ProfilesResult> inFlight;
+
+    // bug protection: one client must never hammer the shared key, worst case 120 req/h
+    private static final long CLIENT_MIN_INTERVAL_MS = 30_000;
+    private static long lastRequestStartedMs = 0;
+
     private HypixelApiClient() {}
 
-    public record BaselineResult(
+    // Cached entry point: serves the payload if younger than maxAgeMs, else joins or starts a fetch.
+    public static synchronized CompletableFuture<ProfilesResult> getProfiles(
+        UUID playerUuid,
+        String apiKey,
+        long maxAgeMs
+    ) {
+        long now = System.currentTimeMillis();
+        if (
+            cachedResult != null &&
+            cachedResult.success() &&
+            playerUuid.equals(cachedUuid) &&
+            now - cachedAtMs < maxAgeMs
+        ) {
+            return CompletableFuture.completedFuture(cachedResult);
+        }
+        if (inFlight != null) {
+            return inFlight;
+        }
+        if (now - lastRequestStartedMs < CLIENT_MIN_INTERVAL_MS) {
+            // serve stale data rather than spam the shared counter; processing is delta-based
+            if (cachedResult != null && playerUuid.equals(cachedUuid)) {
+                return CompletableFuture.completedFuture(cachedResult);
+            }
+            return CompletableFuture.completedFuture(
+                ProfilesResult.failure(
+                    "Requests too frequent, try again later."
+                )
+            );
+        }
+        lastRequestStartedMs = now;
+
+        CompletableFuture<ProfilesResult> request = fetchProfiles(
+            playerUuid,
+            apiKey
+        ).whenComplete((result, error) -> {
+            synchronized (HypixelApiClient.class) {
+                inFlight = null;
+                if (result != null && result.success()) {
+                    cachedUuid = playerUuid;
+                    cachedResult = result;
+                    cachedAtMs = System.currentTimeMillis();
+                }
+            }
+        });
+        inFlight = request;
+        return request;
+    }
+
+    public static synchronized ProfilesResult peekProfiles() {
+        return cachedResult;
+    }
+
+    // Used on a real profile switch so the next fetch always goes to the network.
+    public static synchronized void invalidateCache() {
+        cachedResult = null;
+        cachedUuid = null;
+        lastRequestStartedMs = 0;
+        // do not let a switch join an in-flight request started for the old profile;
+        // if one still applies its stale result afterwards, the fresh fetch follows it
+        inFlight = null;
+    }
+
+    public record ProfilesResult(
         boolean success,
         String profileId,
         String cuteName,
         Map<String, Long> skillXp,
+        int maxedCollections,
+        int totalCollections,
+        Map<String, Integer> normalCompletions,
+        Map<String, Integer> masterCompletions,
+        long createdAtMs,
         String errorMessage
     ) {
-        static BaselineResult failure(String message) {
-            return new BaselineResult(false, null, null, null, message);
-        }
-
-        static BaselineResult of(
-            String profileId,
-            String cuteName,
-            Map<String, Long> skillXp
-        ) {
-            return new BaselineResult(
-                true,
-                profileId,
-                cuteName,
-                skillXp,
-                null
+        static ProfilesResult failure(String message) {
+            return new ProfilesResult(
+                false,
+                null,
+                null,
+                null,
+                0,
+                0,
+                null,
+                null,
+                0L,
+                message
             );
         }
 
@@ -108,32 +171,23 @@ public final class HypixelApiClient {
         }
     }
 
-    public record XpFetchResult(
-        boolean success,
-        Map<String, Long> skillXp,
-        String errorMessage
-    ) {
-        static XpFetchResult failure(String message) {
-            return new XpFetchResult(false, null, message);
-        }
-
-        static XpFetchResult of(Map<String, Long> skillXp) {
-            return new XpFetchResult(true, skillXp, null);
-        }
-
-        public long totalSkillXp() {
-            if (skillXp == null) return 0;
-            return skillXp.values().stream().mapToLong(Long::longValue).sum();
-        }
-    }
-
-    public static CompletableFuture<BaselineResult> fetchBaselineSkillXp(
+    private static CompletableFuture<ProfilesResult> fetchProfiles(
         UUID playerUuid,
         String apiKey
     ) {
         if (apiKey == null || apiKey.isBlank()) {
             return CompletableFuture.completedFuture(
-                BaselineResult.failure("No Hypixel API key configured.")
+                ProfilesResult.failure("No Hypixel API key configured.")
+            );
+        }
+
+        long now = System.currentTimeMillis();
+        if (now < backoffUntilMs) {
+            long remaining = (backoffUntilMs - now + 999) / 1000;
+            return CompletableFuture.completedFuture(
+                ProfilesResult.failure(
+                    "Rate limited, backing off for " + remaining + "s."
+                )
             );
         }
 
@@ -149,65 +203,50 @@ public final class HypixelApiClient {
             request,
             HttpResponse.BodyHandlers.ofString()
         )
-            .thenApply(response ->
-                parseResponse(
+            .thenApply(response -> {
+                if (response.statusCode() == 429) {
+                    applyBackoff(response);
+                    return ProfilesResult.failure("Rate limited (HTTP 429).");
+                }
+                return parseProfiles(
                     response.body(),
                     response.statusCode(),
                     playerUuid
-                )
-            )
+                );
+            })
             .exceptionally(e -> {
                 LOGGER.error(
                     "Failed to fetch SkyBlock profiles from Hypixel API.",
                     e
                 );
-                return BaselineResult.failure(
+                return ProfilesResult.failure(
                     "Network error: " + e.getMessage()
                 );
             });
     }
 
-    public static CompletableFuture<XpFetchResult> fetchTotalSkillXp(
-        UUID playerUuid,
-        String apiKey
-    ) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return CompletableFuture.completedFuture(
-                XpFetchResult.failure("No Hypixel API key configured.")
-            );
+    private static void applyBackoff(HttpResponse<String> response) {
+        long resetSeconds = response
+            .headers()
+            .firstValue("ratelimit-reset")
+            .map(HypixelApiClient::parseLongOr)
+            .orElse(60L);
+        backoffUntilMs = System.currentTimeMillis() + (resetSeconds + 5) * 1000;
+        LOGGER.warn(
+            "Hypixel API rate limit hit, backing off for {} seconds",
+            resetSeconds
+        );
+    }
+
+    private static long parseLongOr(String value) {
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return 60L;
         }
-
-        String undashed = playerUuid.toString().replace("-", "");
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(String.format(PROFILES_URL, undashed)))
-            .header("API-Key", apiKey)
-            .timeout(Duration.ofSeconds(10))
-            .GET()
-            .build();
-
-        return HTTP_CLIENT.sendAsync(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
-            .thenApply(response ->
-                parseXpResponse(
-                    response.body(),
-                    response.statusCode(),
-                    playerUuid
-                )
-            )
-            .exceptionally(e -> {
-                LOGGER.error(
-                    "Failed to fetch SkyBlock XP from Hypixel API.",
-                    e
-                );
-                return XpFetchResult.failure(
-                    "Network error: " + e.getMessage()
-                );
-            });
     }
 
-    private static XpFetchResult parseXpResponse(
+    private static ProfilesResult parseProfiles(
         String body,
         int statusCode,
         UUID playerUuid
@@ -216,54 +255,7 @@ public final class HypixelApiClient {
         try {
             root = JsonParser.parseString(body).getAsJsonObject();
         } catch (Exception e) {
-            return XpFetchResult.failure(
-                "Malformed response from Hypixel API (status " + statusCode + ")."
-            );
-        }
-
-        if (!root.has("success") || !root.get("success").getAsBoolean()) {
-            String cause = root.has("cause")
-                ? root.get("cause").getAsString()
-                : "HTTP " + statusCode;
-            return XpFetchResult.failure("Hypixel API request failed: " + cause);
-        }
-
-        JsonArray profiles = root.getAsJsonArray("profiles");
-        if (profiles == null || profiles.isEmpty()) {
-            return XpFetchResult.failure("Player has no SkyBlock profiles.");
-        }
-
-        JsonObject selected = findSelectedProfile(profiles);
-        if (selected == null) {
-            selected = profiles.get(0).getAsJsonObject();
-        }
-
-        JsonObject members = selected.getAsJsonObject("members");
-        if (members == null) {
-            return XpFetchResult.failure("Profile response had no member data.");
-        }
-
-        JsonObject member = findMember(members, playerUuid);
-        if (member == null) {
-            return XpFetchResult.failure(
-                "Could not find player's member entry in selected profile."
-            );
-        }
-
-                Map<String, Long> skillXp = getSkillXpMap(member);
-                return XpFetchResult.of(skillXp);
-    }
-
-    private static BaselineResult parseResponse(
-        String body,
-        int statusCode,
-        UUID playerUuid
-    ) {
-        JsonObject root;
-        try {
-            root = JsonParser.parseString(body).getAsJsonObject();
-        } catch (Exception e) {
-            return BaselineResult.failure(
+            return ProfilesResult.failure(
                 "Malformed response from Hypixel API (status " +
                     statusCode +
                     ")."
@@ -274,15 +266,21 @@ public final class HypixelApiClient {
             String cause = root.has("cause")
                 ? root.get("cause").getAsString()
                 : "HTTP " + statusCode;
-            return BaselineResult.failure(
+            return ProfilesResult.failure(
                 "Hypixel API request failed: " + cause
             );
         }
 
-        JsonArray profiles = root.getAsJsonArray("profiles");
-        if (profiles == null || profiles.isEmpty()) {
-            return BaselineResult.failure("Player has no SkyBlock profiles.");
+        JsonElement profilesElement = root.get("profiles");
+        // unknown or fresh accounts answer 200 with profiles:null
+        if (
+            profilesElement == null ||
+            !profilesElement.isJsonArray() ||
+            profilesElement.getAsJsonArray().isEmpty()
+        ) {
+            return ProfilesResult.failure("Player has no SkyBlock profiles.");
         }
+        JsonArray profiles = profilesElement.getAsJsonArray();
 
         JsonObject selected = findSelectedProfile(profiles);
         if (selected == null) {
@@ -298,20 +296,46 @@ public final class HypixelApiClient {
 
         JsonObject members = selected.getAsJsonObject("members");
         if (members == null) {
-            return BaselineResult.failure(
+            return ProfilesResult.failure(
                 "Profile response had no member data."
             );
         }
 
         JsonObject member = findMember(members, playerUuid);
         if (member == null) {
-            return BaselineResult.failure(
+            return ProfilesResult.failure(
                 "Could not find this player's member entry in the selected profile."
             );
         }
 
-                Map<String, Long> skillXp = getSkillXpMap(member);
-                return BaselineResult.of(profileId, cuteName, skillXp);
+        Map<String, Long> skillXp = getSkillXpMap(member);
+
+        int[] collectionCounts = countMaxedCollections(member);
+
+        Map<String, Integer> normalCompletions = new HashMap<>();
+        Map<String, Integer> masterCompletions = new HashMap<>();
+        extractDungeonCompletions(member, normalCompletions, masterCompletions);
+
+        // profile created_at when present, else this player's first join on the profile
+        long createdAtMs = 0L;
+        if (selected.has("created_at")) {
+            createdAtMs = selected.get("created_at").getAsLong();
+        } else if (member.has("first_join")) {
+            createdAtMs = member.get("first_join").getAsLong();
+        }
+
+        return new ProfilesResult(
+            true,
+            profileId,
+            cuteName,
+            skillXp,
+            collectionCounts[0],
+            collectionCounts[1],
+            normalCompletions,
+            masterCompletions,
+            createdAtMs,
+            null
+        );
     }
 
     private static JsonObject findSelectedProfile(JsonArray profiles) {
@@ -353,17 +377,29 @@ public final class HypixelApiClient {
                 : null;
 
         if (experience != null) {
-            for (Map.Entry<String, String> entry : SKILL_KEY_TO_NAME.entrySet()) {
+            for (Map.Entry<
+                String,
+                String
+            > entry : SKILL_KEY_TO_NAME.entrySet()) {
                 if (experience.has(entry.getKey())) {
-                    result.put(entry.getValue(), (long) experience.get(entry.getKey()).getAsDouble());
+                    result.put(
+                        entry.getValue(),
+                        (long) experience.get(entry.getKey()).getAsDouble()
+                    );
                 }
             }
         }
 
         if (result.isEmpty()) {
-            for (Map.Entry<String, String> entry : LEGACY_KEY_TO_NAME.entrySet()) {
+            for (Map.Entry<
+                String,
+                String
+            > entry : LEGACY_KEY_TO_NAME.entrySet()) {
                 if (member.has(entry.getKey())) {
-                    result.put(entry.getValue(), (long) member.get(entry.getKey()).getAsDouble());
+                    result.put(
+                        entry.getValue(),
+                        (long) member.get(entry.getKey()).getAsDouble()
+                    );
                 }
             }
         }
@@ -371,11 +407,7 @@ public final class HypixelApiClient {
         return result;
     }
 
-    /**
-     * Collection tier requirements - maps collection item to max tier threshold.
-     * A collection is "maxed" when the player reaches this amount.
-     * Note: This is a simplified version - some collections have different max tiers.
-     */
+    // collection item id -> amount needed for the max tier
     private static final Map<String, Long> COLLECTION_MAX_TIERS = Map.ofEntries(
         // Farming
         Map.entry("WHEAT", 100000L),
@@ -385,11 +417,11 @@ public final class HypixelApiClient {
         Map.entry("MELON", 250000L),
         Map.entry("SEEDS", 50000L),
         Map.entry("MUSHROOM_COLLECTION", 50000L),
-        Map.entry("INK_SACK:3", 250000L), // Cocoa
+        Map.entry("INK_SACK:3", 250000L),
         Map.entry("CACTUS", 100000L),
         Map.entry("SUGAR_CANE", 100000L),
         Map.entry("NETHER_STALK", 100000L),
-        
+
         // Mining
         Map.entry("COBBLESTONE", 2000000L),
         Map.entry("COAL", 250000L),
@@ -412,7 +444,7 @@ public final class HypixelApiClient {
         Map.entry("GEMSTONE_COLLECTION", 250000L),
         Map.entry("MYCEL", 25000L),
         Map.entry("SULPHUR_ORE", 100000L),
-        
+
         // Combat
         Map.entry("ROTTEN_FLESH", 100000L),
         Map.entry("BONE", 100000L),
@@ -424,7 +456,7 @@ public final class HypixelApiClient {
         Map.entry("SLIME_BALL", 100000L),
         Map.entry("BLAZE_ROD", 50000L),
         Map.entry("MAGMA_CREAM", 50000L),
-        
+
         // Foraging
         Map.entry("LOG", 100000L),
         Map.entry("LOG:1", 100000L),
@@ -432,7 +464,7 @@ public final class HypixelApiClient {
         Map.entry("LOG_2:1", 100000L),
         Map.entry("LOG_2", 100000L),
         Map.entry("LOG:3", 100000L),
-        
+
         // Fishing
         Map.entry("RAW_FISH", 100000L),
         Map.entry("RAW_FISH:1", 100000L),
@@ -446,277 +478,72 @@ public final class HypixelApiClient {
         Map.entry("SPONGE", 25000L)
     );
 
-    public record CollectionResult(
-        boolean success,
-        int maxedCount,
-        int totalCollections,
-        String errorMessage
-    ) {
-        static CollectionResult failure(String message) {
-            return new CollectionResult(false, 0, 0, message);
-        }
-
-        static CollectionResult of(int maxedCount, int totalCollections) {
-            return new CollectionResult(true, maxedCount, totalCollections, null);
-        }
-    }
-
-    public static CompletableFuture<CollectionResult> fetchMaxedCollections(
-        UUID playerUuid,
-        String apiKey
-    ) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return CompletableFuture.completedFuture(
-                CollectionResult.failure("No Hypixel API key configured.")
-            );
-        }
-
-        String undashed = playerUuid.toString().replace("-", "");
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(String.format(PROFILES_URL, undashed)))
-            .header("API-Key", apiKey)
-            .timeout(Duration.ofSeconds(10))
-            .GET()
-            .build();
-
-        return HTTP_CLIENT.sendAsync(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
-            .thenApply(response ->
-                parseCollectionResponse(
-                    response.body(),
-                    response.statusCode(),
-                    playerUuid
-                )
-            )
-            .exceptionally(e -> {
-                LOGGER.error(
-                    "Failed to fetch SkyBlock collections from Hypixel API.",
-                    e
-                );
-                return CollectionResult.failure(
-                    "Network error: " + e.getMessage()
-                );
-            });
-    }
-
-    private static CollectionResult parseCollectionResponse(
-        String body,
-        int statusCode,
-        UUID playerUuid
-    ) {
-        JsonObject root;
-        try {
-            root = JsonParser.parseString(body).getAsJsonObject();
-        } catch (Exception e) {
-            return CollectionResult.failure(
-                "Malformed response from Hypixel API (status " + statusCode + ")."
-            );
-        }
-
-        if (!root.has("success") || !root.get("success").getAsBoolean()) {
-            String cause = root.has("cause")
-                ? root.get("cause").getAsString()
-                : "HTTP " + statusCode;
-            return CollectionResult.failure("Hypixel API request failed: " + cause);
-        }
-
-        JsonArray profiles = root.getAsJsonArray("profiles");
-        if (profiles == null || profiles.isEmpty()) {
-            return CollectionResult.failure("Player has no SkyBlock profiles.");
-        }
-
-        JsonObject selected = findSelectedProfile(profiles);
-        if (selected == null) {
-            selected = profiles.get(0).getAsJsonObject();
-        }
-
-        JsonObject members = selected.getAsJsonObject("members");
-        if (members == null) {
-            return CollectionResult.failure("Profile response had no member data.");
-        }
-
-        JsonObject member = findMember(members, playerUuid);
-        if (member == null) {
-            return CollectionResult.failure(
-                "Could not find player's member entry in selected profile."
-            );
-        }
-
+    // returns [maxedCount, totalChecked]
+    private static int[] countMaxedCollections(JsonObject member) {
         JsonObject collection = member.has("collection")
             ? member.getAsJsonObject("collection")
             : null;
 
         if (collection == null) {
-            return CollectionResult.of(0, 0);
+            return new int[] { 0, 0 };
         }
 
         int maxedCount = 0;
         int totalChecked = 0;
 
         for (Map.Entry<String, Long> entry : COLLECTION_MAX_TIERS.entrySet()) {
-            String collectionKey = entry.getKey();
-            long maxThreshold = entry.getValue();
-
-            if (collection.has(collectionKey)) {
+            if (collection.has(entry.getKey())) {
                 totalChecked++;
-                long playerAmount = collection.get(collectionKey).getAsLong();
-                if (playerAmount >= maxThreshold) {
+                long playerAmount = collection.get(entry.getKey()).getAsLong();
+                if (playerAmount >= entry.getValue()) {
                     maxedCount++;
                 }
             }
         }
 
-        return CollectionResult.of(maxedCount, totalChecked);
+        return new int[] { maxedCount, totalChecked };
     }
 
-    // === Dungeon Completions ===
-
-    public record DungeonResult(
-        boolean success,
-        Map<String, Integer> normalCompletions,  // F1-F7 completions
-        Map<String, Integer> masterCompletions,  // M1-M7 completions
-        String errorMessage
+    // member.dungeons.dungeon_types.[master_]catacombs.tier_completions
+    private static void extractDungeonCompletions(
+        JsonObject member,
+        Map<String, Integer> normalOut,
+        Map<String, Integer> masterOut
     ) {
-        static DungeonResult failure(String message) {
-            return new DungeonResult(false, null, null, message);
-        }
-
-        static DungeonResult of(Map<String, Integer> normalCompletions, Map<String, Integer> masterCompletions) {
-            return new DungeonResult(true, normalCompletions, masterCompletions, null);
-        }
-    }
-
-    public static CompletableFuture<DungeonResult> fetchDungeonCompletions(
-        UUID playerUuid,
-        String apiKey
-    ) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return CompletableFuture.completedFuture(
-                DungeonResult.failure("No Hypixel API key configured.")
-            );
-        }
-
-        String undashed = playerUuid.toString().replace("-", "");
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(String.format(PROFILES_URL, undashed)))
-            .header("API-Key", apiKey)
-            .timeout(Duration.ofSeconds(10))
-            .GET()
-            .build();
-
-        return HTTP_CLIENT.sendAsync(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
-            .thenApply(response ->
-                parseDungeonResponse(
-                    response.body(),
-                    response.statusCode(),
-                    playerUuid
-                )
-            )
-            .exceptionally(e -> {
-                LOGGER.error(
-                    "Failed to fetch SkyBlock dungeon data from Hypixel API.",
-                    e
-                );
-                return DungeonResult.failure(
-                    "Network error: " + e.getMessage()
-                );
-            });
-    }
-
-    private static DungeonResult parseDungeonResponse(
-        String body,
-        int statusCode,
-        UUID playerUuid
-    ) {
-        JsonObject root;
-        try {
-            root = JsonParser.parseString(body).getAsJsonObject();
-        } catch (Exception e) {
-            return DungeonResult.failure(
-                "Malformed response from Hypixel API (status " + statusCode + ")."
-            );
-        }
-
-        if (!root.has("success") || !root.get("success").getAsBoolean()) {
-            String cause = root.has("cause")
-                ? root.get("cause").getAsString()
-                : "HTTP " + statusCode;
-            return DungeonResult.failure("Hypixel API request failed: " + cause);
-        }
-
-        JsonArray profiles = root.getAsJsonArray("profiles");
-        if (profiles == null || profiles.isEmpty()) {
-            return DungeonResult.failure("Player has no SkyBlock profiles.");
-        }
-
-        JsonObject selected = findSelectedProfile(profiles);
-        if (selected == null) {
-            selected = profiles.get(0).getAsJsonObject();
-        }
-
-        JsonObject members = selected.getAsJsonObject("members");
-        if (members == null) {
-            return DungeonResult.failure("Profile response had no member data.");
-        }
-
-        JsonObject member = findMember(members, playerUuid);
-        if (member == null) {
-            return DungeonResult.failure(
-                "Could not find player's member entry in selected profile."
-            );
-        }
-
-        Map<String, Integer> normalCompletions = new HashMap<>();
-        Map<String, Integer> masterCompletions = new HashMap<>();
-
-        // Path: member.dungeons.dungeon_types.catacombs.tier_completions
         JsonObject dungeons = member.has("dungeons")
             ? member.getAsJsonObject("dungeons")
             : null;
-        
-        if (dungeons != null) {
-            JsonObject dungeonTypes = dungeons.has("dungeon_types")
-                ? dungeons.getAsJsonObject("dungeon_types")
-                : null;
-            
-            if (dungeonTypes != null) {
-                // Normal catacombs
-                JsonObject catacombs = dungeonTypes.has("catacombs")
-                    ? dungeonTypes.getAsJsonObject("catacombs")
-                    : null;
-                
-                if (catacombs != null && catacombs.has("tier_completions")) {
-                    JsonObject tierCompletions = catacombs.getAsJsonObject("tier_completions");
-                    for (int floor = 1; floor <= 7; floor++) {
-                        String key = String.valueOf(floor);
-                        if (tierCompletions.has(key)) {
-                            normalCompletions.put("F" + floor, tierCompletions.get(key).getAsInt());
-                        }
-                    }
-                }
-                
-                // Master mode catacombs
-                JsonObject masterCatacombs = dungeonTypes.has("master_catacombs")
-                    ? dungeonTypes.getAsJsonObject("master_catacombs")
-                    : null;
-                
-                if (masterCatacombs != null && masterCatacombs.has("tier_completions")) {
-                    JsonObject tierCompletions = masterCatacombs.getAsJsonObject("tier_completions");
-                    for (int floor = 1; floor <= 7; floor++) {
-                        String key = String.valueOf(floor);
-                        if (tierCompletions.has(key)) {
-                            masterCompletions.put("M" + floor, tierCompletions.get(key).getAsInt());
-                        }
-                    }
-                }
+        if (dungeons == null) return;
+
+        JsonObject dungeonTypes = dungeons.has("dungeon_types")
+            ? dungeons.getAsJsonObject("dungeon_types")
+            : null;
+        if (dungeonTypes == null) return;
+
+        readTierCompletions(dungeonTypes, "catacombs", "F", normalOut);
+        readTierCompletions(dungeonTypes, "master_catacombs", "M", masterOut);
+    }
+
+    private static void readTierCompletions(
+        JsonObject dungeonTypes,
+        String typeKey,
+        String floorPrefix,
+        Map<String, Integer> out
+    ) {
+        JsonObject type = dungeonTypes.has(typeKey)
+            ? dungeonTypes.getAsJsonObject(typeKey)
+            : null;
+        if (type == null || !type.has("tier_completions")) return;
+
+        JsonObject tierCompletions = type.getAsJsonObject("tier_completions");
+        for (int floor = 1; floor <= 7; floor++) {
+            String key = String.valueOf(floor);
+            if (tierCompletions.has(key)) {
+                out.put(
+                    floorPrefix + floor,
+                    tierCompletions.get(key).getAsInt()
+                );
             }
         }
-
-        return DungeonResult.of(normalCompletions, masterCompletions);
     }
 }

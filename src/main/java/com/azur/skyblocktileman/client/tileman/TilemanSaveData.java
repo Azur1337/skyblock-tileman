@@ -9,6 +9,7 @@ public class TilemanSaveData {
 
     private String lastActiveProfileId = "unknown";
     private String lastActiveIsland = "unknown";
+    private long firstInstallMs = System.currentTimeMillis();
 
     public Map<String, ProfileData> getProfiles() {
         return profiles;
@@ -16,6 +17,14 @@ public class TilemanSaveData {
 
     public ProfileData getOrCreateProfile(String profileId) {
         return profiles.computeIfAbsent(profileId, id -> new ProfileData());
+    }
+
+    public long getFirstInstallMs() {
+        return firstInstallMs;
+    }
+
+    public void setFirstInstallMs(long firstInstallMs) {
+        this.firstInstallMs = firstInstallMs;
     }
 
     public String getLastActiveProfileId() {

@@ -2,7 +2,6 @@ package com.azur.skyblocktileman.client.tileman;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import java.util.Set;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
@@ -19,15 +18,25 @@ public final class TilemanCompassRenderer {
     private static final float BEACON_WIDTH = 0.3f;
     private static final float BEACON_HEIGHT = 256f;
 
+    // The needle only changes on a block crossing or an unlock, so other frames reuse the last answer.
+    private static BlockPos cachedNearest;
+    private static BlockPos cachedPlayerPos;
+    private static int cachedGeneration = -1;
+
     private TilemanCompassRenderer() {}
 
     public static void register() {
-        LevelRenderEvents.BEFORE_GIZMOS.register(TilemanCompassRenderer::onRender);
+        LevelRenderEvents.BEFORE_GIZMOS.register(
+            TilemanCompassRenderer::onRender
+        );
     }
 
     private static void onRender(LevelRenderContext context) {
         TilemanConfig config = TilemanConfig.getInstance();
-        if (!config.isEnabled() || !config.isTileCompassEnabled()) {
+        if (
+            !TilemanState.getInstance().isTilemanActive() ||
+            !config.isTileCompassEnabled()
+        ) {
             return;
         }
 
@@ -69,28 +78,29 @@ public final class TilemanCompassRenderer {
     }
 
     private static BlockPos findNearestUnlockedTile(Minecraft client) {
-        Set<BlockCoord> unlocked = TilemanState.getInstance().getUnlockedBlocks();
-        if (unlocked.isEmpty()) {
-            return null;
-        }
-
+        TilemanState state = TilemanState.getInstance();
         BlockPos playerPos = client.player.blockPosition();
-        BlockPos nearest = null;
-        double nearestDist = Double.MAX_VALUE;
+        int generation = state.unlockGeneration();
 
-        for (BlockCoord coord : unlocked) {
-            BlockPos pos = coord.toBlockPos();
-            double dist = playerPos.distSqr(pos);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearest = pos;
-            }
+        if (
+            cachedNearest != null &&
+            generation == cachedGeneration &&
+            playerPos.equals(cachedPlayerPos)
+        ) {
+            return cachedNearest;
         }
 
-        return nearest;
+        cachedNearest = state.nearestUnlockedTo(playerPos);
+        cachedPlayerPos = playerPos;
+        cachedGeneration = generation;
+        return cachedNearest;
     }
 
-    private static void renderBeacon(VertexConsumer buffer, PoseStack.Pose pose, BlockPos pos) {
+    private static void renderBeacon(
+        VertexConsumer buffer,
+        PoseStack.Pose pose,
+        BlockPos pos
+    ) {
         float x = pos.getX() + 0.5f;
         float z = pos.getZ() + 0.5f;
         float y0 = pos.getY() + 1.0f;
@@ -123,7 +133,11 @@ public final class TilemanCompassRenderer {
         buffer.addVertex(pose, x - hw, y1, z + hw).setColor(BEACON_COLOR);
     }
 
-    private static void renderOutline(VertexConsumer buffer, PoseStack.Pose pose, BlockPos pos) {
+    private static void renderOutline(
+        VertexConsumer buffer,
+        PoseStack.Pose pose,
+        BlockPos pos
+    ) {
         float x0 = pos.getX();
         float y0 = pos.getY();
         float z0 = pos.getZ();
@@ -134,29 +148,153 @@ public final class TilemanCompassRenderer {
         float t = 0.02f;
 
         // bottom face outline
-        renderLineQuad(buffer, pose, x0, y0 - t, z0, x1, y0 + t, z0 + t, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x0, y0 - t, z1 - t, x1, y0 + t, z1, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x0, y0 - t, z0, x0 + t, y0 + t, z1, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x1 - t, y0 - t, z0, x1, y0 + t, z1, OUTLINE_COLOR);
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y0 - t,
+            z0,
+            x1,
+            y0 + t,
+            z0 + t,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y0 - t,
+            z1 - t,
+            x1,
+            y0 + t,
+            z1,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y0 - t,
+            z0,
+            x0 + t,
+            y0 + t,
+            z1,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x1 - t,
+            y0 - t,
+            z0,
+            x1,
+            y0 + t,
+            z1,
+            OUTLINE_COLOR
+        );
 
         // top face outline
-        renderLineQuad(buffer, pose, x0, y1 - t, z0, x1, y1 + t, z0 + t, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x0, y1 - t, z1 - t, x1, y1 + t, z1, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x0, y1 - t, z0, x0 + t, y1 + t, z1, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x1 - t, y1 - t, z0, x1, y1 + t, z1, OUTLINE_COLOR);
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y1 - t,
+            z0,
+            x1,
+            y1 + t,
+            z0 + t,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y1 - t,
+            z1 - t,
+            x1,
+            y1 + t,
+            z1,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y1 - t,
+            z0,
+            x0 + t,
+            y1 + t,
+            z1,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x1 - t,
+            y1 - t,
+            z0,
+            x1,
+            y1 + t,
+            z1,
+            OUTLINE_COLOR
+        );
 
         // vertical edges
-        renderLineQuad(buffer, pose, x0, y0, z0, x0 + t, y1, z0 + t, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x1 - t, y0, z0, x1, y1, z0 + t, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x0, y0, z1 - t, x0 + t, y1, z1, OUTLINE_COLOR);
-        renderLineQuad(buffer, pose, x1 - t, y0, z1 - t, x1, y1, z1, OUTLINE_COLOR);
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y0,
+            z0,
+            x0 + t,
+            y1,
+            z0 + t,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x1 - t,
+            y0,
+            z0,
+            x1,
+            y1,
+            z0 + t,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x0,
+            y0,
+            z1 - t,
+            x0 + t,
+            y1,
+            z1,
+            OUTLINE_COLOR
+        );
+        renderLineQuad(
+            buffer,
+            pose,
+            x1 - t,
+            y0,
+            z1 - t,
+            x1,
+            y1,
+            z1,
+            OUTLINE_COLOR
+        );
     }
 
     private static void renderLineQuad(
         VertexConsumer buffer,
         PoseStack.Pose pose,
-        float x0, float y0, float z0,
-        float x1, float y1, float z1,
+        float x0,
+        float y0,
+        float z0,
+        float x1,
+        float y1,
+        float z1,
         int color
     ) {
         buffer.addVertex(pose, x0, y0, z0).setColor(color);

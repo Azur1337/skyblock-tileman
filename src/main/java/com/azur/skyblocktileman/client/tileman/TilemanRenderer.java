@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
@@ -38,7 +37,10 @@ public final class TilemanRenderer {
 
     private static void onBeforeGizmos(LevelRenderContext context) {
         TilemanConfig config = TilemanConfig.getInstance();
-        if (!config.isEnabled() || !config.isShowUnlockedOverlay()) {
+        if (
+            !TilemanState.getInstance().isTilemanActive() ||
+            !config.isShowUnlockedOverlay()
+        ) {
             return;
         }
 
@@ -47,23 +49,14 @@ public final class TilemanRenderer {
             return;
         }
 
-        Set<BlockCoord> unlocked =
-            TilemanState.getInstance().getUnlockedBlocks();
-        if (unlocked.isEmpty()) {
-            return;
-        }
-
         int radius = config.getHighlightRadius();
-        double radiusSq = (double) radius * radius;
-
         BlockPos playerPos = client.player.blockPosition();
         List<BlockPos> nearby = new ArrayList<>();
-        for (BlockCoord coord : unlocked) {
-            BlockPos pos = coord.toBlockPos();
-            if (playerPos.distSqr(pos) <= radiusSq) {
-                nearby.add(pos);
-            }
-        }
+        TilemanState.getInstance().forEachUnlockedWithin(
+            playerPos,
+            radius,
+            nearby::add
+        );
         if (nearby.isEmpty()) {
             return;
         }
@@ -107,12 +100,20 @@ public final class TilemanRenderer {
         buffer.addVertex(pose, x0, y, z0 + 1).setColor(UNLOCKED_COLOR);
     }
 
-    private static float getOverlayOffset(BlockState state, Level level, BlockPos pos) {
+    private static float getOverlayOffset(
+        BlockState state,
+        Level level,
+        BlockPos pos
+    ) {
         if (state.isAir()) {
             return TOP_FACE_Y_OFFSET;
         }
 
-        var shape = state.getCollisionShape(level, pos, CollisionContext.empty());
+        var shape = state.getCollisionShape(
+            level,
+            pos,
+            CollisionContext.empty()
+        );
         if (shape.isEmpty()) {
             return TOP_FACE_Y_OFFSET;
         }

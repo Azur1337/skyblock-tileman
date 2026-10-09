@@ -1,11 +1,13 @@
 package com.azur.skyblocktileman.client;
 
+import com.azur.skyblocktileman.client.tileman.KeybindSync;
 import com.azur.skyblocktileman.client.tileman.ScoreboardReader;
 import com.azur.skyblocktileman.client.tileman.TilemanActionBarListener;
 import com.azur.skyblocktileman.client.tileman.TilemanCommands;
 import com.azur.skyblocktileman.client.tileman.TilemanCompassRenderer;
 import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanFirstBlockMode;
+import com.azur.skyblocktileman.client.tileman.TilemanHealthHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanHudOverlay;
 import com.azur.skyblocktileman.client.tileman.TilemanIslandHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
@@ -16,7 +18,6 @@ import com.azur.skyblocktileman.client.tileman.TilemanSelectionMode;
 import com.azur.skyblocktileman.client.tileman.TilemanShopTicker;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.XpReconciler;
-import com.azur.skyblocktileman.client.tileman.dungeon.DungeonChatListener;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTooltipHandler;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerChatListener;
 import net.fabricmc.api.ClientModInitializer;
@@ -36,12 +37,13 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanCommands.register();
         TilemanRenderer.register();
         TilemanSelectionMode.register();
+        KeybindSync.register();
         TilemanFirstBlockMode.register();
         TilemanPunishmentHandler.register();
+        TilemanHealthHandler.register();
         TilemanHudOverlay.register();
         TilemanShopTicker.register();
         TilemanCompassRenderer.register();
-        DungeonChatListener.register();
         DungeonTooltipHandler.register();
         SlayerChatListener.register();
         ScoreboardReader.register();

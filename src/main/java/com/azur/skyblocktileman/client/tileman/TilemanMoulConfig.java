@@ -20,16 +20,22 @@ public class TilemanMoulConfig extends Config {
     public GeneralCategory general = new GeneralCategory();
 
     @Expose
-    @Category(name = "XP & Tokens", desc = "Skill XP tracking and token economy settings")
-    public XpTokensCategory xpTokens = new XpTokensCategory();
-
-    @Expose
-    @Category(name = "Rendering", desc = "Visual settings for block overlays and highlights")
+    @Category(
+        name = "Rendering",
+        desc = "Visual settings for block overlays and highlights"
+    )
     public RenderingCategory rendering = new RenderingCategory();
 
     @Expose
-    @Category(name = "Punishment", desc = "Settings for the rule-break punishment system")
+    @Category(
+        name = "Punishment",
+        desc = "Settings for the rule-break punishment system"
+    )
     public PunishmentCategory punishment = new PunishmentCategory();
+
+    @Expose
+    @Category(name = "Keybinds", desc = "Keybinds for Tileman actions")
+    public KeybindCategory keybinds = new KeybindCategory();
 
     @Override
     public void executeRunnable(int runnableId) {
@@ -43,6 +49,9 @@ public class TilemanMoulConfig extends Config {
 
     @Override
     public boolean isValidRunnable(int runnableId) {
-        return runnableId == MOVE_OVERLAY_RUNNABLE || super.isValidRunnable(runnableId);
+        return (
+            runnableId == MOVE_OVERLAY_RUNNABLE ||
+            super.isValidRunnable(runnableId)
+        );
     }
 }

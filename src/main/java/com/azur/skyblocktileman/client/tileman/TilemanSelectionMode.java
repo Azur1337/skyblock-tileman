@@ -27,7 +27,7 @@ import org.lwjgl.glfw.GLFW;
 
 public final class TilemanSelectionMode {
 
-    private static final KeyMapping.Category CATEGORY =
+    public static final KeyMapping.Category CATEGORY =
         KeyMapping.Category.register(
             Identifier.fromNamespaceAndPath("skyblocktileman", "tileman")
         );
@@ -51,18 +51,28 @@ public final class TilemanSelectionMode {
 
     public static void register() {
         AttackBlockCallback.EVENT.register(TilemanSelectionMode::onAttackBlock);
-        LevelRenderEvents.BEFORE_GIZMOS.register(TilemanSelectionMode::onBeforeGizmos);
-        ClientTickEvents.END_CLIENT_TICK.register(TilemanSelectionMode::onEndTick);
+        LevelRenderEvents.BEFORE_GIZMOS.register(
+            TilemanSelectionMode::onBeforeGizmos
+        );
+        ClientTickEvents.END_CLIENT_TICK.register(
+            TilemanSelectionMode::onEndTick
+        );
     }
 
     private static void onEndTick(Minecraft client) {
-        if (client.options.keyAttack != null && !client.options.keyAttack.isDown()) {
+        if (
+            client.options.keyAttack != null &&
+            !client.options.keyAttack.isDown()
+        ) {
             clickHandled = false;
         }
     }
 
     public static boolean isActive() {
-        return TilemanConfig.getInstance().isEnabled() && UNLOCK_MODE_KEY.isDown();
+        return (
+            TilemanState.getInstance().isTilemanActive() &&
+            UNLOCK_MODE_KEY.isDown()
+        );
     }
 
     private static BlockPos getTargetedBlock() {
@@ -84,16 +94,19 @@ public final class TilemanSelectionMode {
     private static boolean isValidTarget(BlockPos pos) {
         TilemanState state = TilemanState.getInstance();
         BlockPos resolved = resolveTargetBlock(pos);
-        
+
         if (state.isUnlocked(resolved)) {
             return false;
         }
-        
+
         if (state.getShop().isRemoteUnlockPending()) {
             return true;
         }
-        
-        return BlockValidation.isHorizontallyAdjacentToUnlocked(resolved, state);
+
+        return BlockValidation.isHorizontallyAdjacentToUnlocked(
+            resolved,
+            state
+        );
     }
 
     private static InteractionResult onAttackBlock(
@@ -103,7 +116,7 @@ public final class TilemanSelectionMode {
         BlockPos pos,
         Direction direction
     ) {
-        if (!TilemanConfig.getInstance().isEnabled() || !isActive()) {
+        if (!TilemanState.getInstance().isTilemanActive() || !isActive()) {
             return InteractionResult.PASS;
         }
 
@@ -129,8 +142,11 @@ public final class TilemanSelectionMode {
         }
 
         boolean isRemote = shop.isRemoteUnlockPending();
-        
-        if (!isRemote && !BlockValidation.isHorizontallyAdjacentToUnlocked(pos, state)) {
+
+        if (
+            !isRemote &&
+            !BlockValidation.isHorizontallyAdjacentToUnlocked(pos, state)
+        ) {
             TilemanChat.warn(
                 "You can only unlock blocks adjacent to an already-unlocked block."
             );
@@ -156,7 +172,17 @@ public final class TilemanSelectionMode {
             state.unlockBlock(pos);
             state.save();
             MilestoneTracker.getInstance().onTileUnlocked();
-            TilemanChat.info("Remote unlock used! Unlocked block at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "! (" + state.getTokens() + " token(s) left)");
+            TilemanChat.info(
+                "Remote unlock used! Unlocked block at " +
+                    pos.getX() +
+                    ", " +
+                    pos.getY() +
+                    ", " +
+                    pos.getZ() +
+                    "! (" +
+                    state.getTokens() +
+                    " token(s) left)"
+            );
             return;
         }
 
@@ -180,16 +206,27 @@ public final class TilemanSelectionMode {
         if (luckyProc) {
             message.append(" (LUCKY!)");
         }
-        message.append("! (").append(state.getTokens()).append(" token(s) left)");
-        
+        message
+            .append("! (")
+            .append(state.getTokens())
+            .append(" token(s) left)");
+
         TilemanChat.info(message.toString());
     }
 
     private static final Direction[] HORIZONTAL_DIRECTIONS = {
-        Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
+        Direction.NORTH,
+        Direction.SOUTH,
+        Direction.EAST,
+        Direction.WEST,
     };
 
-    private static int unlockMultipleTiles(BlockPos start, int count, TilemanState state, Level level) {
+    private static int unlockMultipleTiles(
+        BlockPos start,
+        int count,
+        TilemanState state,
+        Level level
+    ) {
         state.unlockBlock(start);
         int unlocked = 1;
 
@@ -203,7 +240,10 @@ public final class TilemanSelectionMode {
 
         for (Direction dir : HORIZONTAL_DIRECTIONS) {
             BlockPos neighbor = start.relative(dir);
-            BlockPos standable = BlockValidation.getStandableBlock(neighbor, level);
+            BlockPos standable = BlockValidation.getStandableBlock(
+                neighbor,
+                level
+            );
             if (!state.isUnlocked(standable) && !checked.contains(standable)) {
                 candidates.add(standable);
                 checked.add(standable);
@@ -214,7 +254,7 @@ public final class TilemanSelectionMode {
         while (unlocked < count && !candidates.isEmpty()) {
             int idx = random.nextInt(candidates.size());
             BlockPos next = candidates.remove(idx);
-            
+
             if (state.isUnlocked(next)) {
                 continue;
             }
@@ -224,8 +264,13 @@ public final class TilemanSelectionMode {
 
             for (Direction dir : HORIZONTAL_DIRECTIONS) {
                 BlockPos neighbor = next.relative(dir);
-                BlockPos standable = BlockValidation.getStandableBlock(neighbor, level);
-                if (!state.isUnlocked(standable) && !checked.contains(standable)) {
+                BlockPos standable = BlockValidation.getStandableBlock(
+                    neighbor,
+                    level
+                );
+                if (
+                    !state.isUnlocked(standable) && !checked.contains(standable)
+                ) {
                     candidates.add(standable);
                     checked.add(standable);
                 }
@@ -236,7 +281,7 @@ public final class TilemanSelectionMode {
     }
 
     private static void onBeforeGizmos(LevelRenderContext context) {
-        if (!TilemanConfig.getInstance().isEnabled() || !isActive()) {
+        if (!TilemanState.getInstance().isTilemanActive() || !isActive()) {
             return;
         }
 

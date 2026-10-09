@@ -1,4 +1,6 @@
 {
   "key.category.skyblocktileman.tileman": "Tileman",
-  "key.skyblocktileman.unlock_mode": "Unlock Mode"
+  "key.skyblocktileman.unlock_mode": "Unlock Mode",
+  "key.skyblocktileman.hub": "Open Tileman Hub",
+  "key.skyblocktileman.move_hud": "Move HUD"
 }

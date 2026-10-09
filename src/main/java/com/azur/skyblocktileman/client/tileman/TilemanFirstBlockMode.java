@@ -33,16 +33,26 @@ public final class TilemanFirstBlockMode {
     private TilemanFirstBlockMode() {}
 
     public static void register() {
-        AttackBlockCallback.EVENT.register(TilemanFirstBlockMode::onAttackBlock);
-        LevelRenderEvents.BEFORE_GIZMOS.register(TilemanFirstBlockMode::onBeforeGizmos);
-        ClientTickEvents.END_CLIENT_TICK.register(TilemanFirstBlockMode::onEndTick);
+        AttackBlockCallback.EVENT.register(
+            TilemanFirstBlockMode::onAttackBlock
+        );
+        LevelRenderEvents.BEFORE_GIZMOS.register(
+            TilemanFirstBlockMode::onBeforeGizmos
+        );
+        ClientTickEvents.END_CLIENT_TICK.register(
+            TilemanFirstBlockMode::onEndTick
+        );
     }
 
     public static void activate(String displayName) {
         active = true;
         islandName = displayName;
         wasKeyDown = false;
-        TilemanLog.debug(DebugCategory.BLOCKS, "First block selection mode activated for {}", displayName);
+        TilemanLog.debug(
+            DebugCategory.BLOCKS,
+            "First block selection mode activated for {}",
+            displayName
+        );
         showActivationMessage();
     }
 
@@ -56,7 +66,17 @@ public final class TilemanFirstBlockMode {
     }
 
     private static void showActivationMessage() {
-        TilemanChat.info("No blocks unlocked on this island! Hold B and click to select your first free block.");
+        TilemanChat.info(
+            Component.literal("No blocks unlocked on this island! Hold ")
+                .append(
+                    TilemanSelectionMode.UNLOCK_MODE_KEY.getTranslatedKeyMessage()
+                )
+                .append(
+                    Component.literal(
+                        " and click to select your first free block."
+                    )
+                )
+        );
     }
 
     private static void showHoldingMessage() {
@@ -65,7 +85,9 @@ public final class TilemanFirstBlockMode {
             return;
         }
         client.player.sendSystemMessage(
-            Component.literal("§a§lClick any block to unlock it as your starting point!")
+            Component.literal(
+                "§a§lClick any block to unlock it as your starting point!"
+            )
         );
     }
 
@@ -74,7 +96,10 @@ public final class TilemanFirstBlockMode {
             return;
         }
 
-        if (client.options.keyAttack != null && !client.options.keyAttack.isDown()) {
+        if (
+            client.options.keyAttack != null &&
+            !client.options.keyAttack.isDown()
+        ) {
             clickHandled = false;
         }
 
@@ -120,20 +145,32 @@ public final class TilemanFirstBlockMode {
     private static void unlockFirstBlock(BlockPos clicked) {
         Minecraft client = Minecraft.getInstance();
         TilemanState state = TilemanState.getInstance();
-        
+
         BlockPos pos = BlockValidation.getStandableBlock(clicked, client.level);
 
         state.unlockBlock(pos);
-        
-        String message = "Unlocked your first block on " + islandName + " at " +
-            pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+
+        String message =
+            "Unlocked your first block on " +
+            islandName +
+            " at " +
+            pos.getX() +
+            ", " +
+            pos.getY() +
+            ", " +
+            pos.getZ();
         if (!pos.equals(clicked)) {
             message += " (adjusted from non-standable block)";
         }
         message += "!";
-        
+
         TilemanChat.info(message);
-        TilemanLog.debug(DebugCategory.BLOCKS, "First block unlocked at {} on {}", pos, islandName);
+        TilemanLog.debug(
+            DebugCategory.BLOCKS,
+            "First block unlocked at {} on {}",
+            pos,
+            islandName
+        );
 
         deactivate();
     }
@@ -149,7 +186,10 @@ public final class TilemanFirstBlockMode {
             return;
         }
 
-        BlockPos target = BlockValidation.getStandableBlock(clicked, client.level);
+        BlockPos target = BlockValidation.getStandableBlock(
+            clicked,
+            client.level
+        );
 
         Vec3 cameraPos = context.levelState().cameraRenderState.pos;
         PoseStack poseStack = context.poseStack();

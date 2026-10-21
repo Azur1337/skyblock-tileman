@@ -1,6 +1,7 @@
 package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerTracker;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -147,9 +148,12 @@ public final class TilemanIslandHandler {
         boolean isNewIsland = state
             .getUnlockedBlocks(state.getActiveProfileId(), islandId)
             .isEmpty();
+        state.markIslandVisited(islandId);
         state.setActiveIsland(islandId);
 
         if (islandChanged) {
+            // warping abandons a quest; whether it breaks the flawless streak is unconfirmed
+            SlayerTracker.getInstance().resetQuestState();
             TilemanLog.debug(
                 DebugCategory.ISLAND,
                 "Tileman detected island change: {} ({})",

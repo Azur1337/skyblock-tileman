@@ -46,6 +46,7 @@ public final class TilemanSelectionMode {
     private static final float LINE_WIDTH = 3.0F;
 
     private static boolean clickHandled = false;
+    private static boolean unlockKeyWasDown = false;
 
     private TilemanSelectionMode() {}
 
@@ -66,6 +67,13 @@ public final class TilemanSelectionMode {
         ) {
             clickHandled = false;
         }
+
+        // entering unlock mode with attack already held would spend that hold as an unlock
+        boolean down = UNLOCK_MODE_KEY.isDown();
+        if (down && !unlockKeyWasDown) {
+            clickHandled = true;
+        }
+        unlockKeyWasDown = down;
     }
 
     public static boolean isActive() {

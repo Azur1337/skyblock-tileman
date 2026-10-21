@@ -195,7 +195,14 @@ public final class SkillXpParser {
                     totalXp = CUMULATIVE_XP[level] + current;
                 }
 
-                processXpUpdate(skill, totalXp, level, current, needed);
+                processXpUpdate(
+                    skill,
+                    totalXp,
+                    level,
+                    current,
+                    needed,
+                    xpGainedFromBar
+                );
             } catch (NumberFormatException ignored) {}
         }
 
@@ -240,7 +247,8 @@ public final class SkillXpParser {
                     totalXp,
                     level,
                     currentInLevel,
-                    xpForNextLevel
+                    xpForNextLevel,
+                    xpGainedFromBar
                 );
             } catch (NumberFormatException ignored) {}
         }
@@ -299,7 +307,8 @@ public final class SkillXpParser {
         long totalXp,
         int level,
         long current,
-        long needed
+        long needed,
+        long visibleGain
     ) {
         TilemanState state = TilemanState.getInstance();
         long oldXp = state.getSkillXp(skill);
@@ -313,17 +322,16 @@ public final class SkillXpParser {
 
         state.setSkillXp(skill, totalXp);
 
-        // oldXp == 0: first sight of the skill, credit all XP up to the cap retroactively
+        // first sight of a skill: seed the baseline and credit only the visible drop, not totalXp
         if (oldXp == 0) {
             TilemanLog.debug(
                 DebugCategory.TOKENS,
-                "Initial {} XP baseline set to {} (level {}), awarding retroactive tokens",
+                "Initial {} XP baseline set to {} (level {}), crediting the visible drop only",
                 skill,
                 totalXp,
                 level
             );
-            state.onXpGained(skill, awardableTotal);
-            MilestoneTracker.getInstance().onXpGained(skill, awardableTotal);
+            processDirectXpGain(skill, visibleGain);
             return;
         }
 

@@ -32,7 +32,8 @@ public enum SlayerType {
 
     public static SlayerType fromDisplayName(String text) {
         if (text == null) return null;
-        String lower = text.toLowerCase();
+        // Locale.ROOT: a Turkish default locale lowercases I to a dotless i and breaks detection
+        String lower = text.toLowerCase(java.util.Locale.ROOT);
 
         if (lower.contains("revenant") || lower.contains("zombie")) {
             return REVENANT;
@@ -40,7 +41,8 @@ public enum SlayerType {
             return TARANTULA;
         } else if (lower.contains("sven") || lower.contains("wolf")) {
             return SVEN;
-        } else if (lower.contains("voidgloom") || lower.contains("enderman")) {
+        } else if (lower.contains("voidgloom") || lower.contains("ender")) {
+            // "ender" stem: Hypixel writes the mob plural, so "enderman" alone never matched
             return VOIDGLOOM;
         } else if (
             lower.contains("inferno") ||

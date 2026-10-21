@@ -103,7 +103,13 @@ public class ProfileData {
         return islands;
     }
 
+    // reads must not create entries: querying an island would inflate the explored count and persist junk
     public Set<BlockCoord> getUnlockedBlocks(String island) {
+        Set<BlockCoord> blocks = islands.get(island);
+        return blocks == null ? Set.of() : blocks;
+    }
+
+    public Set<BlockCoord> getOrCreateUnlockedBlocks(String island) {
         return islands.computeIfAbsent(island, key -> new HashSet<>());
     }
 

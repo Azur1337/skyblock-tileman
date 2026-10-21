@@ -20,6 +20,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTooltipHandler;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerChatListener;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerTracker;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
@@ -46,6 +47,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanCompassRenderer.register();
         DungeonTooltipHandler.register();
         SlayerChatListener.register();
+        SlayerTracker.register();
         ScoreboardReader.register();
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {

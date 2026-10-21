@@ -36,12 +36,26 @@ Track of concrete work items from the 2026-10 code review. Check off when done.
 
 Decision: Tileman is opt-in at profile creation only; no retroactive rewards ever.
 
-- [ ] `ProfileData`: add `optIn` (null = undecided, true/false) and `cuteName` (set from API baseline)
-- [ ] On profile detect with `optIn == null`: new profile (API `created_at` recent + ~0 XP; fallback: "Welcome to SkyBlock" title detection, check Fabric title events on 26.2, mixin only if no event exists) -> show client-side `ConfirmScreen` "Enable Tileman for profile X?"; existing profile -> `optIn = false` silently
-- [ ] Gate all features on `config.enabled && profile.optIn` (renderer, punishment, XP parser, island handler, HUD, selection mode)
-- [ ] DELETE the retroactive award branch in `SkillXpParser.processXpUpdate` (oldXp == 0 awards nothing, only seeds baseline) -> closes the retroactive-policy and baseline-asymmetry TODOs by construction
-- [ ] Chat listener for `Done! Your (\w+) profile was deleted!` -> map name to profile id via stored cuteName/API list, delete from save, reset activeProfileId to unknown if it was the active one
-- [ ] Decide co-op behavior: RESOLVED - purely client-side, optIn is a local flag per profile id; guests on the same profile run their own clients and are unaffected. No multiplayer surface exists
+- [x] `ProfileData`: add the opt-in decision and the profile name. Landed as `tilemanMode`
+      (Boolean, null = undecided) and `cuteName` read off `HypixelApiClient.ProfilesResult`
+      rather than persisted, since the prompt only needs it while the payload is live
+- [x] On profile detect with `tilemanMode == null`: `TilemanLoginHandler.maybeHandleOptIn` ->
+      `handleOptInDecision` shows the client-side `ConfirmScreen`; old profiles decline silently.
+      Fired from both the API result and locraw, so whichever arrives second prompts
+- [x] Gate all features on `config.enabled && profile.tilemanMode`: `isTilemanActive()` is the
+      single gate (master toggle, Hypixel opt-in, locraw Skyblock; off-Hypixel skips the last two)
+- [x] Kill the retroactive award in `SkillXpParser.processXpUpdate`. Fixed by routing the
+      `oldXp == 0` branch through `processDirectXpGain(skill, visibleGain)` rather than awarding
+      nothing: it was crediting `totalXp` (every token the whole skill was ever worth) and
+      returning before the `MAX_REASONABLE_XP_GAIN` guard, so a missing API baseline became an
+      unbounded windfall. Crediting only the visible action-bar drop keeps a new profile's first
+      gain intact, bounds the award, and matches what the max-level and percentage paths already
+      did for the same case, which also closes the baseline-asymmetry note
+- [ ] Chat listener for `Done! Your (\w+) profile was deleted!` -> map name to profile id via
+      stored cuteName/API list, delete from save, reset activeProfileId to unknown if it was the
+      active one. No such listener exists yet; orphaned profile blobs accumulate in the save
+- [x] Decide co-op behavior: RESOLVED - purely client-side, tilemanMode is a local flag per
+      profile id; guests on the same profile run their own clients and are unaffected
 
 ## Economy bugs
 
@@ -55,10 +69,17 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 ## Slayer (detection partly live, real-run data still pending)
 
 - [ ] Capture real chat samples per `meow.md` (accept, requirement, boss spawn, kill, fail, despawn, island switch)
-- [ ] Fix `SlayerType.fromDisplayName`: "Endermen" (plural) does not contain "enderman", Voidgloom detection fails
-- [ ] Update `getTierFromXp` thresholds: add T5 for Tarantula, Sven, Voidgloom (stale table)
-- [ ] Guard `onQuestComplete` against `currentType == null` (live NPE crash path)
-- [ ] Reset quest state on island change and disconnect (hook does not exist)
+- [x] Fix `SlayerType.fromDisplayName`: now matches the "ender" stem, so the plural
+      "Endermen" resolves to VOIDGLOOM. Also `toLowerCase(Locale.ROOT)`: under a Turkish
+      default locale "Inferno" lowercased to a dotless i and Inferno detection silently failed
+- [ ] Confirm `getTierFromXp` thresholds against a real run. NOT a code inconsistency:
+      `SlayerType.maxTier` is 4 for Tarantula/Sven/Voidgloom and the table already caps at 4,
+      so this needs the `meow.md` data before any number changes
+- [x] Guard `onQuestComplete` against `currentType == null`: a quest active with no type
+      (boss spawned before the accept line parsed) reached `SlayerData.getStats(null)` and NPE'd
+- [x] Reset quest state on island change (`TilemanIslandHandler.onIslandDetected`) and on
+      disconnect (`SlayerTracker.register`). Warping abandons a quest; whether it breaks the
+      flawless streak is still unconfirmed, so only quest state is cleared, never the streak
 - [ ] Consider API `player_data.slayer_bosses.<boss>.kills` for kill milestones (like dungeons); chat only needed for flawless streaks
 - [ ] Route dungeon logging to `DebugCategory.DUNGEON` (exists but unused, everything dumps to ALL)
 
@@ -67,10 +88,16 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [ ] Punishment: grace period on respawn, teleport, dimension change (server-driven warps instantly book a rule break)
 - [ ] Unify the two `findStandingBlock` implementations (punishment vs BlockValidation have different tolerances -> contradictory UI signals on stairs/slabs)
 - [ ] Frenzy timer: store expiry timestamp instead of accumulating deltas (lag spikes and logout currently freeze it)
-- [ ] `ProfileData.getUnlockedBlocks(island)`: no `computeIfAbsent` on read paths (inflates ISLANDS_EXPLORED, persists junk `"unknown"` entries)
-- [ ] Corrupt save file: rename to backup instead of silently overwriting on next save
+- [x] `ProfileData.getUnlockedBlocks(island)`: reads no longer create entries. Split into a
+      non-mutating `getUnlockedBlocks` and `getOrCreateUnlockedBlocks` for the write path, with
+      `TilemanState.markIslandVisited` as the one place an island is registered. Previously every
+      read (including `rebuildUnlockIndex` with island "unknown") inflated ISLANDS_EXPLORED and
+      persisted a junk blob
+- [x] Corrupt save file: `backupUnreadableSave` moves it to `tileman_data.unreadable-<ms>.json`
+      instead of letting the next `save()` destroy the only copy
 - [ ] First-block mode: gate on `isEnabled()`, handle non-standable fallback block case
-- [ ] Selection mode: debounce hole when attack key is already held when B is pressed
+- [x] Selection mode: a rising edge on the unlock key sets `clickHandled`, so entering unlock
+      mode with attack already held no longer spends that hold as an unlock
 - [ ] Verify token accounting against a long real grinding session (max-level overflow, level-up rollovers)
 
 ## UI networking and design system

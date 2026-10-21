@@ -160,6 +160,7 @@ public final class TilemanState {
                 "Failed to load Tileman data, starting with a blank state.",
                 e
             );
+            backupUnreadableSave();
             data = new TilemanSaveData();
         }
 
@@ -189,6 +190,27 @@ public final class TilemanState {
         }
         if (changed) {
             save();
+        }
+    }
+
+    // save() would overwrite the only copy of the progress, so leave it recoverable by hand
+    private void backupUnreadableSave() {
+        try {
+            if (!Files.exists(SAVE_FILE)) {
+                return;
+            }
+            Path backup = SAVE_FILE.resolveSibling(
+                "tileman_data.unreadable-" +
+                    System.currentTimeMillis() +
+                    ".json"
+            );
+            Files.move(SAVE_FILE, backup);
+            LOGGER.warn("Moved unreadable Tileman data to {}", backup);
+        } catch (IOException moveFailed) {
+            LOGGER.error(
+                "Could not move the unreadable Tileman data aside.",
+                moveFailed
+            );
         }
     }
 
@@ -476,6 +498,14 @@ public final class TilemanState {
         return data.getOrCreateProfile(profileId).getUnlockedBlocks(island);
     }
 
+    // exploring an island earns the count, so the entry is created here not as a read side effect
+    public void markIslandVisited(String island) {
+        if (island == null || island.isEmpty()) {
+            return;
+        }
+        activeProfile().getOrCreateUnlockedBlocks(island);
+    }
+
     // unlocked anywhere in the column: an unlocked block shares X,Z with an unobstructed vertical path to pos
     public boolean isUnlockedColumn(BlockPos pos, Level level) {
         int x = pos.getX();
@@ -556,7 +586,9 @@ public final class TilemanState {
 
     public boolean unlockBlock(BlockPos pos) {
         BlockCoord coord = BlockCoord.of(pos);
-        boolean added = getUnlockedBlocks().add(coord);
+        boolean added = activeProfile()
+            .getOrCreateUnlockedBlocks(activeIsland)
+            .add(coord);
         if (added) {
             unlockIndex.add(coord);
             unlockGeneration++;

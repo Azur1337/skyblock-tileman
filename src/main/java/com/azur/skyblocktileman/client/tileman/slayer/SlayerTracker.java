@@ -7,6 +7,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
@@ -28,6 +29,13 @@ public class SlayerTracker {
     }
 
     private SlayerTracker() {}
+
+    public static void register() {
+        // disconnecting abandons the quest; stale state would credit a run that no longer exists
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
+            getInstance().resetQuestState()
+        );
+    }
 
     public void onQuestStarted(SlayerType type, int tier) {
         TilemanLog.debug(
@@ -176,6 +184,16 @@ public class SlayerTracker {
                 DebugCategory.SLAYER,
                 "[TRACKER] Quest not active, ignoring complete"
             );
+            return;
+        }
+
+        // a quest can be active with no type if the boss spawned before the accept line parsed
+        if (currentType == null) {
+            TilemanLog.debug(
+                DebugCategory.SLAYER,
+                "[TRACKER] Completion with unknown slayer type, not recording"
+            );
+            resetQuestState();
             return;
         }
 

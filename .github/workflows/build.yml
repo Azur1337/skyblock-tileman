@@ -20,6 +20,23 @@ jobs:
           java-version: '25-ea'
           distribution: 'temurin'
 
+      - name: Install MoulConfig fork
+        uses: ./.github/actions/moulconfig-fork
+
+      - name: Provide the Hypixel app key
+        shell: bash
+        env:
+          HYPIXEL_API_KEY: ${{ secrets.HYPIXEL_API_KEY }}
+        run: |
+          # Secrets are withheld from PRs sent from forks, and this artifact is never
+          # distributed to players, so a placeholder keeps those builds green.
+          if [ -z "${HYPIXEL_API_KEY:-}" ]; then
+            echo "::warning::HYPIXEL_API_KEY secret unavailable; building with a placeholder. This jar must not be released."
+            echo 'TILEMAN_HYPIXEL_API_KEY=00000000-0000-0000-0000-000000000000' > .env
+          else
+            printf 'TILEMAN_HYPIXEL_API_KEY=%s\n' "$HYPIXEL_API_KEY" > .env
+          fi
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 

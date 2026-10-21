@@ -24,11 +24,42 @@ jobs:
           java-version: '25-ea'
           distribution: 'temurin'
 
+      - name: Install MoulConfig fork
+        uses: ./.github/actions/moulconfig-fork
+
+      - name: Provide the Hypixel app key
+        shell: bash
+        env:
+          HYPIXEL_API_KEY: ${{ secrets.HYPIXEL_API_KEY }}
+        run: |
+          # Unlike a PR build, this artifact is what players download, so a missing key
+          # is fatal rather than a warning. Without this check the build would still
+          # succeed and ship a mod whose every API feature is dead.
+          if [ -z "${HYPIXEL_API_KEY:-}" ]; then
+            echo "::error::HYPIXEL_API_KEY secret is not set. The release jar would ship without the API key." >&2
+            exit 1
+          fi
+          printf 'TILEMAN_HYPIXEL_API_KEY=%s\n' "$HYPIXEL_API_KEY" > .env
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
         run: ./gradlew build
+
+      - name: Verify the app key is bundled
+        shell: bash
+        run: |
+          JAR=$(find build/libs -name '*-shadow.jar' | head -1)
+          if [ -z "$JAR" ]; then
+            echo "::error::No shadow jar produced." >&2
+            exit 1
+          fi
+          if ! unzip -l "$JAR" | grep -q 'tileman\.env'; then
+            echo "::error::$JAR does not contain tileman.env; the released mod would have no API key." >&2
+            exit 1
+          fi
+          echo "Confirmed tileman.env is bundled in $JAR"
 
       - name: Get mod version from tag
         id: get_version

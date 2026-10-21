@@ -1,0 +1,57 @@
+name: Install MoulConfig fork
+description: >
+  Fetches the published MoulConfig fork jar and pom into the local Maven
+  repository, so build.gradle resolves org.notenoughupdates.moulconfig:modern-26.2
+  from mavenLocal() exactly as it does on a dev machine. The fork source lives in
+  vendor/MoulConfig, which is gitignored, so CI cannot build it from source. The
+  artifact is cut as a release on the fork repo instead; see AGENTS.md.
+
+inputs:
+  repo:
+    description: Fork repository.
+    required: false
+    default: Azur1337/MoulConfig
+  version:
+    description: Fork artifact version.
+    required: false
+    default: "9999.9999.9999"
+  tag:
+    description: Release tag on the fork repo holding the assets.
+    required: false
+    default: fork-9999.9999.9999
+
+runs:
+  using: composite
+  steps:
+    - name: Install MoulConfig fork ${{ inputs.version }}
+      shell: bash
+      env:
+        FORK_REPO: ${{ inputs.repo }}
+        FORK_TAG: ${{ inputs.tag }}
+        FORK_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        artifact="modern-26.2-${FORK_VERSION}"
+        dir="${HOME}/.m2/repository/org/notenoughupdates/moulconfig/modern-26.2/${FORK_VERSION}"
+        base="https://github.com/${FORK_REPO}/releases/download/${FORK_TAG}/${artifact}"
+
+        mkdir -p "${dir}"
+
+        for ext in jar pom; do
+          if ! curl -fsSL --retry 3 -o "${dir}/${artifact}.${ext}" \
+              "${base}.${ext}"; then
+            echo "::error::Could not fetch ${artifact}.${ext} from ${FORK_REPO}@${FORK_TAG}." >&2
+            echo "::error::Cut the release on https://github.com/${FORK_REPO}/releases/new?tag=${FORK_TAG} and attach ${artifact}.jar and ${artifact}.pom from ~/.m2/repository/org/notenoughupdates/moulconfig/modern-26.2/${FORK_VERSION}/." >&2
+            exit 1
+          fi
+        done
+
+        # A truncated download would fail later as an unreadable jar, which is
+        # far harder to diagnose than catching it here.
+        if ! unzip -tq "${dir}/${artifact}.jar" >/dev/null; then
+          echo "::error::Downloaded ${artifact}.jar is not a valid zip archive." >&2
+          exit 1
+        fi
+
+        echo "Installed ${artifact}.jar ($(stat -c%s "${dir}/${artifact}.jar") bytes) and .pom to ${dir}"

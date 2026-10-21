@@ -79,12 +79,45 @@ afterEvaluate {
 	}
 }
 
+// .env holds the shared Hypixel App key and is gitignored. Gradle's copy spec silently
+// skips a missing include, which would ship a jar with no key and every API feature dead,
+// so require a real key before resources are bundled.
+def envKeyPrefix = 'TILEMAN_HYPIXEL_API_KEY='
+def hypixelKeySet = { File f ->
+	if (!f.exists()) return false
+	def found = false
+	f.eachLine { line ->
+		def trimmed = line.trim()
+		if (!trimmed.startsWith(envKeyPrefix)) return
+		def value = trimmed.substring(envKeyPrefix.length()).trim()
+		if (value.length() > 1 && value.startsWith('"') && value.endsWith('"')) {
+			value = value.substring(1, value.length() - 1)
+		}
+		found = !value.isEmpty()
+	}
+	return found
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
 
+	// reprocess when the key changes, so a manual rebuild is never required
+	inputs.files(file('.env'))
+
 	filesMatching("fabric.mod.json") {
 		expand "version": version
+	}
+
+	// read at execution time so a warm daemon cannot cache a stale verdict
+	doFirst {
+		if (!hypixelKeySet(file('.env'))) {
+			throw new GradleException(
+				".env must define a non-empty TILEMAN_HYPIXEL_API_KEY before building.\n" +
+				"Locally: cp .env.example .env, then paste the Hypixel App key in.\n" +
+				"CI: set the HYPIXEL_API_KEY repository secret; release builds fail hard without it."
+			)
+		}
 	}
 
 	// bundle the local .env (gitignored) into the jar as the shared App key

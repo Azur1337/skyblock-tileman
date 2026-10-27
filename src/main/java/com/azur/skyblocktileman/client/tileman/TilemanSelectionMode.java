@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.SkyblockTileman;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -14,7 +15,6 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -29,7 +29,7 @@ public final class TilemanSelectionMode {
 
     public static final KeyMapping.Category CATEGORY =
         KeyMapping.Category.register(
-            Identifier.fromNamespaceAndPath("skyblocktileman", "tileman")
+            SkyblockTileman.id("tileman")
         );
 
     public static final KeyMapping UNLOCK_MODE_KEY =

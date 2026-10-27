@@ -16,12 +16,6 @@ public class MilestoneTracker {
         return instance;
     }
 
-    public void checkAllMilestones() {
-        for (MilestoneType type : MilestoneType.values()) {
-            checkMilestone(type);
-        }
-    }
-
     public void checkMilestone(MilestoneType type) {
         MilestoneData data = TilemanState.getInstance().getMilestones();
         int currentTier = data.getCompletedTier(type);
@@ -86,73 +80,73 @@ public class MilestoneTracker {
             case REVENANT_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.REVENANT
+                    com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT
                 )
                 .t4PlusKills;
             case TARANTULA_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.TARANTULA
+                    com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA
                 )
                 .t4PlusKills;
             case SVEN_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.SVEN
+                    com.azur.skyblocktileman.slayer.SlayerBoss.SVEN
                 )
                 .t4PlusKills;
             case VOIDGLOOM_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.VOIDGLOOM
+                    com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM
                 )
                 .t4PlusKills;
             case INFERNO_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.INFERNO
+                    com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO
                 )
                 .t4PlusKills;
             case RIFTSTALKER_KILLS -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.RIFTSTALKER
+                    com.azur.skyblocktileman.slayer.SlayerBoss.RIFTSTALKER
                 )
                 .t4PlusKills;
             case FLAWLESS_REVENANT -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.REVENANT
+                    com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT
                 )
                 .flawlessT4Plus;
             case FLAWLESS_TARANTULA -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.TARANTULA
+                    com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA
                 )
                 .flawlessT4Plus;
             case FLAWLESS_SVEN -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.SVEN
+                    com.azur.skyblocktileman.slayer.SlayerBoss.SVEN
                 )
                 .flawlessT4Plus;
             case FLAWLESS_VOIDGLOOM -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.VOIDGLOOM
+                    com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM
                 )
                 .flawlessT4Plus;
             case FLAWLESS_INFERNO -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.INFERNO
+                    com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO
                 )
                 .flawlessT4Plus;
             case FLAWLESS_RIFTSTALKER -> state
                 .getSlayerData()
                 .getStats(
-                    com.azur.skyblocktileman.client.tileman.slayer.SlayerType.RIFTSTALKER
+                    com.azur.skyblocktileman.slayer.SlayerBoss.RIFTSTALKER
                 )
                 .flawlessT4Plus;
             case NO_MISTAKES -> milestones.getNoMistakeStreak();

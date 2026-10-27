@@ -118,12 +118,6 @@ public final class TilemanConfig {
         return config().rendering.hudY;
     }
 
-    public void setHudPosition(int hudX, int hudY) {
-        config().rendering.hudX = Math.max(0, hudX);
-        config().rendering.hudY = Math.max(0, hudY);
-        save();
-    }
-
     public void setHudPositionTransient(int hudX, int hudY) {
         config().rendering.hudX = Math.max(0, hudX);
         config().rendering.hudY = Math.max(0, hudY);

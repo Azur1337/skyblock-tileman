@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.SkyblockTileman;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerTracker;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -10,7 +11,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ARGB;
@@ -34,10 +34,7 @@ public final class TilemanPunishmentHandler {
             TilemanPunishmentHandler::onEndTick
         );
         HudElementRegistry.addLast(
-            Identifier.fromNamespaceAndPath(
-                "skyblocktileman",
-                "punishment_overlay"
-            ),
+            SkyblockTileman.id("punishment_overlay"),
             TilemanPunishmentHandler::renderOverlay
         );
     }

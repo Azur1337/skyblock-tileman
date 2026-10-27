@@ -66,20 +66,41 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [x] TILES_UNLOCKED milestone uses `getTotalUnlockedBlocks()` (lifetime across islands)
 - [x] Deleted dead `XpTokensCategory` config UI + its getters in TilemanConfig (tier table is the economy, sliders were no-ops)
 
-## Slayer (detection partly live, real-run data still pending)
+## Slayer (detection rebuilt as a standalone package, verified against real captures)
 
-- [ ] Capture real chat samples per `meow.md` (accept, requirement, boss spawn, kill, fail, despawn, island switch)
-- [x] Fix `SlayerType.fromDisplayName`: now matches the "ender" stem, so the plural
-      "Endermen" resolves to VOIDGLOOM. Also `toLowerCase(Locale.ROOT)`: under a Turkish
-      default locale "Inferno" lowercased to a dotless i and Inferno detection silently failed
-- [ ] Confirm `getTierFromXp` thresholds against a real run. NOT a code inconsistency:
-      `SlayerType.maxTier` is 4 for Tarantula/Sven/Voidgloom and the table already caps at 4,
-      so this needs the `meow.md` data before any number changes
-- [x] Guard `onQuestComplete` against `currentType == null`: a quest active with no type
-      (boss spawned before the accept line parsed) reached `SlayerData.getStats(null)` and NPE'd
-- [x] Reset quest state on island change (`TilemanIslandHandler.onIslandDetected`) and on
-      disconnect (`SlayerTracker.register`). Warping abandons a quest; whether it breaks the
-      flawless streak is still unconfirmed, so only quest state is cleared, never the streak
+- [x] Capture real chat samples per `meow.md`: done via the Derailious Discord call. Revenant
+      T1-T5 and Voidgloom T1/T2 covered, including accept, requirement, boss spawn, miniboss
+      spawn, scoreboard in all three phases, kill, death fail and timeout fail
+- [x] Fix boss detection never firing: the code matched the contiguous phrase "Boss Spawned",
+      which Hypixel never sends. Real form is `SLAYER BOSS! The <name> <roman> spawned!`, and
+      minibosses use `SLAYER MINIBOSS!`. Discriminated by prefix word, not mob name, because
+      T5 renames the boss (Atoned Horror, Primordial Broodfather) and its minibosses share the stem
+- [x] Tier table was wrong for all six bosses and locked in the error. `getTierFromXp` used a
+      `>=` chain that a 2026-09-30 rebalance invalidated, and `updateQuestInfo` refused to
+      overwrite, so a Revenant T4 stayed T3 forever and its milestones were unreachable.
+      Replaced with nearest-match plus a rejection band, and the scoreboard now always outranks it
+- [x] Scoreboard is now the authoritative tier and phase source: header, `<name> <roman>`, then
+      `(a/b) Combat XP` / `Slay the boss!` / `Boss slain!`. Poll is 10 ticks, events fire on
+      transition only
+- [x] Silent lobby-swap fail now detected (3 missed polls => `ABANDONED`), with an empty or
+      hidden sidebar explicitly not treated as evidence, so hidden-scoreboard players are not
+      falsely failed. Closes the hole that made flawless farmable by warping out
+- [x] Fail reason parsed from the line _after_ `SLAYER QUEST FAILED!`, matching the `You died!`
+      prefix since the suffix varies per boss ("Death is not permitted!" vs "What a noob!")
+- [x] `SLAYER QUEST COMPLETE!` correctly treated as Maddox turn-in, not the kill. Kill is
+      `BossSlain`; cleanliness is still judged at turn-in so the walk back counts
+- [x] Reconnect recovery: chat is not replayed but the sidebar is, so quest state rebuilds from
+      the scoreboard alone
+- [x] Dead-code and coupling cleanup: `SlayerType`, `SlayerChatListener` and `ScoreboardReader`
+      deleted; `SlayerData.getStats` no longer creates entries on read (same bug class as the
+      island fix, it was inflating milestone progress)
+- [x] `currentType == null` NPE on turn-in: gone, the tracker refuses to record an unidentified quest
+- [ ] Phase-tied challenges built on the new state machine. Agreed shortlist: _Flawless Turn-in_
+      (kill then reach Maddox with no tile violation) and _No Retreat_ (no server change, death
+      or warp between `BossSpawned` and `BossSlain`). Deferred for lack of data: Inferno
+      attunement/fire-pillar phases, timer-based challenges, no-damage challenges
+- [ ] Unconfirmed behaviour worth a field look: whether a party member's kill credits everyone,
+      and whether abandoning a quest at Maddox emits anything
 - [ ] Consider API `player_data.slayer_bosses.<boss>.kills` for kill milestones (like dungeons); chat only needed for flawless streaks
 - [ ] Route dungeon logging to `DebugCategory.DUNGEON` (exists but unused, everything dumps to ALL)
 
@@ -109,10 +130,16 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [ ] HUD: XP bar toward next token replacing raw xp/xpNeeded text (UI-DESIGN.md section 7)
 - [x] Token icon resolved: HUD uses the existing custom coin texture `textures/hud/tokens.png`; chest screens express tokens as text (items can't carry custom textures)
 - [x] Chest screens send no packets: VERIFIED for 26.2, all click paths funnel through `slotClicked` and the packet send (`MultiPlayerGameMode.handleContainerInput`) is inside the base impl, which our overrides never call. The earlier container-id-0 concern was based on the old `handleMouseClick` API and does not apply
-- [ ] Design system: base TilemanChestScreen (open/init/border/item factories), shared `(row, col) -> slot` helper, consistent colors, replace magic slot numbers -> superseded by UI-DESIGN.md plan above
+- [x] Design system base: `TilemanChestScreen` provides `slot(row, col)`, `buildFrame()`,
+      `onClick(slotId, Runnable)` and the footer builder; screens use `Theme` roles (5-15 calls
+      each across shop/dungeon/milestone/hub) and there are zero `setItem(<literal>)` slot
+      numbers left in the tree
 - [ ] Replace hover-name string dispatch with tagged ItemStacks (data component marker) in shop/milestone/dungeon screens
-- [ ] MoulConfig design pass (categories, ordering, remove dead controls)
-- [ ] Fix "Unlock required milestone first!" wording (repeated 7x)
+- [ ] MoulConfig design pass: Keybinds category and the dead `XpTokensCategory` sliders are done;
+      remaining category ordering and any other dead controls are not
+- [x] "Unlock required milestone first!" wording: the string no longer appears anywhere in the
+      tree, resolved by the chest UI migration (denials are now silent + `TilemanChat.warn` per
+      UI-DESIGN.md section 10)
 
 ## Type safety
 
@@ -145,8 +172,23 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [x] Decide tabs vs spaces: resolved on 4-space, the whole tree is clean of tab-indented code and AGENTS.md now says so. `.editorconfig` still not added
 - [x] Delete dead code: `TilemanActionBarMixin` removed (class + mixins.json entry); the GAME event listener covers both the Hypixel overlay path and the modern actionbar packet
 - [x] Strip multi-paragraph javadocs to one line max or nothing: swept the whole tree; remaining comments are single-line and carry invariants, engine quirks or cost rationale only
-- [ ] Remove decorative unicode: `✦ ▶ ✓ ✗ ★ ☆ ▌`
-- [ ] Delete dead code: `XpReconciler` shell (or implement, see below), `fetchTotalSkillXp`, `checkAllMilestones`, `modifyTooltip`, `getFloorLockStatus`, `clearPendingLeave`, `extractBackground` override, `SkyblockTileman.id()`, unused imports/locals, `MilestoneData` playtime fields, `bestFlawlessStreak` (wire or drop), rank fields/methods in `DungeonData` now that the display is gone
+- [ ] Remove decorative unicode: only one glyph is left, the `✦` in the "FLAWLESS SLAYER!"
+      chat banner (`SlayerTracker`); `▶ ✓ ✗ ★ ☆ ▌` are already gone
+- [x] Delete dead code: swept with a reachability analysis over the whole tree. Removed 31
+      unreferenced members and 7 unused imports (~260 lines): `checkAllMilestones`,
+      `modifyTooltip`, `getFloorLockStatus`, `getNextNormalFloorToUnlock`,
+      `getNextMasterModeFloorToUnlock`, `isFloorUnlocked`, `toBlockPos`, `isNonStandableBlock`,
+      `setTokensSpent`, `getAllSkillXp`, `addLifetimeTokensEarned`, `setXpFrenzyRemainingMs`,
+      `getTotalSpent`, `getAllSkillAffinityLevels`, `setHudPosition`, `getPlayerUuid`,
+      `getHudHeight` + `lastHudHeight`, `addProgress`, `resetSessionData`, the `MilestoneData`
+      playtime field and its accessors, `canPurchase`, `canPurchaseConsumable`, `isTainted`,
+      `getCurrentType`, `getCurrentTier`, `getShortName` + the enum's short-name column,
+      `addInfo`, `addNext`, `playAchievement`, and the unused `SkyblockTileman.LOGGER`.
+      `fetchTotalSkillXp`, `clearPendingLeave` and the `extractBackground` override were already
+      gone; `bestFlawlessStreak` is live (it feeds the SLAYER_STREAK milestone) so it stays
+- [x] `SkyblockTileman.id()` was dead because 9 call sites hardcoded the mod id. Kept it and
+      pointed `TilemanHudOverlay`, `TilemanPunishmentHandler` and `TilemanSelectionMode` at it
+      instead of deleting, which removes the duplication rather than the helper
 - [ ] Dedupe: `romanToInt` (2x) + numeral switch (3rd copy in `ShopRequirements`), shop prices vs their accessors, frenzy formulas (3 sites), reward tiering (2 sites), `getTargetedBlock`, `HORIZONTAL_DIRECTIONS`, menu title constants
 - [ ] `TilemanShopTicker`: rename/split (it ticks frenzy + dungeon chat + API poll)
 - [ ] `new Random()` per unlock -> `level.random`

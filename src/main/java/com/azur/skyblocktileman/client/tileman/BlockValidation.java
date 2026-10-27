@@ -106,10 +106,6 @@ public final class BlockValidation {
         return maxY >= 0.5;
     }
 
-    public static boolean isNonStandableBlock(BlockState state, Level level, BlockPos pos) {
-        return !isStandableBlock(state, level, pos);
-    }
-
     public static boolean isPlayerOnUnlockedBlock() {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || client.level == null) {

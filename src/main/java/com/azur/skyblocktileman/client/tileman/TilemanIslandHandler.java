@@ -1,7 +1,7 @@
 package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
-import com.azur.skyblocktileman.client.tileman.slayer.SlayerTracker;
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerFeature;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -10,7 +10,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 
@@ -153,7 +152,7 @@ public final class TilemanIslandHandler {
 
         if (islandChanged) {
             // warping abandons a quest; whether it breaks the flawless streak is unconfirmed
-            SlayerTracker.getInstance().resetQuestState();
+            SlayerFeature.reset();
             TilemanLog.debug(
                 DebugCategory.ISLAND,
                 "Tileman detected island change: {} ({})",

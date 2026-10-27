@@ -51,10 +51,6 @@ public class ProfileData {
         return tokensSpent;
     }
 
-    public void setTokensSpent(int tokensSpent) {
-        this.tokensSpent = Math.max(0, tokensSpent);
-    }
-
     public void addTokensSpent(int amount) {
         this.tokensSpent = Math.max(0, this.tokensSpent + amount);
     }
@@ -73,10 +69,6 @@ public class ProfileData {
 
     public void setSkillXp(String skill, long xp) {
         skillXp.put(skill, Math.max(0, xp));
-    }
-
-    public Map<String, Long> getAllSkillXp() {
-        return skillXp;
     }
 
     public long getTotalSkillXp() {
@@ -151,9 +143,5 @@ public class ProfileData {
 
     public int getLifetimeTokensEarned() {
         return getTokensEarned();
-    }
-
-    public void addLifetimeTokensEarned(int amount) {
-        addTokensEarned(amount);
     }
 }

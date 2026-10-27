@@ -116,19 +116,6 @@ public class ShopRequirements {
         ); // tier 2 = 100 tiles
     }
 
-    public static boolean canPurchase(String itemKey, int targetLevel) {
-        String key = itemKey + "_" + targetLevel;
-        Requirement req = REQUIREMENTS.get(key);
-        if (req == null) return true;
-        return req.isMet();
-    }
-
-    public static boolean canPurchaseConsumable(String itemKey) {
-        Requirement req = REQUIREMENTS.get(itemKey);
-        if (req == null) return true;
-        return req.isMet();
-    }
-
     public static String getRequirementText(String itemKey, int targetLevel) {
         String key = itemKey + "_" + targetLevel;
         Requirement req = REQUIREMENTS.get(key);

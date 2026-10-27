@@ -4,7 +4,6 @@ import com.azur.skyblocktileman.client.tileman.DebugCategory;
 import com.azur.skyblocktileman.client.tileman.HypixelApiClient;
 import com.azur.skyblocktileman.client.tileman.HypixelUtil;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
-import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
@@ -31,10 +30,6 @@ public class DungeonTracker {
     }
 
     private DungeonTracker() {}
-
-    public boolean isFloorUnlocked(DungeonFloor floor) {
-        return getDungeonData().isUnlocked(floor);
-    }
 
     public boolean tryUnlockFloor(DungeonFloor floor) {
         if (floor == null) return false;

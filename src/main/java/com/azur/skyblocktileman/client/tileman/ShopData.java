@@ -58,10 +58,6 @@ public class ShopData {
         skillAffinityLevels.put(skill, Math.max(0, level));
     }
 
-    public Map<String, Integer> getAllSkillAffinityLevels() {
-        return skillAffinityLevels;
-    }
-
     public int getFrenzyDurationLevel() {
         return frenzyDurationLevel;
     }
@@ -94,10 +90,6 @@ public class ShopData {
         return xpFrenzyRemainingMs;
     }
 
-    public void setXpFrenzyRemainingMs(long ms) {
-        this.xpFrenzyRemainingMs = Math.max(0, ms);
-    }
-
     public int getXpFrenzyActivePower() {
         return xpFrenzyActivePower;
     }
@@ -117,10 +109,6 @@ public class ShopData {
         if (xpFrenzyRemainingMs > 0) {
             xpFrenzyRemainingMs = Math.max(0, xpFrenzyRemainingMs - deltaMs);
         }
-    }
-
-    public int getTotalSpent() {
-        return totalSpent;
     }
 
     public void addSpent(int amount) {

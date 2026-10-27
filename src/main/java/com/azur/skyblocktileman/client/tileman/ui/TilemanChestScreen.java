@@ -95,24 +95,6 @@ public abstract class TilemanChestScreen extends ContainerScreen {
         });
     }
 
-    protected void addInfo(Runnable action) {
-        int s = slot(footerRow(), 5);
-        setItem(s, Theme.info());
-        onClick(s, () -> {
-            playNav();
-            action.run();
-        });
-    }
-
-    protected void addNext(Runnable action) {
-        int s = slot(footerRow(), 8);
-        setItem(s, Theme.next());
-        onClick(s, () -> {
-            playNav();
-            action.run();
-        });
-    }
-
     @Override
     protected void slotClicked(
         Slot slot,
@@ -171,16 +153,6 @@ public abstract class TilemanChestScreen extends ContainerScreen {
         if (minecraft.player != null) {
             minecraft.player.playSound(
                 SoundEvents.EXPERIENCE_ORB_PICKUP,
-                1.0f,
-                1.0f
-            );
-        }
-    }
-
-    protected void playAchievement() {
-        if (minecraft.player != null) {
-            minecraft.player.playSound(
-                SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
                 1.0f,
                 1.0f
             );

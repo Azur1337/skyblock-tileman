@@ -71,24 +71,6 @@ public class DungeonData {
         return count;
     }
 
-    public DungeonFloor getNextNormalFloorToUnlock() {
-        for (DungeonFloor floor : DungeonFloor.getNormalFloors()) {
-            if (!isUnlocked(floor)) {
-                return floor;
-            }
-        }
-        return null;
-    }
-
-    public DungeonFloor getNextMasterModeFloorToUnlock() {
-        for (DungeonFloor floor : DungeonFloor.getMasterModeFloors()) {
-            if (!isUnlocked(floor)) {
-                return floor;
-            }
-        }
-        return null;
-    }
-
     public boolean isBaselineFetched() {
         return baselineFetched;
     }

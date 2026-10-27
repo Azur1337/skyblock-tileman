@@ -46,10 +46,6 @@ public final class TilemanLoginHandler {
         return cachedApiKey;
     }
 
-    public static UUID getPlayerUuid() {
-        return cachedPlayerUuid;
-    }
-
     private static void onJoin(
         ClientPacketListener handler,
         PacketSender sender,

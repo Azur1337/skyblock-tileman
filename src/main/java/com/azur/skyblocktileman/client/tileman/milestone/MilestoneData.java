@@ -9,7 +9,6 @@ public class MilestoneData {
     private final Map<String, Long> progress = new HashMap<>();
 
     private int totalTokensFromMilestones = 0;
-    private long totalPlaytimeMinutes = 0;
     private int totalShopSpent = 0;
 
     private transient int noMistakeStreak = 0;
@@ -40,25 +39,12 @@ public class MilestoneData {
         progress.put(type.name(), value);
     }
 
-    public void addProgress(MilestoneType type, long amount) {
-        long current = getProgress(type);
-        setProgress(type, current + amount);
-    }
-
     public int getTotalTokensFromMilestones() {
         return totalTokensFromMilestones;
     }
 
     public void addTokensFromMilestone(int tokens) {
         totalTokensFromMilestones += tokens;
-    }
-
-    public long getTotalPlaytimeMinutes() {
-        return totalPlaytimeMinutes;
-    }
-
-    public void addPlaytimeMinutes(long minutes) {
-        totalPlaytimeMinutes += minutes;
     }
 
     public int getTotalShopSpent() {
@@ -104,13 +90,6 @@ public class MilestoneData {
 
     public void incrementLuckyProcs() {
         luckyProcsThisSession++;
-    }
-
-    public void resetSessionData() {
-        noMistakeStreak = 0;
-        marathonStartTime = 0;
-        luckyProcsThisSession = 0;
-        resetFlawless();
     }
 
     public boolean isFlawlessActive() {

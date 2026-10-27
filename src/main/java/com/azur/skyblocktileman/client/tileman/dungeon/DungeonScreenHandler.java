@@ -3,13 +3,11 @@ package com.azur.skyblocktileman.client.tileman.dungeon;
 import com.azur.skyblocktileman.client.tileman.DebugCategory;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
@@ -204,65 +202,11 @@ public final class DungeonScreenHandler {
         return null;
     }
 
-    public static Boolean getFloorLockStatus(String itemName) {
-        if (itemName == null) return null;
-
-        itemName = ChatFormatting.stripFormatting(itemName);
-        if (itemName == null) return null;
-
-        DungeonFloor floor = parseFloorFromItemName(itemName);
-        if (floor == null) {
-            return null;
-        }
-
-        DungeonData data = TilemanState.getInstance().getDungeonData();
-        return !data.isUnlocked(floor);
-    }
-
     public static DungeonFloor getFloorFromItemName(String itemName) {
         if (itemName == null) return null;
         itemName = ChatFormatting.stripFormatting(itemName);
         if (itemName == null) return null;
         return parseFloorFromItemName(itemName);
-    }
-
-    public static void modifyTooltip(
-        ItemStack stack,
-        List<Component> tooltip,
-        String screenTitle
-    ) {
-        if (screenTitle == null) return;
-
-        if (
-            !screenTitle.contains(CATACOMBS_GATE_TITLE) &&
-            !screenTitle.contains(PARTY_FINDER_TITLE) &&
-            !screenTitle.contains(DUNGEON_FINDER_TITLE) &&
-            !screenTitle.contains(SELECT_FLOOR_TITLE)
-        ) {
-            return;
-        }
-
-        String itemName = stack.getHoverName().getString();
-        DungeonFloor floor = getFloorFromItemName(itemName);
-
-        if (floor == null) {
-            return;
-        }
-
-        DungeonData data = TilemanState.getInstance().getDungeonData();
-        boolean isLocked = !data.isUnlocked(floor);
-
-        tooltip.add(Component.empty());
-        if (isLocked) {
-            tooltip.add(Component.literal("§c§lTILEMAN: §cLocked"));
-            tooltip.add(
-                Component.literal(
-                    "§7Unlock cost: §e" + floor.getUnlockCost() + " tokens"
-                )
-            );
-        } else {
-            tooltip.add(Component.literal("§a§lTILEMAN: §aUnlocked"));
-        }
     }
 
     private static boolean handleFloorClick(DungeonFloor floor) {

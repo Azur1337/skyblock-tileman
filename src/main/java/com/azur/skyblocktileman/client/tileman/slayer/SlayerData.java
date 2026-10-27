@@ -1,10 +1,14 @@
 package com.azur.skyblocktileman.client.tileman.slayer;
 
+import com.azur.skyblocktileman.slayer.SlayerBoss;
+import com.azur.skyblocktileman.slayer.SlayerTier;
 import com.google.gson.annotations.Expose;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SlayerData {
+
+    private static final SlayerStats NONE = new SlayerStats();
 
     @Expose
     private Map<String, SlayerStats> stats = new HashMap<>();
@@ -18,8 +22,17 @@ public class SlayerData {
     @Expose
     private int totalFlawlessT4Plus = 0;
 
-    public SlayerStats getStats(SlayerType type) {
-        return stats.computeIfAbsent(type.name(), k -> new SlayerStats());
+    /** Read-only: milestone progress polls this, so it must not create entries. */
+    public SlayerStats getStats(SlayerBoss boss) {
+        if (boss == null) {
+            return NONE;
+        }
+        SlayerStats s = stats.get(boss.name());
+        return s == null ? NONE : s;
+    }
+
+    private SlayerStats getOrCreateStats(SlayerBoss boss) {
+        return stats.computeIfAbsent(boss.name(), k -> new SlayerStats());
     }
 
     public int getCurrentFlawlessStreak() {
@@ -34,11 +47,14 @@ public class SlayerData {
         return totalFlawlessT4Plus;
     }
 
-    public void recordFlawlessCompletion(SlayerType type, int tier) {
-        SlayerStats s = getStats(type);
+    public void recordFlawlessCompletion(SlayerBoss boss, SlayerTier tier) {
+        if (boss == null) {
+            return;
+        }
+        SlayerStats s = getOrCreateStats(boss);
         s.totalCompletions++;
 
-        if (tier >= 4) {
+        if (tier.atLeast(SlayerTier.FOUR)) {
             s.t4PlusKills++;
             s.flawlessT4Plus++;
             totalFlawlessT4Plus++;
@@ -56,12 +72,15 @@ public class SlayerData {
         currentFlawlessStreak = 0;
     }
 
-    public void recordTaintedCompletion(SlayerType type, int tier) {
-        SlayerStats s = getStats(type);
+    public void recordTaintedCompletion(SlayerBoss boss, SlayerTier tier) {
+        if (boss == null) {
+            return;
+        }
+        SlayerStats s = getOrCreateStats(boss);
         s.totalCompletions++;
 
-        // Tainted completion still counts as a T4+ kill, just not flawless
-        if (tier >= 4) {
+        // tainted kills still count toward kill milestones, just not flawless ones
+        if (tier.atLeast(SlayerTier.FOUR)) {
             s.t4PlusKills++;
             currentFlawlessStreak = 0;
         }

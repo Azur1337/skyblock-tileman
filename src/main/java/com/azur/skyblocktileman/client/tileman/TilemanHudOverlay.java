@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.SkyblockTileman;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -32,30 +33,15 @@ public final class TilemanHudOverlay {
     private static final int TOOLTIP_BORDER = ARGB.color(255, 80, 80, 80);
 
     private static final Identifier ICON_TOKENS =
-        Identifier.fromNamespaceAndPath(
-            "skyblocktileman",
-            "textures/hud/tokens.png"
-        );
+        SkyblockTileman.id("textures/hud/tokens.png");
     private static final Identifier ICON_UNLOCKED =
-        Identifier.fromNamespaceAndPath(
-            "skyblocktileman",
-            "textures/hud/unlocked.png"
-        );
+        SkyblockTileman.id("textures/hud/unlocked.png");
     private static final Identifier ICON_TOTAL_XP =
-        Identifier.fromNamespaceAndPath(
-            "skyblocktileman",
-            "textures/hud/total_xp.png"
-        );
+        SkyblockTileman.id("textures/hud/total_xp.png");
     private static final Identifier ICON_NEXT_TOKEN =
-        Identifier.fromNamespaceAndPath(
-            "skyblocktileman",
-            "textures/hud/next_token.png"
-        );
+        SkyblockTileman.id("textures/hud/next_token.png");
     private static final Identifier ICON_RULE_BROKEN =
-        Identifier.fromNamespaceAndPath(
-            "skyblocktileman",
-            "textures/hud/rule_broken.png"
-        );
+        SkyblockTileman.id("textures/hud/rule_broken.png");
 
     private static final Identifier[] ICONS = {
         ICON_TOKENS,
@@ -108,7 +94,6 @@ public final class TilemanHudOverlay {
     private static int lastHudLeft = 0;
     private static int lastHudTop = 0;
     private static int lastHudWidth = 0;
-    private static int lastHudHeight = 0;
     private static int lastFirstLineY = 0;
     private static int lastLineHeight = LINE_HEIGHT;
     private static int lastLineCount = 0;
@@ -117,10 +102,7 @@ public final class TilemanHudOverlay {
 
     public static void register() {
         HudElementRegistry.addLast(
-            Identifier.fromNamespaceAndPath(
-                "skyblocktileman",
-                "tileman_stats_hud"
-            ),
+            SkyblockTileman.id("tileman_stats_hud"),
             TilemanHudOverlay::renderOverlay
         );
         // clear movement keys before the tick reads them, else we still walk in move mode
@@ -149,10 +131,6 @@ public final class TilemanHudOverlay {
         if (moveMode) {
             suppressPlayerInput(client);
         }
-    }
-
-    public static int getHudHeight() {
-        return lastHudHeight;
     }
 
     public static boolean isMoveActive() {
@@ -261,7 +239,6 @@ public final class TilemanHudOverlay {
         lastHudLeft = x;
         lastHudTop = y;
         lastHudWidth = maxWidth;
-        lastHudHeight = totalHeight;
         lastLineHeight = LINE_HEIGHT;
         lastLineCount = values.length;
 

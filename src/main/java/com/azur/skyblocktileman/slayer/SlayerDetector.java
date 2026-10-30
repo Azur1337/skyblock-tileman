@@ -69,7 +69,7 @@ public final class SlayerDetector {
     private static final int ABANDON_AFTER_MISSED_POLLS = 3;
 
     /** Ticks to wait for the reason line that follows a failure. */
-    private static final int FAIL_REASON_GRACE_TICKS = 20;
+    private static final int FAIL_REASON_GRACE_TICKS = 60;
 
     /** Ticks a "You were killed by" line stays useful as failure evidence. */
     private static final int DEATH_SIGHTING_TICKS = 40;
@@ -92,6 +92,7 @@ public final class SlayerDetector {
     private int failReasonCountdown = -1;
     private int deathSightingCountdown = -1;
     private String identitySignature = "";
+    private boolean sawHeaderThisQuest;
 
     public Subscription events(Consumer<SlayerEvent> sink) {
         listeners.add(sink);
@@ -198,7 +199,13 @@ public final class SlayerDetector {
         }
 
         if (QUEST_FAILED.matcher(text).find()) {
-            // the reason arrives on the following line, so hold the failure
+            // Hypixel sends "You were killed by <boss>." just before the failure,
+            // so a recent sighting attributes it immediately without waiting
+            if (deathSightingCountdown > 0) {
+                fail(FailReason.DEATH);
+                return;
+            }
+            // otherwise the reason arrives on the following line, so hold it
             failReasonCountdown = FAIL_REASON_GRACE_TICKS;
             return;
         }
@@ -215,18 +222,20 @@ public final class SlayerDetector {
         long xp = parseNumber(xpText);
         SlayerBoss fromMob = SlayerBoss.fromMobText(mobText);
 
+        // must run before assigning boss/xp: beginQuest clears the quest state
+        if (!active) {
+            // requirement can reach us before the started line
+            beginQuest();
+        }
+
         if (fromMob != null) {
             boss = fromMob;
         }
         if (xp > 0) {
             requiredCombatXp = xp;
         }
-        if (!active) {
-            // requirement can reach us before the started line
-            beginQuest();
-        }
 
-        if (fromMob != null && xp > 0 && tierSource != TierSource.SCOREBOARD) {
+        if (fromMob != null && xp > 0 && TierSource.XP_TABLE.strongerThan(tierSource)) {
             SlayerTier inferred = fromMob.inferTierFromCombatXp(xp);
             if (inferred.known()) {
                 tier = inferred;
@@ -250,6 +259,18 @@ public final class SlayerDetector {
         if (phase == SlayerPhase.NONE || phase == SlayerPhase.GRINDING) {
             phase = SlayerPhase.BOSS_AVAILABLE;
         }
+
+        // the spawn line prints the tier ("Revenant Horror III"); a renamed top-tier
+        // boss ("Atoned Horror") drops the numeral but is always the max tier.
+        // It never overrides a live scoreboard reading.
+        if (named != null && TierSource.SPAWN_MESSAGE.strongerThan(tierSource)) {
+            SlayerTier fromName = tierFromBossName(named, mobName);
+            if (fromName.known()) {
+                tier = fromName;
+                tierSource = TierSource.SPAWN_MESSAGE;
+            }
+        }
+
         emit(new SlayerEvent.BossSpawned(boss, tier));
         tryIdentify();
     }
@@ -265,6 +286,7 @@ public final class SlayerDetector {
 
     private void fail(FailReason reason) {
         failReasonCountdown = -1;
+        deathSightingCountdown = -1;
         if (!active) {
             return;
         }
@@ -300,6 +322,8 @@ public final class SlayerDetector {
     }
 
     private void readQuestLines(List<String> lines, int header) {
+        // the header matched at least once, so its later absence is real evidence
+        sawHeaderThisQuest = true;
         boolean sawBoss = false;
 
         for (int i = header + 1; i < lines.size() && i <= header + 3; i++) {
@@ -361,6 +385,11 @@ public final class SlayerDetector {
         if (lines == null || lines.isEmpty()) {
             return; // no sidebar, so no evidence either way
         }
+        if (!sawHeaderThisQuest) {
+            // the header never matched for this quest, so its absence says nothing
+            // about abandonment: the sidebar format may simply differ from what we read
+            return;
+        }
         if (++missedPolls < ABANDON_AFTER_MISSED_POLLS) {
             return;
         }
@@ -385,6 +414,10 @@ public final class SlayerDetector {
         bossSlain = false;
         missedPolls = 0;
         identitySignature = "";
+        sawHeaderThisQuest = false;
+        // must not survive the quest it was seen in, or a later failure in a new
+        // quest gets attributed to a death that belongs to the previous one
+        deathSightingCountdown = -1;
     }
 
     private void tryIdentify() {
@@ -414,6 +447,18 @@ public final class SlayerDetector {
             }
         }
         return -1;
+    }
+
+    private SlayerTier tierFromBossName(SlayerBoss boss, String mobName) {
+        SlayerTier roman = parseRomanTier(mobName);
+        if (roman.known()) {
+            return roman;
+        }
+        // renamed top-tier bosses print no numeral but are always the max tier
+        if (boss.matchesHighTier(mobName)) {
+            return boss.highestTier();
+        }
+        return SlayerTier.UNKNOWN;
     }
 
     private SlayerTier parseRomanTier(String line) {

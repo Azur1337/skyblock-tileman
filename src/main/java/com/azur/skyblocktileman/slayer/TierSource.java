@@ -12,6 +12,9 @@ public enum TierSource {
     /** Inferred from the "Slay N Combat XP" requirement line. */
     XP_TABLE,
 
+    /** Read from the boss spawn line, which prints the tier ("Revenant Horror III"). */
+    SPAWN_MESSAGE,
+
     /** Read from the scoreboard, which prints the boss name and roman numeral. */
     SCOREBOARD;
 

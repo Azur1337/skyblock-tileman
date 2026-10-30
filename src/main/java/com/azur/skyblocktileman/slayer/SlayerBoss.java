@@ -127,6 +127,17 @@ public enum SlayerBoss {
         );
     }
 
+    /** True only for the renamed top-tier name (e.g. "Atoned Horror"), not the base. */
+    public boolean matchesHighTier(String text) {
+        return (
+            highTierName != null &&
+            text != null &&
+            text.toLowerCase(Locale.ROOT).contains(
+                highTierName.toLowerCase(Locale.ROOT)
+            )
+        );
+    }
+
     /** Matches the "Slay N Combat XP worth of Zombies" requirement line. */
     public boolean matchesMob(String mobText) {
         if (mobText == null) {

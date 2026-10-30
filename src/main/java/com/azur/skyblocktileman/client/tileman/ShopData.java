@@ -8,7 +8,7 @@ public class ShopData {
 
     public static final int EFFICIENT_SCALING_MAX = 10;
 
-    // Multi Unlock is capped so a single click unlocks at most 10 tiles
+    // Multi Unlock base is capped at 10 tiles; Lucky can multiply a click past that
     public static final int MULTI_UNLOCK_MAX_LEVEL = 9;
     public static final int MAX_TILES_PER_UNLOCK = 10;
 
@@ -147,7 +147,7 @@ public class ShopData {
             multiplier++;
         }
 
-        return Math.min(MAX_TILES_PER_UNLOCK, baseTiles * multiplier);
+        return baseTiles * multiplier;
     }
 
     public boolean didLuckyProc(int baseTiles, int actualTiles) {

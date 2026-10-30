@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.milestone;
 
+import com.azur.skyblocktileman.client.tileman.MilestonePopup;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import net.minecraft.client.Minecraft;
@@ -51,6 +52,10 @@ public class MilestoneTracker {
                 " §7(+" +
                 reward +
                 " tokens)"
+        );
+        MilestonePopup.show(
+            type.getDisplayName() + " " + tierNum,
+            "+" + reward + " tokens"
         );
 
         Minecraft client = Minecraft.getInstance();

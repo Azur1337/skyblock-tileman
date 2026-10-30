@@ -1,6 +1,7 @@
 package com.azur.skyblocktileman.client;
 
 import com.azur.skyblocktileman.client.tileman.KeybindSync;
+import com.azur.skyblocktileman.client.tileman.MilestonePopup;
 import com.azur.skyblocktileman.client.tileman.TilemanActionBarListener;
 import com.azur.skyblocktileman.client.tileman.TilemanCommands;
 import com.azur.skyblocktileman.client.tileman.TilemanCompassRenderer;
@@ -41,6 +42,7 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         TilemanPunishmentHandler.register();
         TilemanHealthHandler.register();
         TilemanHudOverlay.register();
+        MilestonePopup.register();
         TilemanShopTicker.register();
         TilemanCompassRenderer.register();
         DungeonTooltipHandler.register();

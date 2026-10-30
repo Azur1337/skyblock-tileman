@@ -53,6 +53,14 @@ public class RenderingCategory {
     @ConfigEditorBoolean
     public boolean showTileCompass = true;
 
+    @Expose
+    @ConfigOption(
+        name = "Milestone Popups",
+        desc = "Show a short animated banner when you complete a milestone."
+    )
+    @ConfigEditorBoolean
+    public boolean showMilestonePopups = true;
+
     // saved HUD position, written only by move mode, not edited via config
     @Expose
     public int hudX = 8;

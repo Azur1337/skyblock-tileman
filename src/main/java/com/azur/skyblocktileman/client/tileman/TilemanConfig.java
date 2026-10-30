@@ -135,6 +135,10 @@ public final class TilemanConfig {
         return config().rendering.showTileCompass;
     }
 
+    public boolean isMilestonePopupsEnabled() {
+        return config().rendering.showMilestonePopups;
+    }
+
     public int getSoundIntervalTicks() {
         return config().punishment.soundIntervalTicks;
     }

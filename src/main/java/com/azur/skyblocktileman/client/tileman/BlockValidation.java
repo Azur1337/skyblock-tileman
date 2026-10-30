@@ -52,6 +52,18 @@ public final class BlockValidation {
         for (int i = 0; i < 10; i++) {
             BlockState state = level.getBlockState(current);
             if (isStandableBlock(state, level, current)) {
+                // climb to the top of the standable run so we never target a block
+                // buried under a stair or slab, which leaves that stair re-unlockable
+                for (int up = 0; up < 10; up++) {
+                    BlockPos above = current.above();
+                    if (
+                        isStandableBlock(level.getBlockState(above), level, above)
+                    ) {
+                        current = above;
+                    } else {
+                        break;
+                    }
+                }
                 return current;
             }
             current = current.below();

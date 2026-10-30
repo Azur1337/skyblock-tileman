@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.shop;
 
+import com.azur.skyblocktileman.client.tileman.ShopData;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
@@ -12,18 +13,7 @@ public class ShopRequirements {
         new HashMap<>();
 
     static {
-        REQUIREMENTS.put(
-            "multi_unlock_2",
-            new Requirement(MilestoneType.TILES_UNLOCKED, 1)
-        ); // tier 1 = 25 tiles
-        REQUIREMENTS.put(
-            "multi_unlock_3",
-            new Requirement(MilestoneType.TILES_UNLOCKED, 2)
-        ); // tier 2 = 100 tiles
-        REQUIREMENTS.put(
-            "multi_unlock_4",
-            new Requirement(MilestoneType.TILES_UNLOCKED, 3)
-        ); // tier 3 = 500 tiles
+        // multi_unlock is gated by raw total tiles unlocked (see getRequirementText)
 
         REQUIREMENTS.put(
             "lucky_unlock_5",
@@ -117,6 +107,20 @@ public class ShopRequirements {
     }
 
     public static String getRequirementText(String itemKey, int targetLevel) {
+        if (itemKey.equals("multi_unlock")) {
+            int required = ShopData.getMultiUnlockTilesRequired(targetLevel);
+            int have = TilemanState.getInstance().getTotalUnlockedBlocks();
+            if (have < required) {
+                return (
+                    "Requires " +
+                    required +
+                    " total tiles unlocked (you have " +
+                    have +
+                    ")"
+                );
+            }
+            return null;
+        }
         String key = itemKey + "_" + targetLevel;
         Requirement req = REQUIREMENTS.get(key);
         if (req == null) return null;

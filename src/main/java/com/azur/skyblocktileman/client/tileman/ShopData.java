@@ -8,6 +8,10 @@ public class ShopData {
 
     public static final int EFFICIENT_SCALING_MAX = 10;
 
+    // Multi Unlock is capped so a single click unlocks at most 10 tiles
+    public static final int MULTI_UNLOCK_MAX_LEVEL = 9;
+    public static final int MAX_TILES_PER_UNLOCK = 10;
+
     private int multiUnlockLevel = 0;
     private int luckyUnlockLevel = 0;
     private int efficientScalingLevel = 0;
@@ -24,11 +28,15 @@ public class ShopData {
     private static final Random RANDOM = new Random();
 
     public int getMultiUnlockLevel() {
-        return multiUnlockLevel;
+        // clamp so legacy saves that outran the old uncapped shop are still capped
+        return Math.min(multiUnlockLevel, MULTI_UNLOCK_MAX_LEVEL);
     }
 
     public void setMultiUnlockLevel(int level) {
-        this.multiUnlockLevel = Math.max(0, level);
+        this.multiUnlockLevel = Math.min(
+            MULTI_UNLOCK_MAX_LEVEL,
+            Math.max(0, level)
+        );
     }
 
     public int getLuckyUnlockLevel() {
@@ -116,7 +124,7 @@ public class ShopData {
     }
 
     public int getBaseTilesPerUnlock() {
-        return 1 + multiUnlockLevel;
+        return 1 + getMultiUnlockLevel();
     }
 
     public int getLuckyPercent() {
@@ -139,7 +147,7 @@ public class ShopData {
             multiplier++;
         }
 
-        return baseTiles * multiplier;
+        return Math.min(MAX_TILES_PER_UNLOCK, baseTiles * multiplier);
     }
 
     public boolean didLuckyProc(int baseTiles, int actualTiles) {
@@ -166,6 +174,12 @@ public class ShopData {
 
     public static int getMultiUnlockPrice(int currentLevel) {
         return 25 + currentLevel * 15;
+    }
+
+    // total tiles that must already be unlocked to buy the given level:
+    // 25, 75, 150, 250, 375, 525, 700, 900, 1125 for levels 1..9
+    public static int getMultiUnlockTilesRequired(int targetLevel) {
+        return 25 * targetLevel * (targetLevel + 1) / 2;
     }
 
     public static int getLuckyUnlockPrice(int currentLevel) {

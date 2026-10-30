@@ -105,18 +105,29 @@ public class TilemanShopScreen extends TilemanChestScreen {
     private void loadPermanentItems() {
         ShopData shop = TilemanState.getInstance().getShop();
 
+        int muLevel = shop.getMultiUnlockLevel();
+        int nextTiles = Math.min(
+            shop.getBaseTilesPerUnlock() + 1,
+            ShopData.MAX_TILES_PER_UNLOCK
+        );
+        String muNeeds = muLevel >= ShopData.MULTI_UNLOCK_MAX_LEVEL
+            ? "Max tiles per unlock reached"
+            : ("Needs " +
+                    ShopData.getMultiUnlockTilesRequired(muLevel + 1) +
+                    " total tiles unlocked");
         addUpgrade(
             slot(1, 2),
             "Multi Unlock",
             "multi_unlock",
             Items.DIAMOND_PICKAXE,
-            Integer.MAX_VALUE,
+            ShopData.MULTI_UNLOCK_MAX_LEVEL,
             shop::getMultiUnlockLevel,
             ShopData::getMultiUnlockPrice,
             shop::setMultiUnlockLevel,
             "Unlock multiple tiles at once",
             "Current: " + shop.getBaseTilesPerUnlock() + " tiles",
-            "Next: " + (shop.getBaseTilesPerUnlock() + 1) + " tiles"
+            "Next: " + nextTiles + " tiles",
+            muNeeds
         );
 
         addUpgrade(

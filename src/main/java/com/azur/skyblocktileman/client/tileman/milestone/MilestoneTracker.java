@@ -2,13 +2,42 @@ package com.azur.skyblocktileman.client.tileman.milestone;
 
 import com.azur.skyblocktileman.client.tileman.MilestonePopup;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
+import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import java.util.EnumSet;
+import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
 public class MilestoneTracker {
 
     private static MilestoneTracker instance;
+
+    // clean-play milestones; meaningless while tile rules are not enforced
+    private static final Set<MilestoneType> VIOLATION_BASED = EnumSet.of(
+        MilestoneType.NO_MISTAKES,
+        MilestoneType.MARATHON,
+        MilestoneType.SLAYER_STREAK,
+        MilestoneType.FLAWLESS_MINING,
+        MilestoneType.FLAWLESS_FORAGING,
+        MilestoneType.FLAWLESS_FARMING,
+        MilestoneType.FLAWLESS_COMBAT,
+        MilestoneType.FLAWLESS_FISHING,
+        MilestoneType.FLAWLESS_REVENANT,
+        MilestoneType.FLAWLESS_TARANTULA,
+        MilestoneType.FLAWLESS_SVEN,
+        MilestoneType.FLAWLESS_VOIDGLOOM,
+        MilestoneType.FLAWLESS_INFERNO,
+        MilestoneType.FLAWLESS_RIFTSTALKER
+    );
+
+    public static boolean isViolationBased(MilestoneType type) {
+        return VIOLATION_BASED.contains(type);
+    }
+
+    private static boolean enforcing() {
+        return TilemanConfig.getInstance().isPunishmentEnabled();
+    }
 
     public static MilestoneTracker getInstance() {
         if (instance == null) {
@@ -18,6 +47,9 @@ public class MilestoneTracker {
     }
 
     public void checkMilestone(MilestoneType type) {
+        if (VIOLATION_BASED.contains(type) && !enforcing()) {
+            return;
+        }
         MilestoneData data = TilemanState.getInstance().getMilestones();
         int currentTier = data.getCompletedTier(type);
         int maxTier = type.getMaxTier();
@@ -84,33 +116,23 @@ public class MilestoneTracker {
             case FISHING_LEVEL -> state.getSkillLevel("Fishing");
             case REVENANT_KILLS -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT)
                 .t4PlusKills;
             case TARANTULA_KILLS -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA)
                 .t4PlusKills;
             case SVEN_KILLS -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.SVEN
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.SVEN)
                 .t4PlusKills;
             case VOIDGLOOM_KILLS -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM)
                 .t4PlusKills;
             case INFERNO_KILLS -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO)
                 .t4PlusKills;
             case RIFTSTALKER_KILLS -> state
                 .getSlayerData()
@@ -120,33 +142,23 @@ public class MilestoneTracker {
                 .t4PlusKills;
             case FLAWLESS_REVENANT -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.REVENANT)
                 .flawlessT4Plus;
             case FLAWLESS_TARANTULA -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.TARANTULA)
                 .flawlessT4Plus;
             case FLAWLESS_SVEN -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.SVEN
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.SVEN)
                 .flawlessT4Plus;
             case FLAWLESS_VOIDGLOOM -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.VOIDGLOOM)
                 .flawlessT4Plus;
             case FLAWLESS_INFERNO -> state
                 .getSlayerData()
-                .getStats(
-                    com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO
-                )
+                .getStats(com.azur.skyblocktileman.slayer.SlayerBoss.INFERNO)
                 .flawlessT4Plus;
             case FLAWLESS_RIFTSTALKER -> state
                 .getSlayerData()
@@ -172,10 +184,11 @@ public class MilestoneTracker {
 
     public void onTileUnlocked() {
         MilestoneData data = TilemanState.getInstance().getMilestones();
-        data.incrementNoMistakeStreak();
-
-        if (data.getMarathonStartTime() == 0) {
-            data.startMarathon();
+        if (enforcing()) {
+            data.incrementNoMistakeStreak();
+            if (data.getMarathonStartTime() == 0) {
+                data.startMarathon();
+            }
         }
 
         checkMilestone(MilestoneType.TILES_UNLOCKED);
@@ -262,6 +275,13 @@ public class MilestoneTracker {
 
     public void onTick() {
         MilestoneData data = TilemanState.getInstance().getMilestones();
+        if (!enforcing()) {
+            // violation counters stay at zero while enforcement is off
+            data.resetNoMistakeStreak();
+            data.resetMarathon();
+            data.resetFlawless();
+            return;
+        }
         if (data.getMarathonStartTime() > 0) {
             checkMilestone(MilestoneType.MARATHON);
         }

@@ -41,7 +41,7 @@ public final class TilemanModApiBridge {
     }
 
     public static boolean isPresent() {
-        return present;
+        return present && TilemanConfig.getInstance().isModApiEnabled();
     }
 
     public static String lastServerName() {
@@ -100,6 +100,9 @@ public final class TilemanModApiBridge {
         String mode,
         String map
     ) {
+        if (!isPresent()) {
+            return;
+        }
         lastServerName = serverName;
         lastServerType = serverType;
         lastLobbyName = lobbyName;

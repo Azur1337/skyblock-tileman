@@ -105,13 +105,17 @@ public final class TilemanHealthHandler {
             trail = health;
         }
 
-        updateEffect(client, MobEffects.NAUSEA, health < NAUSEA_AT, true);
-        updateEffect(
-            client,
-            MobEffects.BLINDNESS,
-            health < BLINDNESS_AT,
-            false
-        );
+        if (config.isFakeEffectsEnabled()) {
+            updateEffect(client, MobEffects.NAUSEA, health < NAUSEA_AT, true);
+            updateEffect(
+                client,
+                MobEffects.BLINDNESS,
+                health < BLINDNESS_AT,
+                false
+            );
+        } else {
+            clearEffects(client);
+        }
 
         if (health <= 0f) {
             collapse(client);
@@ -164,6 +168,7 @@ public final class TilemanHealthHandler {
         clearEffects(client);
 
         if (
+            TilemanConfig.getInstance().isCollapseWarpEnabled() &&
             client.player != null &&
             client.getConnection() != null &&
             HypixelUtil.isConnectedToHypixel(client)

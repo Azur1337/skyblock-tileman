@@ -90,17 +90,19 @@ public final class TilemanPunishmentHandler {
             wasOnSafeBlock = false;
         }
 
-        if (soundCooldown <= 0) {
-            client.level.playLocalSound(
-                client.player,
-                SoundEvents.LIGHTNING_BOLT_THUNDER,
-                SoundSource.HOSTILE,
-                1.0F,
-                1.0F
-            );
-            soundCooldown = config.getSoundIntervalTicks();
-        } else {
-            soundCooldown--;
+        if (config.isThunderSoundEnabled()) {
+            if (soundCooldown <= 0) {
+                client.level.playLocalSound(
+                    client.player,
+                    SoundEvents.LIGHTNING_BOLT_THUNDER,
+                    SoundSource.HOSTILE,
+                    1.0F,
+                    1.0F
+                );
+                soundCooldown = config.getSoundIntervalTicks();
+            } else {
+                soundCooldown--;
+            }
         }
     }
 

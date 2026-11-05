@@ -22,6 +22,14 @@ public class GeneralCategory {
 
     @Expose
     @ConfigOption(
+        name = "Use Hypixel Mod API",
+        desc = "Prefer instant location pushes from the optional hypixel-mod-api mod over /locraw polling."
+    )
+    @ConfigEditorBoolean
+    public boolean useModApi = true;
+
+    @Expose
+    @ConfigOption(
         name = "Debug Categories",
         desc = "Choose which debug messages to show."
     )

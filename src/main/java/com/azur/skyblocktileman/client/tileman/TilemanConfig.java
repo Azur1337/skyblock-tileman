@@ -143,6 +143,22 @@ public final class TilemanConfig {
         return config().punishment.soundIntervalTicks;
     }
 
+    public boolean isThunderSoundEnabled() {
+        return config().punishment.thunderSound;
+    }
+
+    public boolean isFakeEffectsEnabled() {
+        return config().punishment.fakeEffects;
+    }
+
+    public boolean isCollapseWarpEnabled() {
+        return config().punishment.collapseWarp;
+    }
+
+    public boolean isModApiEnabled() {
+        return config().general.useModApi;
+    }
+
     public KeybindCategory getKeybinds() {
         return config().keybinds;
     }

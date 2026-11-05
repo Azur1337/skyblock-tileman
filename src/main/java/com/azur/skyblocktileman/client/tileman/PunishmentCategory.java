@@ -9,8 +9,8 @@ public class PunishmentCategory {
 
     @Expose
     @ConfigOption(
-        name = "Punishment Enabled",
-        desc = "Enable punishment when standing on a locked tile."
+        name = "Enforce Tile Rules",
+        desc = "Off stops rule breaks from counting and disables the Flawless milestones and streaks."
     )
     @ConfigEditorBoolean
     public boolean enabled = true;
@@ -24,7 +24,31 @@ public class PunishmentCategory {
     public boolean healthEnabled = true;
 
     @Expose
+    @ConfigOption(
+        name = "Thunder Sound",
+        desc = "Play thunder while standing on a locked tile. Detection and milestones still run."
+    )
+    @ConfigEditorBoolean
+    public boolean thunderSound = true;
+
+    @Expose
     @ConfigOption(name = "Thunder Interval", desc = "Ticks between thunder.")
     @ConfigEditorSlider(minValue = 5, maxValue = 200, minStep = 5)
     public int soundIntervalTicks = 100;
+
+    @Expose
+    @ConfigOption(
+        name = "Fake Effects",
+        desc = "Nausea and blindness as the health bar drops. The bar still drains without them."
+    )
+    @ConfigEditorBoolean
+    public boolean fakeEffects = true;
+
+    @Expose
+    @ConfigOption(
+        name = "Collapse Warp",
+        desc = "Send /warp hub when the health bar empties. Off just refills the bar."
+    )
+    @ConfigEditorBoolean
+    public boolean collapseWarp = true;
 }

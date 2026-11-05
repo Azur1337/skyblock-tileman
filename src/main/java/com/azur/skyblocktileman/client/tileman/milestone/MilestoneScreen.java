@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.milestone;
 
+import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.ui.Fmt;
 import com.azur.skyblocktileman.client.tileman.ui.Theme;
@@ -169,28 +170,40 @@ public class MilestoneScreen extends TilemanChestScreen {
         }
 
         if (completedTier < maxTier) {
-            int nextTier = completedTier + 1;
-            long target = type.getTargetForTier(nextTier);
-            int reward = type.getRewardForTier(nextTier);
-            long shown = Math.min(progress, target);
+            if (
+                MilestoneTracker.isViolationBased(type) &&
+                !TilemanConfig.getInstance().isPunishmentEnabled()
+            ) {
+                item.line("§cDisabled - tile rules are off");
+                item.blank();
+                item.desc("Tiers already earned are kept");
+            } else {
+                int nextTier = completedTier + 1;
+                long target = type.getTargetForTier(nextTier);
+                int reward = type.getRewardForTier(nextTier);
+                long shown = Math.min(progress, target);
 
-            item.desc(
-                "Progress: " + Fmt.compact(shown) + "/" + Fmt.compact(target)
-            );
-            item.line(
-                barColor(progress, target) +
-                    " " +
-                    percentOf(progress, target) +
-                    "%"
-            );
-            item.blank();
-            item.desc(
-                "Next: " +
-                    type.getTierNumeral(nextTier) +
-                    " (+" +
-                    reward +
-                    " tokens)"
-            );
+                item.desc(
+                    "Progress: " +
+                        Fmt.compact(shown) +
+                        "/" +
+                        Fmt.compact(target)
+                );
+                item.line(
+                    barColor(progress, target) +
+                        " " +
+                        percentOf(progress, target) +
+                        "%"
+                );
+                item.blank();
+                item.desc(
+                    "Next: " +
+                        type.getTierNumeral(nextTier) +
+                        " (+" +
+                        reward +
+                        " tokens)"
+                );
+            }
         } else {
             item.good("COMPLETED!");
         }

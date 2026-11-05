@@ -2,6 +2,7 @@ package com.azur.skyblocktileman.client.tileman.slayer;
 
 import com.azur.skyblocktileman.client.tileman.DebugCategory;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
+import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
@@ -128,10 +129,13 @@ public class SlayerTracker {
         SlayerData data = getSlayerData();
 
         if (tier.atLeast(SlayerTier.FOUR)) {
-            if (tainted) {
+            // flawless is meaningless without enforcement, so an unenforced turn-in never records it
+            if (tainted || !TilemanConfig.getInstance().isPunishmentEnabled()) {
                 data.recordTaintedCompletion(boss, tier);
                 TilemanChat.info(
-                    "§e§lSLAYER COMPLETE! §7(not flawless - stepped on locked tiles)"
+                    tainted
+                        ? "§e§lSLAYER COMPLETE! §7(not flawless - stepped on locked tiles)"
+                        : "§e§lSLAYER COMPLETE! §7(not flawless - tile rules are off)"
                 );
                 checkSlayerKillMilestone(boss);
             } else {

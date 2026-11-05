@@ -28,8 +28,8 @@ public class TilemanMoulConfig extends Config {
 
     @Expose
     @Category(
-        name = "Punishment",
-        desc = "Settings for the rule-break punishment system"
+        name = "Challenge Rules",
+        desc = "Enforcement, punishments and health settings for locked tiles"
     )
     public PunishmentCategory punishment = new PunishmentCategory();
 

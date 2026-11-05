@@ -248,15 +248,16 @@ public class MilestoneTracker {
         checkMilestone(MilestoneType.BIG_SPENDER);
     }
 
-    public void onLuckyProc(int multiplier) {
+    public void onLuckyRefund() {
         MilestoneData data = TilemanState.getInstance().getMilestones();
         data.incrementLuckyProcs();
         checkMilestone(MilestoneType.LUCKY_DAY);
+    }
 
-        if (multiplier >= 3) {
-            data.setProgress(MilestoneType.JACKPOT, 1);
-            checkMilestone(MilestoneType.JACKPOT);
-        }
+    public void onFortuneGain() {
+        MilestoneData data = TilemanState.getInstance().getMilestones();
+        data.setProgress(MilestoneType.JACKPOT, 1);
+        checkMilestone(MilestoneType.JACKPOT);
     }
 
     public void onTick() {

@@ -171,11 +171,10 @@ public final class TilemanSelectionMode {
             return;
         }
 
-        if (!state.spendToken()) {
-            return;
-        }
-
         if (isRemote) {
+            if (!state.spendToken()) {
+                return;
+            }
             shop.consumeRemoteUnlock();
             state.unlockBlock(pos);
             state.save();
@@ -194,98 +193,39 @@ public final class TilemanSelectionMode {
             return;
         }
 
-        int baseTiles = shop.getBaseTilesPerUnlock();
-        int tilesToUnlock = shop.calculateTilesToUnlock();
-        boolean luckyProc = shop.didLuckyProc(baseTiles, tilesToUnlock);
-
-        int unlocked = unlockMultipleTiles(pos, tilesToUnlock, state, level);
-        state.save();
-
-        for (int i = 0; i < unlocked; i++) {
-            MilestoneTracker.getInstance().onTileUnlocked();
+        // one tile, one token, aimed; Lucky may refund the token or grant a bonus
+        boolean refunded = shop.rollLuckyRefund();
+        if (!refunded && !state.spendToken()) {
+            return;
         }
-        if (luckyProc) {
-            int multiplier = tilesToUnlock / baseTiles;
-            MilestoneTracker.getInstance().onLuckyProc(multiplier);
+        state.unlockBlock(pos);
+        boolean gained = shop.rollLuckyGain();
+        if (gained) {
+            state.addTokens(1);
+        }
+        state.save();
+        MilestoneTracker.getInstance().onTileUnlocked();
+        if (refunded) {
+            MilestoneTracker.getInstance().onLuckyRefund();
+        }
+        if (gained) {
+            MilestoneTracker.getInstance().onFortuneGain();
         }
 
         StringBuilder message = new StringBuilder();
-        message.append("Unlocked ").append(unlocked).append(" tile(s)");
-        if (luckyProc) {
-            message.append(" (LUCKY!)");
+        message.append("Unlocked a tile");
+        if (refunded) {
+            message.append(" (LUCKY! token refunded)");
+        }
+        if (gained) {
+            message.append(" (JACKPOT! +1 token)");
         }
         message
-            .append("! (")
+            .append(". ")
             .append(state.getTokens())
-            .append(" token(s) left)");
+            .append(" token(s) left");
 
         TilemanChat.info(message.toString());
-    }
-
-    private static final Direction[] HORIZONTAL_DIRECTIONS = {
-        Direction.NORTH,
-        Direction.SOUTH,
-        Direction.EAST,
-        Direction.WEST,
-    };
-
-    private static int unlockMultipleTiles(
-        BlockPos start,
-        int count,
-        TilemanState state,
-        Level level
-    ) {
-        state.unlockBlock(start);
-        int unlocked = 1;
-
-        if (count <= 1) {
-            return unlocked;
-        }
-
-        java.util.List<BlockPos> candidates = new java.util.ArrayList<>();
-        java.util.Set<BlockPos> checked = new java.util.HashSet<>();
-        checked.add(start);
-
-        for (Direction dir : HORIZONTAL_DIRECTIONS) {
-            BlockPos neighbor = start.relative(dir);
-            BlockPos standable = BlockValidation.getStandableBlock(
-                neighbor,
-                level
-            );
-            if (!state.isUnlocked(standable) && !checked.contains(standable)) {
-                candidates.add(standable);
-                checked.add(standable);
-            }
-        }
-
-        java.util.Random random = new java.util.Random();
-        while (unlocked < count && !candidates.isEmpty()) {
-            int idx = random.nextInt(candidates.size());
-            BlockPos next = candidates.remove(idx);
-
-            if (state.isUnlocked(next)) {
-                continue;
-            }
-
-            state.unlockBlock(next);
-            unlocked++;
-
-            for (Direction dir : HORIZONTAL_DIRECTIONS) {
-                BlockPos neighbor = next.relative(dir);
-                BlockPos standable = BlockValidation.getStandableBlock(
-                    neighbor,
-                    level
-                );
-                if (
-                    !state.isUnlocked(standable) && !checked.contains(standable)
-                ) {
-                    candidates.add(standable);
-                    checked.add(standable);
-                }
-            }
-        }
-
-        return unlocked;
     }
 
     private static void onBeforeGizmos(LevelRenderContext context) {

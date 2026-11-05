@@ -8,11 +8,11 @@ public class ShopData {
 
     public static final int EFFICIENT_SCALING_MAX = 10;
 
-    // Multi Unlock base is capped at 10 tiles; Lucky can multiply a click past that
-    public static final int MULTI_UNLOCK_MAX_LEVEL = 9;
-    public static final int MAX_TILES_PER_UNLOCK = 10;
+    // One perk: Lucky Unlock. Higher levels refund the token, top tiers also gain one.
+    public static final int LUCKY_MAX_LEVEL = 6;
+    private static final int[] LUCKY_REFUND_PCT = { 5, 10, 15, 20, 20, 20 };
+    private static final int[] LUCKY_GAIN_PCT = { 0, 0, 0, 0, 5, 10 };
 
-    private int multiUnlockLevel = 0;
     private int luckyUnlockLevel = 0;
     private int efficientScalingLevel = 0;
     private final Map<String, Integer> skillAffinityLevels = new HashMap<>();
@@ -27,24 +27,35 @@ public class ShopData {
 
     private static final Random RANDOM = new Random();
 
-    public int getMultiUnlockLevel() {
-        // clamp so legacy saves that outran the old uncapped shop are still capped
-        return Math.min(multiUnlockLevel, MULTI_UNLOCK_MAX_LEVEL);
+    public int getLuckyUnlockLevel() {
+        return Math.min(luckyUnlockLevel, LUCKY_MAX_LEVEL);
     }
 
-    public void setMultiUnlockLevel(int level) {
-        this.multiUnlockLevel = Math.min(
-            MULTI_UNLOCK_MAX_LEVEL,
+    public void setLuckyUnlockLevel(int level) {
+        this.luckyUnlockLevel = Math.min(
+            LUCKY_MAX_LEVEL,
             Math.max(0, level)
         );
     }
 
-    public int getLuckyUnlockLevel() {
-        return luckyUnlockLevel;
+    public int getLuckyRefundPercent() {
+        int level = getLuckyUnlockLevel();
+        return level <= 0 ? 0 : LUCKY_REFUND_PCT[level - 1];
     }
 
-    public void setLuckyUnlockLevel(int level) {
-        this.luckyUnlockLevel = Math.max(0, level);
+    public int getLuckyGainPercent() {
+        int level = getLuckyUnlockLevel();
+        return level <= 0 ? 0 : LUCKY_GAIN_PCT[level - 1];
+    }
+
+    public boolean rollLuckyRefund() {
+        int pct = getLuckyRefundPercent();
+        return pct > 0 && RANDOM.nextInt(100) < pct;
+    }
+
+    public boolean rollLuckyGain() {
+        int pct = getLuckyGainPercent();
+        return pct > 0 && RANDOM.nextInt(100) < pct;
     }
 
     public int getEfficientScalingLevel() {
@@ -123,37 +134,6 @@ public class ShopData {
         this.totalSpent += amount;
     }
 
-    public int getBaseTilesPerUnlock() {
-        return 1 + getMultiUnlockLevel();
-    }
-
-    public int getLuckyPercent() {
-        return luckyUnlockLevel * 5;
-    }
-
-    public int calculateTilesToUnlock() {
-        int baseTiles = getBaseTilesPerUnlock();
-        int luckyPercent = getLuckyPercent();
-
-        int multiplier = 1;
-        int remainingLuck = luckyPercent;
-
-        while (remainingLuck >= 100) {
-            multiplier++;
-            remainingLuck -= 100;
-        }
-
-        if (remainingLuck > 0 && RANDOM.nextInt(100) < remainingLuck) {
-            multiplier++;
-        }
-
-        return baseTiles * multiplier;
-    }
-
-    public boolean didLuckyProc(int baseTiles, int actualTiles) {
-        return actualTiles > baseTiles;
-    }
-
     // diminishing toward 100 percent: (1 - 0.9^level) * 100
     public static int getSkillAffinityBonusPercent(int level) {
         if (level <= 0) return 0;
@@ -172,18 +152,9 @@ public class ShopData {
         return efficientScalingLevel * 2;
     }
 
-    public static int getMultiUnlockPrice(int currentLevel) {
-        return 25 + currentLevel * 15;
-    }
-
-    // total tiles that must already be unlocked to buy the given level:
-    // 25, 75, 150, 250, 375, 525, 700, 900, 1125 for levels 1..9
-    public static int getMultiUnlockTilesRequired(int targetLevel) {
-        return 25 * targetLevel * (targetLevel + 1) / 2;
-    }
-
+    // price climbs steeply so the top Lucky tiers stay a meaningful spend
     public static int getLuckyUnlockPrice(int currentLevel) {
-        return 10 + currentLevel * 5;
+        return 15 + currentLevel * currentLevel * 10;
     }
 
     public static int getEfficientScalingPrice(int currentLevel) {

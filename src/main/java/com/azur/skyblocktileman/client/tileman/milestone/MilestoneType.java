@@ -171,12 +171,12 @@ public enum MilestoneType {
     LUCKY_DAY("Lucky Day", MilestoneCategory.SECRET, Items.RABBIT_FOOT,
         new long[]{5},
         new int[]{5},
-        "Proc lucky unlock 5x in one session"),
+        "Trigger 5 lucky token refunds in one session"),
     
     JACKPOT("Jackpot", MilestoneCategory.SECRET, Items.DIAMOND,
         new long[]{1},
         new int[]{10},
-        "Proc triple+ unlock");
+        "Gain a bonus token from Lucky Unlock");
 
     private final String displayName;
     private final MilestoneCategory category;

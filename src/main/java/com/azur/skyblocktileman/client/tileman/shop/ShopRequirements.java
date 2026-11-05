@@ -1,6 +1,5 @@
 package com.azur.skyblocktileman.client.tileman.shop;
 
-import com.azur.skyblocktileman.client.tileman.ShopData;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
@@ -12,21 +11,18 @@ public class ShopRequirements {
     private static final Map<String, Requirement> REQUIREMENTS =
         new HashMap<>();
 
-    static {
-        // multi_unlock is gated by raw total tiles unlocked (see getRequirementText)
+    // total XP required to buy each Lucky Unlock level (1..6)
+    private static final long[] LUCKY_XP_GATES = {
+        1_000_000L,
+        3_000_000L,
+        8_000_000L,
+        20_000_000L,
+        45_000_000L,
+        80_000_000L
+    };
 
-        REQUIREMENTS.put(
-            "lucky_unlock_5",
-            new Requirement(MilestoneType.TOKENS_EARNED, 1)
-        ); // tier 1 = 25 tokens
-        REQUIREMENTS.put(
-            "lucky_unlock_10",
-            new Requirement(MilestoneType.TOKENS_EARNED, 2)
-        ); // tier 2 = 100 tokens
-        REQUIREMENTS.put(
-            "lucky_unlock_15",
-            new Requirement(MilestoneType.TOKENS_EARNED, 3)
-        ); // tier 3 = 500 tokens
+    static {
+        // lucky_unlock is gated by raw total XP earned (see getRequirementText)
 
         REQUIREMENTS.put(
             "efficient_scaling_3",
@@ -107,17 +103,20 @@ public class ShopRequirements {
     }
 
     public static String getRequirementText(String itemKey, int targetLevel) {
-        if (itemKey.equals("multi_unlock")) {
-            int required = ShopData.getMultiUnlockTilesRequired(targetLevel);
-            int have = TilemanState.getInstance().getTotalUnlockedBlocks();
-            if (have < required) {
-                return (
-                    "Requires " +
-                    required +
-                    " total tiles unlocked (you have " +
-                    have +
-                    ")"
-                );
+        if (itemKey.equals("lucky_unlock")) {
+            int idx = targetLevel - 1;
+            if (idx >= 0 && idx < LUCKY_XP_GATES.length) {
+                long required = LUCKY_XP_GATES[idx];
+                long have = TilemanState.getInstance().getTotalSkillXp();
+                if (have < required) {
+                    return (
+                        "Requires " +
+                        formatXp(required) +
+                        " total XP (you have " +
+                        formatXp(have) +
+                        ")"
+                    );
+                }
             }
             return null;
         }
@@ -126,6 +125,16 @@ public class ShopRequirements {
         if (req == null) return null;
         if (req.isMet()) return null;
         return req.getDisplayText();
+    }
+
+    private static String formatXp(long xp) {
+        if (xp >= 1_000_000) {
+            return (xp / 1_000_000) + "M";
+        }
+        if (xp >= 1_000) {
+            return (xp / 1_000) + "k";
+        }
+        return String.valueOf(xp);
     }
 
     public static String getConsumableRequirementText(String itemKey) {

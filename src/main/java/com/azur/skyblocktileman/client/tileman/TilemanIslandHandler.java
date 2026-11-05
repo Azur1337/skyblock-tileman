@@ -61,6 +61,12 @@ public final class TilemanIslandHandler {
             return;
         }
 
+        // location pushes plus the JOIN-time locraw cover every transfer; no command loop needed
+        if (TilemanModApiBridge.isPresent()) {
+            tickCounter = 0;
+            return;
+        }
+
         tickCounter++;
         if (tickCounter >= RECHECK_INTERVAL_TICKS) {
             tickCounter = 0;
@@ -132,6 +138,29 @@ public final class TilemanIslandHandler {
         );
     }
 
+    // ModAPI location push; mode and map match locraw's fields exactly, so it feeds the same policy
+    static void onModApiLocation(String serverType, String mode, String map) {
+        if (!TilemanConfig.getInstance().isEnabled()) {
+            return;
+        }
+        if (!"SKYBLOCK".equalsIgnoreCase(serverType)) {
+            inSkyblock = false;
+            return;
+        }
+
+        inSkyblock = true;
+        TilemanLoginHandler.maybeHandleOptIn();
+
+        if (
+            mode != null &&
+            !mode.isEmpty() &&
+            TilemanState.getInstance().isTilemanActive()
+        ) {
+            String displayName = map == null || map.isEmpty() ? mode : map;
+            onIslandDetected(mode, displayName);
+        }
+    }
+
     private static void onIslandDetected(String islandId, String displayName) {
         TilemanState state = TilemanState.getInstance();
 
@@ -147,10 +176,13 @@ public final class TilemanIslandHandler {
         boolean isNewIsland = state
             .getUnlockedBlocks(state.getActiveProfileId(), islandId)
             .isEmpty();
-        state.markIslandVisited(islandId);
-        state.setActiveIsland(islandId);
+        if (isNewIsland) {
+            state.markIslandVisited(islandId);
+        }
 
         if (islandChanged) {
+            // only a real change may rebuild the index and write the save file
+            state.setActiveIsland(islandId);
             // warping abandons a quest; whether it breaks the flawless streak is unconfirmed
             SlayerFeature.reset();
             TilemanLog.debug(
@@ -160,10 +192,13 @@ public final class TilemanIslandHandler {
                 displayName
             );
             TilemanChat.info("Now on island: " + displayName);
+        } else if (isNewIsland) {
+            // profile switch onto an island this profile has not visited yet
+            state.save();
+        }
 
-            if (isNewIsland) {
-                MilestoneTracker.getInstance().onIslandVisited();
-            }
+        if (isNewIsland) {
+            MilestoneTracker.getInstance().onIslandVisited();
         }
 
         if (

@@ -19,6 +19,10 @@ repositories {
 		name = 'NEU Maven'
 		url = 'https://maven.notenoughupdates.org/releases/'
 	}
+	maven {
+		name = 'Hypixel'
+		url = 'https://repo.hypixel.net/repository/Hypixel/'
+	}
 }
 
 loom {
@@ -50,6 +54,10 @@ dependencies {
 	// 9999.9999.9999 is the fork's dev version from mavenLocal; 4.7.2 is the NEU release.
 	shadowModImpl "org.notenoughupdates.moulconfig:modern-26.2:${moulconfigVersion}"
 	shadowModImpl "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"
+
+	// Official Hypixel Mod API protocol library. compileOnly on purpose: it is never shaded
+	// or shipped; the optional hypixel-mod-api mod provides these classes at runtime.
+	compileOnly "net.hypixel:mod-api:1.0.2"
 }
 
 shadowJar {

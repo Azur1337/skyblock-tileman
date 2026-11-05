@@ -2,6 +2,7 @@ package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.SkyblockTileman;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
+import com.azur.skyblocktileman.client.tileman.ui.Fmt;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -163,7 +164,7 @@ public final class TilemanSelectionMode {
             long xpNeeded = state.getXpToNextToken();
             TilemanChat.warn(
                 "You don't have any Block Unlock Tokens! Need " +
-                    String.format("%,d", xpNeeded) +
+                    Fmt.xp(xpNeeded) +
                     " more Skill XP for your next one."
             );
             return;

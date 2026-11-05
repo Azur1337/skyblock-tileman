@@ -114,7 +114,8 @@ public class TilemanShopScreen extends TilemanChestScreen {
             shop::getLuckyUnlockLevel,
             ShopData::getLuckyUnlockPrice,
             shop::setLuckyUnlockLevel,
-            "Chance a tile unlock refunds its token; top tiers also grant a bonus token",
+            "Chance a tile unlock refunds its token",
+            "Top tiers also grant a bonus token",
             "Refund: " + shop.getLuckyRefundPercent() + "%",
             "Gain: " + shop.getLuckyGainPercent() + "%"
         );

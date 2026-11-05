@@ -67,6 +67,13 @@ public final class TilemanHealthHandler {
             return;
         }
 
+        if (TilemanPunishmentHandler.isInTransferGrace()) {
+            // the landing is not the player's fault: hold the bar and restart its timers
+            offMs = 0;
+            onMs = 0;
+            return;
+        }
+
         BlockPos standingOn = TilemanPunishmentHandler.findStandingBlock(
             client.level,
             client.player.getX(),

@@ -103,6 +103,12 @@ public abstract class TilemanChestScreen extends ContainerScreen {
         int button,
         ContainerInput type
     ) {
+        // UI-DESIGN section 5: only a plain left click acts. Number keys arrive as SWAP with
+        // button 0-8 (so key "1" is button 0!) and double-click as PICKUP_ALL with button 0,
+        // so the mode must be checked, not just the button.
+        if (type != ContainerInput.PICKUP || button != 0) {
+            return;
+        }
         Runnable handler = clickHandlers.get(slotId);
         if (handler != null) {
             handler.run();
@@ -127,6 +133,10 @@ public abstract class TilemanChestScreen extends ContainerScreen {
 
     protected void setReturnTo(Runnable target) {
         this.returnTo = target;
+    }
+
+    protected Runnable getReturnTo() {
+        return returnTo;
     }
 
     @Override

@@ -143,8 +143,6 @@ public final class HypixelApiClient {
         String profileId,
         String cuteName,
         Map<String, Long> skillXp,
-        int maxedCollections,
-        int totalCollections,
         Map<String, Integer> normalCompletions,
         Map<String, Integer> masterCompletions,
         long createdAtMs,
@@ -156,8 +154,6 @@ public final class HypixelApiClient {
                 null,
                 null,
                 null,
-                0,
-                0,
                 null,
                 null,
                 0L,
@@ -310,8 +306,6 @@ public final class HypixelApiClient {
 
         Map<String, Long> skillXp = getSkillXpMap(member);
 
-        int[] collectionCounts = countMaxedCollections(member);
-
         Map<String, Integer> normalCompletions = new HashMap<>();
         Map<String, Integer> masterCompletions = new HashMap<>();
         extractDungeonCompletions(member, normalCompletions, masterCompletions);
@@ -329,8 +323,6 @@ public final class HypixelApiClient {
             profileId,
             cuteName,
             skillXp,
-            collectionCounts[0],
-            collectionCounts[1],
             normalCompletions,
             masterCompletions,
             createdAtMs,
@@ -405,103 +397,6 @@ public final class HypixelApiClient {
         }
 
         return result;
-    }
-
-    // collection item id -> amount needed for the max tier
-    private static final Map<String, Long> COLLECTION_MAX_TIERS = Map.ofEntries(
-        // Farming
-        Map.entry("WHEAT", 100000L),
-        Map.entry("CARROT_ITEM", 100000L),
-        Map.entry("POTATO_ITEM", 100000L),
-        Map.entry("PUMPKIN", 100000L),
-        Map.entry("MELON", 250000L),
-        Map.entry("SEEDS", 50000L),
-        Map.entry("MUSHROOM_COLLECTION", 50000L),
-        Map.entry("INK_SACK:3", 250000L),
-        Map.entry("CACTUS", 100000L),
-        Map.entry("SUGAR_CANE", 100000L),
-        Map.entry("NETHER_STALK", 100000L),
-
-        // Mining
-        Map.entry("COBBLESTONE", 2000000L),
-        Map.entry("COAL", 250000L),
-        Map.entry("IRON_INGOT", 50000L),
-        Map.entry("GOLD_INGOT", 50000L),
-        Map.entry("DIAMOND", 50000L),
-        Map.entry("LAPIS_LAZULI", 100000L),
-        Map.entry("EMERALD", 50000L),
-        Map.entry("REDSTONE", 250000L),
-        Map.entry("QUARTZ", 100000L),
-        Map.entry("OBSIDIAN", 100000L),
-        Map.entry("GLOWSTONE_DUST", 100000L),
-        Map.entry("GRAVEL", 100000L),
-        Map.entry("ICE", 50000L),
-        Map.entry("NETHERRACK", 100000L),
-        Map.entry("SAND", 100000L),
-        Map.entry("ENDER_STONE", 100000L),
-        Map.entry("MITHRIL_ORE", 250000L),
-        Map.entry("HARD_STONE", 1000000L),
-        Map.entry("GEMSTONE_COLLECTION", 250000L),
-        Map.entry("MYCEL", 25000L),
-        Map.entry("SULPHUR_ORE", 100000L),
-
-        // Combat
-        Map.entry("ROTTEN_FLESH", 100000L),
-        Map.entry("BONE", 100000L),
-        Map.entry("STRING", 100000L),
-        Map.entry("SPIDER_EYE", 100000L),
-        Map.entry("GUNPOWDER", 100000L),
-        Map.entry("ENDER_PEARL", 50000L),
-        Map.entry("GHAST_TEAR", 25000L),
-        Map.entry("SLIME_BALL", 100000L),
-        Map.entry("BLAZE_ROD", 50000L),
-        Map.entry("MAGMA_CREAM", 50000L),
-
-        // Foraging
-        Map.entry("LOG", 100000L),
-        Map.entry("LOG:1", 100000L),
-        Map.entry("LOG:2", 100000L),
-        Map.entry("LOG_2:1", 100000L),
-        Map.entry("LOG_2", 100000L),
-        Map.entry("LOG:3", 100000L),
-
-        // Fishing
-        Map.entry("RAW_FISH", 100000L),
-        Map.entry("RAW_FISH:1", 100000L),
-        Map.entry("RAW_FISH:2", 100000L),
-        Map.entry("RAW_FISH:3", 100000L),
-        Map.entry("PRISMARINE_SHARD", 25000L),
-        Map.entry("PRISMARINE_CRYSTALS", 25000L),
-        Map.entry("CLAY_BALL", 50000L),
-        Map.entry("WATER_LILY", 25000L),
-        Map.entry("INK_SACK", 50000L),
-        Map.entry("SPONGE", 25000L)
-    );
-
-    // returns [maxedCount, totalChecked]
-    private static int[] countMaxedCollections(JsonObject member) {
-        JsonObject collection = member.has("collection")
-            ? member.getAsJsonObject("collection")
-            : null;
-
-        if (collection == null) {
-            return new int[] { 0, 0 };
-        }
-
-        int maxedCount = 0;
-        int totalChecked = 0;
-
-        for (Map.Entry<String, Long> entry : COLLECTION_MAX_TIERS.entrySet()) {
-            if (collection.has(entry.getKey())) {
-                totalChecked++;
-                long playerAmount = collection.get(entry.getKey()).getAsLong();
-                if (playerAmount >= entry.getValue()) {
-                    maxedCount++;
-                }
-            }
-        }
-
-        return new int[] { maxedCount, totalChecked };
     }
 
     // member.dungeons.dungeon_types.[master_]catacombs.tier_completions

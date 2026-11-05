@@ -205,6 +205,10 @@ public final class TilemanConfig {
         return config().punishment.healthTuning.offTileGraceSeconds * 1000L;
     }
 
+    public long getTransferGraceMs() {
+        return config().punishment.transferGraceSeconds * 1000L;
+    }
+
     public float getHealthDrainPerMs() {
         return 1f / (config().punishment.healthTuning.fullDrainSeconds * 1000f);
     }

@@ -2,6 +2,7 @@ package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTracker;
 import com.azur.skyblocktileman.client.tileman.ui.ConfirmScreen;
+import com.azur.skyblocktileman.client.tileman.ui.Fmt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -209,20 +210,12 @@ public final class TilemanLoginHandler {
                 "Loaded baseline for profile " +
                     result.cuteName() +
                     ": " +
-                    String.format("%,d", result.totalSkillXp()) +
+                    Fmt.xp(result.totalSkillXp()) +
                     " total Skill XP, " +
                     state.getTokens() +
                     " token(s) available."
             );
         }
-
-        state.setMaxedCollections(result.maxedCollections());
-        TilemanLog.debug(
-            DebugCategory.PROFILE,
-            "Loaded collections: {} maxed out of {} tracked",
-            result.maxedCollections(),
-            result.totalCollections()
-        );
 
         DungeonTracker.getInstance().applyProfilesResult(result);
     }

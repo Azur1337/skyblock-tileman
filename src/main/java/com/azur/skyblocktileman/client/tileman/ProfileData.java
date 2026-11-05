@@ -16,7 +16,6 @@ public class ProfileData {
     private int tokensEarned = 0;
     private int tokensSpent = 0;
     private int ruleBreaks = 0;
-    private int maxedCollections = 0;
     private final Map<String, Long> skillXp = new HashMap<>();
     private final Map<String, Long> tokenPools = new HashMap<>();
     private final Map<String, Set<BlockCoord>> islands = new HashMap<>();
@@ -83,14 +82,6 @@ public class ProfileData {
         ruleBreaks++;
     }
 
-    public int getMaxedCollections() {
-        return maxedCollections;
-    }
-
-    public void setMaxedCollections(int count) {
-        this.maxedCollections = Math.max(0, count);
-    }
-
     public Map<String, Set<BlockCoord>> getIslands() {
         return islands;
     }
@@ -107,10 +98,6 @@ public class ProfileData {
 
     public int getTotalUnlockedBlocks() {
         return islands.values().stream().mapToInt(Set::size).sum();
-    }
-
-    public int getFreeBlocksCount() {
-        return islands.size();
     }
 
     public ShopData getShop() {

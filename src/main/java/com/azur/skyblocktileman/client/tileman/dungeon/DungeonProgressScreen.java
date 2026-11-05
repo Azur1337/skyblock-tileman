@@ -138,7 +138,11 @@ public class DungeonProgressScreen extends TilemanChestScreen {
 
             onClick(slot, () -> {
                 playNav();
-                DungeonUnlockScreen.open(floor, DungeonProgressScreen::open);
+                // preserve this screen's back target so the hub link survives the unlock round-trip
+                Runnable back = getReturnTo();
+                DungeonUnlockScreen.open(floor, () ->
+                    DungeonProgressScreen.open(back)
+                );
             });
         }
         setItem(slot, item.build());

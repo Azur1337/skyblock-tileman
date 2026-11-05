@@ -27,6 +27,17 @@ public final class TilemanPunishmentHandler {
     private static boolean wasOnSafeBlock = true;
     private static int soundCooldown = 0;
 
+    // server-driven position changes must not book an instant rule break; see onEndTick
+    private static long graceUntilMs = 0;
+    private static Level lastLevel = null;
+    private static BlockPos lastPos = null;
+    // 15 blocks in one tick is beyond any movement, so a larger jump means a teleport
+    private static final long TELEPORT_DIST_SQR = 225;
+
+    public static boolean isInTransferGrace() {
+        return System.currentTimeMillis() < graceUntilMs;
+    }
+
     private TilemanPunishmentHandler() {}
 
     public static void register() {
@@ -50,7 +61,22 @@ public final class TilemanPunishmentHandler {
             violating = false;
             wasOnSafeBlock = true;
             soundCooldown = 0;
+            lastLevel = null;
+            lastPos = null;
             return;
+        }
+
+        // a new level instance or a jump no movement could make: warps, respawns, soul teleports
+        BlockPos playerPos = client.player.blockPosition();
+        boolean transferred = client.level != lastLevel;
+        boolean jumped =
+            lastPos != null &&
+            distanceSq(lastPos, playerPos) > TELEPORT_DIST_SQR;
+        lastLevel = client.level;
+        lastPos = playerPos;
+        if (transferred || jumped) {
+            graceUntilMs =
+                System.currentTimeMillis() + config.getTransferGraceMs();
         }
 
         if (TilemanFirstBlockMode.isActive()) {
@@ -60,7 +86,14 @@ public final class TilemanPunishmentHandler {
             return;
         }
 
-        BlockPos playerPos = client.player.blockPosition();
+        if (System.currentTimeMillis() < graceUntilMs) {
+            // the landing has not settled yet: no break, no taint, no thunder
+            violating = false;
+            wasOnSafeBlock = true;
+            soundCooldown = 0;
+            return;
+        }
+
         double playerY = client.player.getY();
         BlockPos standingOn = findStandingBlock(
             client.level,
@@ -199,6 +232,13 @@ public final class TilemanPunishmentHandler {
             RED
         );
         graphics.pose().popMatrix();
+    }
+
+    private static long distanceSq(BlockPos a, BlockPos b) {
+        long dx = a.getX() - b.getX();
+        long dy = a.getY() - b.getY();
+        long dz = a.getZ() - b.getZ();
+        return dx * dx + dy * dy + dz * dz;
     }
 
     // package-visible so the health handler can reuse the exact same standing check

@@ -7,8 +7,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -217,7 +219,21 @@ public final class TilemanState {
     public void save() {
         try {
             Files.createDirectories(SAVE_DIR);
-            Files.writeString(SAVE_FILE, GSON.toJson(data));
+            // write to a temp file then atomic-move, so a crash mid-write never destroys the only copy
+            Path tmp = SAVE_FILE.resolveSibling(
+                SAVE_FILE.getFileName() + ".tmp"
+            );
+            Files.writeString(tmp, GSON.toJson(data));
+            try {
+                Files.move(
+                    tmp,
+                    SAVE_FILE,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
+                );
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp, SAVE_FILE, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             LOGGER.error("Failed to save Tileman data.", e);
         }
@@ -350,15 +366,6 @@ public final class TilemanState {
             }
         }
         return 0;
-    }
-
-    public int getMaxedCollections() {
-        return activeProfile().getMaxedCollections();
-    }
-
-    public void setMaxedCollections(int count) {
-        activeProfile().setMaxedCollections(count);
-        save();
     }
 
     public void onXpGained(String skill, long xpAmount) {
@@ -599,10 +606,6 @@ public final class TilemanState {
 
     public int getTotalUnlockedBlocks() {
         return activeProfile().getTotalUnlockedBlocks();
-    }
-
-    public int getFreeBlocksCount() {
-        return activeProfile().getFreeBlocksCount();
     }
 
     public ShopData getShop() {

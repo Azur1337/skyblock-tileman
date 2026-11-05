@@ -196,10 +196,6 @@ public class SlayerTracker {
         };
     }
 
-    public boolean isQuestActive() {
-        return questActive;
-    }
-
     public void resetQuestState() {
         questActive = false;
         boss = null;

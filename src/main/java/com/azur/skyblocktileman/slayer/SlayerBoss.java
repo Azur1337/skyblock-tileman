@@ -132,9 +132,9 @@ public enum SlayerBoss {
         return (
             highTierName != null &&
             text != null &&
-            text.toLowerCase(Locale.ROOT).contains(
-                highTierName.toLowerCase(Locale.ROOT)
-            )
+            text
+                .toLowerCase(Locale.ROOT)
+                .contains(highTierName.toLowerCase(Locale.ROOT))
         );
     }
 
@@ -150,14 +150,6 @@ public enum SlayerBoss {
             }
         }
         return false;
-    }
-
-    public int combatXpRequiredFor(SlayerTier tier) {
-        int index = tier.value() - 1;
-        if (index < 0 || index >= combatXpToSpawn.length) {
-            return -1;
-        }
-        return combatXpToSpawn[index];
     }
 
     /**

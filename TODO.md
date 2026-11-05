@@ -110,7 +110,11 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 
 ## Crashes and UX
 
-- [ ] Punishment: grace period on respawn, teleport, dimension change (server-driven warps instantly book a rule break)
+- [x] Punishment: grace period on respawn, teleport, dimension change. `TilemanPunishmentHandler`
+      now arms a configurable "Transfer Grace" (default 3s) when the level instance changes or the
+      player jumps >15 blocks in one tick (warps, respawns, soul teleports); during grace no rule
+      break, slayer taint, thunder or health drain occurs. Threshold is a hypothesis pending field
+      test; 0 disables the feature
 - [ ] Unify the two `findStandingBlock` implementations (punishment vs BlockValidation have different tolerances -> contradictory UI signals on stairs/slabs)
 - [ ] Frenzy timer: store expiry timestamp instead of accumulating deltas (lag spikes and logout currently freeze it)
 - [x] `ProfileData.getUnlockedBlocks(island)`: reads no longer create entries. Split into a
@@ -138,7 +142,10 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
       `onClick(slotId, Runnable)` and the footer builder; screens use `Theme` roles (5-15 calls
       each across shop/dungeon/milestone/hub) and there are zero `setItem(<literal>)` slot
       numbers left in the tree
-- [ ] Replace hover-name string dispatch with tagged ItemStacks (data component marker) in shop/milestone/dungeon screens
+- [x] Replace hover-name string dispatch: RESOLVED, our chest screens (shop/milestone/dungeon
+      progress/unlock/hub) route every click through the `onClick(slot, Runnable)` table and
+      match no item names; the only name parsing left is `DungeonScreenHandler`/`DungeonTooltipHandler`
+      reading Hypixel's own menus, which we do not control
 - [ ] MoulConfig design pass: Keybinds category and the dead `XpTokensCategory` sliders are done;
       remaining category ordering and any other dead controls are not
 - [x] "Unlock required milestone first!" wording: the string no longer appears anywhere in the
@@ -163,7 +170,11 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [x] `TilemanRenderer`: stop iterating all unlocked blocks per frame -> radius query walks only the cells overlapping the highlight box
 - [ ] `onXpGained` / `addTokens`: closed-form tier math instead of per-token loops (first-detection catch-up can mean tens of thousands of iterations)
 - [ ] Milestone checks: one call with the token delta, not N calls
-- [ ] Debounced save (dirty flag, max once per second + on disconnect); remove double-saves in purchase/unlock paths
+- [ ] Debounced save (dirty flag, max once per second + on disconnect); remove double-saves in
+      purchase/unlock paths. PARTIAL: save() now writes a .tmp then atomic-moves over the target
+      (crash-safe, no more half-written file); the per-unlock double-saves and debounce are not done
+- [ ] Atomic temp+rename save: DONE (TilemanState.save writes SAVE_FILE.tmp, Files.move ATOMIC_MOVE,
+      falls back to REPLACE_EXISTING if the FS rejects atomic moves)
 - [ ] `DungeonFloor.getNormalFloors()`/`getMasterModeFloors()`: `static final` arrays
 - [ ] Gate `TilemanLog.debug` console output by category (currently every message is formatted + logged at INFO 24/7)
 
@@ -193,11 +204,18 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [x] `SkyblockTileman.id()` was dead because 9 call sites hardcoded the mod id. Kept it and
       pointed `TilemanHudOverlay`, `TilemanPunishmentHandler` and `TilemanSelectionMode` at it
       instead of deleting, which removes the duplication rather than the helper
-- [ ] Dedupe: `romanToInt` (2x) + numeral switch (3rd copy in `ShopRequirements`), shop prices vs their accessors, frenzy formulas (3 sites), reward tiering (2 sites), `getTargetedBlock`, `HORIZONTAL_DIRECTIONS`, menu title constants
-- [ ] `TilemanShopTicker`: rename/split (it ticks frenzy + dungeon chat + API poll)
+- [ ] Dedupe: frenzy formulas (3 sites), reward tiering (2 sites), `getTargetedBlock`,
+      `HORIZONTAL_DIRECTIONS`, menu title constants. DONE this pass: `romanToInt` is single-copy
+      (the slayer one maps to the `SlayerTier` enum, not an int, so not shareable), the
+      `ShopRequirements` numeral switch is gone, and both locale-less `String.format("%,d")` sites
+      now use `Fmt.xp` (which also fixed the missing Locale)
+- [ ] `TilemanShopTicker`: rename/split (it ticks frenzy countdown + MilestoneTracker.onTick + dungeon API auto-poll; there is no dungeon chat listening in it, that was removed)
 - [ ] `new Random()` per unlock -> `level.random`
 - [x] Update AGENTS.md once decisions landed (API key policy, mixin removal)
 
 ## XpReconciler decision
 
-- [ ] Either implement or delete. Intended: periodically fetch API skill XP totals, compare to local tracked totals, correct drift (missed actionbar drops, restarts). `fetchTotalSkillXp` already exists for this but is never called
+- [ ] Either implement or delete. Intended: periodically fetch API skill XP totals, compare to
+      local tracked totals, correct drift (missed actionbar drops, restarts). `fetchTotalSkillXp`
+      no longer exists (deleted in the merged-fetch cleanup); the merged `fetchProfiles` result
+      already carries per-skill XP, so a real reconciler would diff that against `ProfileData.skillXp`

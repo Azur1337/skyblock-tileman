@@ -63,6 +63,14 @@ public class PunishmentCategory {
 
     @Expose
     @ConfigOption(
+        name = "Transfer Grace",
+        desc = "Seconds of forgiveness after a warp, teleport or respawn before rules apply."
+    )
+    @ConfigEditorSlider(minValue = 0, maxValue = 5, minStep = 1)
+    public int transferGraceSeconds = 3;
+
+    @Expose
+    @ConfigOption(
         name = "Health Tuning",
         desc = "Advanced drain, refill and effect thresholds for the health bar."
     )

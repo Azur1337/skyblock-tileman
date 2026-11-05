@@ -41,9 +41,7 @@ public final class SlayerFeature {
     public static void register() {
         DETECTOR.events(SlayerFeature::onEvent);
 
-        ClientReceiveMessageEvents.GAME.register(
-            SlayerFeature::onMessage
-        );
+        ClientReceiveMessageEvents.GAME.register(SlayerFeature::onMessage);
         ClientTickEvents.END_CLIENT_TICK.register(SlayerFeature::onTick);
 
         // chat is not replayed on reconnect but the sidebar is restored, so the
@@ -61,6 +59,10 @@ public final class SlayerFeature {
 
     private static void onMessage(Component message, boolean overlay) {
         if (!TilemanState.getInstance().isTilemanActive()) {
+            return;
+        }
+        // action bar/title text is not chat; routing it here double counts boss spawns
+        if (overlay) {
             return;
         }
         String stripped = ChatFormatting.stripFormatting(message.getString());
@@ -144,7 +146,10 @@ public final class SlayerFeature {
      * the owner is an invisible sort token and Hypixel carries the real text in a
      * player team prefix, so it must go through formatNameForTeam(getPlayersTeam(..)).
      */
-    private static String sidebarText(Scoreboard scoreboard, PlayerScoreEntry entry) {
+    private static String sidebarText(
+        Scoreboard scoreboard,
+        PlayerScoreEntry entry
+    ) {
         PlayerTeam team = scoreboard.getPlayersTeam(entry.owner());
         Component name = PlayerTeam.formatNameForTeam(team, entry.ownerName());
         return cleanText(name.getString());
@@ -168,7 +173,10 @@ public final class SlayerFeature {
             }
             out.append(c);
         }
-        return out.toString().replace((char) 0xA0, ' ').trim();
+        return out
+            .toString()
+            .replace((char) 0xA0, ' ')
+            .trim();
     }
 
     private static void addLine(List<String> lines, String text) {
@@ -202,9 +210,9 @@ public final class SlayerFeature {
                 tracker.onBossSpawned(e.boss(), e.tier());
             }
             case SlayerEvent.BossSlain e -> tracker.onBossSlain(
-                    e.boss(),
-                    e.tier()
-                );
+                e.boss(),
+                e.tier()
+            );
             case SlayerEvent.QuestTurnedIn e -> {
                 TilemanLog.debug(
                     DebugCategory.SLAYER,
@@ -216,17 +224,18 @@ public final class SlayerFeature {
             }
             case SlayerEvent.QuestFailed e -> tracker.onFailed(e.reason());
             case SlayerEvent.MinibossSpawned e -> TilemanLog.debug(
-                    DebugCategory.SLAYER,
-                    "Miniboss spawned: {}",
-                    e.mobName()
-                );
+                DebugCategory.SLAYER,
+                "Miniboss spawned: {}",
+                e.mobName()
+            );
             case SlayerEvent.Progress e -> TilemanLog.debug(
                 DebugCategory.SLAYER,
                 "Grind progress {}/{}",
                 e.currentCombatXp(),
                 e.requiredCombatXp()
             );
-            case SlayerEvent.QuestCleared e -> {}
+            case SlayerEvent.QuestCleared e -> {
+            }
         }
     }
 }

@@ -13,7 +13,6 @@ import net.minecraft.util.Mth;
 // Animated top-center banner shown when a milestone tier completes
 public final class MilestonePopup {
 
-    private static final int TOTAL_MS = 3400;
     private static final int IN_MS = 340;
     private static final int OUT_MS = 640;
     private static final int MAX_QUEUE = 6;
@@ -50,7 +49,10 @@ public final class MilestonePopup {
         QUEUE.addLast(new Entry(title, subtitle));
     }
 
-    private static void render(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
+    private static void render(
+        GuiGraphicsExtractor graphics,
+        DeltaTracker tracker
+    ) {
         if (QUEUE.isEmpty()) {
             return;
         }
@@ -65,7 +67,10 @@ public final class MilestonePopup {
         if (head.startMs == 0L) {
             head.startMs = now;
         }
-        while (now - head.startMs >= TOTAL_MS) {
+        while (
+            now - head.startMs >=
+            TilemanConfig.getInstance().getPopupDurationMs()
+        ) {
             QUEUE.pollFirst();
             head = QUEUE.peekFirst();
             if (head == null) {
@@ -82,15 +87,12 @@ public final class MilestonePopup {
         long now
     ) {
         Minecraft client = Minecraft.getInstance();
+        int total = TilemanConfig.getInstance().getPopupDurationMs();
         int t = (int) (now - entry.startMs);
 
         float inP = Mth.clamp(t / (float) IN_MS, 0f, 1f);
         float easeIn = 1f - (1f - inP) * (1f - inP) * (1f - inP);
-        float outP = Mth.clamp(
-            (t - (TOTAL_MS - OUT_MS)) / (float) OUT_MS,
-            0f,
-            1f
-        );
+        float outP = Mth.clamp((t - (total - OUT_MS)) / (float) OUT_MS, 0f, 1f);
         float life = easeIn * (1f - outP);
         int alpha = (int) (255 * life);
         if (alpha <= 4) {
@@ -105,8 +107,7 @@ public final class MilestonePopup {
                     client.font.width(entry.title),
                     client.font.width(entry.subtitle)
                 )
-            ) +
-            28;
+            ) + 28;
 
         int w = (int) (fullW * (0.35f + 0.65f * easeIn));
         int bob = (int) (Math.sin(t / 260f) * 1.2f);
@@ -120,7 +121,13 @@ public final class MilestonePopup {
             y + CARD_H + 2,
             withAlpha(ACCENT_DIM, alpha / 3)
         );
-        graphics.fill(x, y, x + w, y + CARD_H, withAlpha(BG, (int) (210 * life)));
+        graphics.fill(
+            x,
+            y,
+            x + w,
+            y + CARD_H,
+            withAlpha(BG, (int) (210 * life))
+        );
         graphics.fill(x, y, x + w, y + 2, withAlpha(ACCENT, alpha));
         graphics.fill(
             x,
@@ -134,20 +141,26 @@ public final class MilestonePopup {
         drawSparkles(graphics, x, y, w, t, alpha);
 
         if (easeIn > 0.55f) {
-            int textAlpha = (int) (
-                255 *
+            int textAlpha = (int) (255 *
                 Mth.clamp((easeIn - 0.55f) / 0.45f, 0f, 1f) *
-                (1f - outP)
-            );
+                (1f - outP));
             int cy = y + 7;
-            drawCentered(graphics, client, "MILESTONE", centerX, cy, withAlpha(
-                    EYEBROW,
-                    textAlpha
-                ));
-            drawCentered(graphics, client, entry.title, centerX, cy + 13, withAlpha(
-                    TITLE,
-                    textAlpha
-                ));
+            drawCentered(
+                graphics,
+                client,
+                "MILESTONE",
+                centerX,
+                cy,
+                withAlpha(EYEBROW, textAlpha)
+            );
+            drawCentered(
+                graphics,
+                client,
+                entry.title,
+                centerX,
+                cy + 13,
+                withAlpha(TITLE, textAlpha)
+            );
             drawCentered(
                 graphics,
                 client,
@@ -168,7 +181,8 @@ public final class MilestonePopup {
         int t,
         float life
     ) {
-        int span = TOTAL_MS - IN_MS - OUT_MS;
+        int span =
+            TilemanConfig.getInstance().getPopupDurationMs() - IN_MS - OUT_MS;
         if (t <= IN_MS || span <= 0) {
             return;
         }

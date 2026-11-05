@@ -81,10 +81,8 @@ public final class TilemanConfig {
             case PROFILE -> debug.profile;
             case TOKENS -> debug.tokens;
             case BLOCKS -> debug.blocks;
-            case RENDERING -> debug.rendering;
             case SLAYER -> debug.slayer;
             case DUNGEON -> debug.dungeon;
-            case CHAT -> debug.chat;
             case ALL -> true;
         };
     }
@@ -157,6 +155,96 @@ public final class TilemanConfig {
 
     public boolean isModApiEnabled() {
         return config().general.useModApi;
+    }
+
+    public boolean isChatInfoEnabled() {
+        return config().general.chatInfo;
+    }
+
+    public boolean isSelectionPreviewEnabled() {
+        return config().rendering.selectionPreview;
+    }
+
+    public boolean isIslandBannersEnabled() {
+        return config().rendering.islandBanners;
+    }
+
+    public boolean isTilesCountAllIslands() {
+        return config().rendering.tilesCountAllIslands;
+    }
+
+    public int getPopupDurationMs() {
+        return config().rendering.popupDurationMs;
+    }
+
+    public boolean isHudRowTokens() {
+        return config().rendering.hudRows.tokens;
+    }
+
+    public boolean isHudRowTiles() {
+        return config().rendering.hudRows.tiles;
+    }
+
+    public boolean isHudRowTotalXp() {
+        return config().rendering.hudRows.totalXp;
+    }
+
+    public boolean isHudRowNextToken() {
+        return config().rendering.hudRows.nextToken;
+    }
+
+    public boolean isHudRowRuleBreaks() {
+        return config().rendering.hudRows.ruleBreaks;
+    }
+
+    public boolean isRuleBrokenBannerEnabled() {
+        return config().punishment.ruleBrokenBanner;
+    }
+
+    public long getOffTileGraceMs() {
+        return config().punishment.healthTuning.offTileGraceSeconds * 1000L;
+    }
+
+    public float getHealthDrainPerMs() {
+        return 1f / (config().punishment.healthTuning.fullDrainSeconds * 1000f);
+    }
+
+    public float getHealthRegenPerMs() {
+        return (
+            1f / (config().punishment.healthTuning.fullRefillSeconds * 1000f)
+        );
+    }
+
+    public float getNauseaThreshold() {
+        return config().punishment.healthTuning.nauseaBelowPercent / 100f;
+    }
+
+    // blindness must never trigger above nausea, so clamp it to the nausea point
+    public float getBlindnessThreshold() {
+        float nausea = getNauseaThreshold();
+        float blind =
+            config().punishment.healthTuning.blindnessBelowPercent / 100f;
+        return Math.min(blind, nausea);
+    }
+
+    public boolean isPurchaseSoundEnabled() {
+        return config().sounds.enabled && config().sounds.purchaseChime;
+    }
+
+    public boolean isMilestoneSoundEnabled() {
+        return config().sounds.enabled && config().sounds.milestoneToast;
+    }
+
+    public boolean isDungeonRewardSoundEnabled() {
+        return config().sounds.enabled && config().sounds.dungeonReward;
+    }
+
+    public boolean isFrenzySoundEnabled() {
+        return config().sounds.enabled && config().sounds.frenzyExpiry;
+    }
+
+    public boolean isCollapseSoundEnabled() {
+        return config().sounds.enabled && config().sounds.collapseSnap;
     }
 
     public KeybindCategory getKeybinds() {

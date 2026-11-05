@@ -30,7 +30,9 @@ Track of concrete work items from the 2026-10 code review. Check off when done.
       field no longer exists anywhere in the tree, removed with local detection
 - [x] Fix reward math in the dungeon progress message -> moot: that message lived in
       `onDungeonComplete` and was deleted with it; `DungeonProgressScreen` owns the 10/50 tiering
-- [ ] Cross-check API `selected` profile id against local `activeProfileId` before writing tokens (wrong-profile attribution)
+- [x] Cross-check API `selected` profile id against local `activeProfileId` before writing
+      tokens: `DungeonTracker.processApiResult` now returns early when `result.profileId()`
+      differs from the active profile, so the auto/manual sync race can no longer mis-attribute
 
 ## New-profile gating (replaces retroactive-token policy)
 
@@ -102,7 +104,9 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [ ] Unconfirmed behaviour worth a field look: whether a party member's kill credits everyone,
       and whether abandoning a quest at Maddox emits anything
 - [ ] Consider API `player_data.slayer_bosses.<boss>.kills` for kill milestones (like dungeons); chat only needed for flawless streaks
-- [ ] Route dungeon logging to `DebugCategory.DUNGEON` (exists but unused, everything dumps to ALL)
+- [x] Route dungeon logging to `DebugCategory.DUNGEON`: all 17 `DebugCategory.ALL` in the
+      dungeon package now use DUNGEON; the dead `RENDERING` and `CHAT` debug categories were
+      removed from the enum, `DebugCategories`, and the `isDebugEnabled` switch
 
 ## Crashes and UX
 

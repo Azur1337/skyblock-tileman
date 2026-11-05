@@ -39,7 +39,17 @@ public class DungeonData {
         return getFloorStats(floor.getId());
     }
 
+    // read path must not create entries; UI reads would inflate floorStats with junk
     public FloorStats getFloorStats(String floorId) {
+        FloorStats stats = floorStats.get(floorId);
+        return stats == null ? new FloorStats() : stats;
+    }
+
+    public FloorStats getOrCreateFloorStats(DungeonFloor floor) {
+        return getOrCreateFloorStats(floor.getId());
+    }
+
+    public FloorStats getOrCreateFloorStats(String floorId) {
         return floorStats.computeIfAbsent(floorId, k -> new FloorStats());
     }
 

@@ -28,9 +28,7 @@ import org.lwjgl.glfw.GLFW;
 public final class TilemanSelectionMode {
 
     public static final KeyMapping.Category CATEGORY =
-        KeyMapping.Category.register(
-            SkyblockTileman.id("tileman")
-        );
+        KeyMapping.Category.register(SkyblockTileman.id("tileman"));
 
     public static final KeyMapping UNLOCK_MODE_KEY =
         KeyMappingHelper.registerKeyMapping(
@@ -220,10 +218,7 @@ public final class TilemanSelectionMode {
         if (gained) {
             message.append(" (JACKPOT! +1 token)");
         }
-        message
-            .append(". ")
-            .append(state.getTokens())
-            .append(" token(s) left");
+        message.append(". ").append(state.getTokens()).append(" token(s) left");
 
         TilemanChat.info(message.toString());
     }
@@ -232,7 +227,9 @@ public final class TilemanSelectionMode {
         if (!TilemanState.getInstance().isTilemanActive() || !isActive()) {
             return;
         }
-
+        if (!TilemanConfig.getInstance().isSelectionPreviewEnabled()) {
+            return;
+        }
         if (TilemanFirstBlockMode.isActive()) {
             return;
         }

@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman;
 
+import com.azur.skyblocktileman.client.tileman.slayer.SlayerFeature;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -84,6 +85,8 @@ public final class TilemanProfileDetector {
             if (!profileId.equals(currentProfile)) {
                 TilemanState.getInstance().setActiveProfile(profileId);
                 SkillXpParser.resetTracking();
+                // a live slayer quest belongs to the previous profile, drop it
+                SlayerFeature.reset();
                 // profile changed after JOIN already ran its skip-check; re-sync baseline
                 TilemanLoginHandler.fetchBaselineIfNeeded();
 

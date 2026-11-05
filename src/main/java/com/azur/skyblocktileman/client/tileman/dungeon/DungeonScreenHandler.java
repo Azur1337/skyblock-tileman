@@ -3,6 +3,7 @@ package com.azur.skyblocktileman.client.tileman.dungeon;
 import com.azur.skyblocktileman.client.tileman.DebugCategory;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
@@ -61,7 +62,7 @@ public final class DungeonScreenHandler {
         String title = screen.getTitle().getString();
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Container click - Title: '{}'",
             title
         );
@@ -71,25 +72,25 @@ public final class DungeonScreenHandler {
         }
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Catacombs Gate menu click detected"
         );
 
         ItemStack itemStack = slot.getItem();
         if (itemStack.isEmpty()) {
-            TilemanLog.debug(DebugCategory.ALL, "Empty slot clicked");
+            TilemanLog.debug(DebugCategory.DUNGEON, "Empty slot clicked");
             return false;
         }
 
         String itemName = itemStack.getHoverName().getString();
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Clicked item name: '{}'",
             itemName
         );
 
         if (ENTRANCE_PATTERN.matcher(itemName).find()) {
-            TilemanLog.debug(DebugCategory.ALL, "Entrance clicked, allowing");
+            TilemanLog.debug(DebugCategory.DUNGEON, "Entrance clicked, allowing");
             return false;
         }
 
@@ -116,7 +117,7 @@ public final class DungeonScreenHandler {
         }
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "No floor pattern matched for: {}",
             itemName
         );
@@ -149,7 +150,7 @@ public final class DungeonScreenHandler {
         if (itemName == null) return false;
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Party finder click - Title: '{}', Item: '{}'",
             title,
             itemName
@@ -211,7 +212,7 @@ public final class DungeonScreenHandler {
 
     private static boolean handleFloorClick(DungeonFloor floor) {
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Detected floor: {}",
             floor.getId()
         );
@@ -220,7 +221,7 @@ public final class DungeonScreenHandler {
 
         if (data.isUnlocked(floor)) {
             TilemanLog.debug(
-                DebugCategory.ALL,
+                DebugCategory.DUNGEON,
                 "Floor {} is unlocked, allowing click",
                 floor.getId()
             );
@@ -228,7 +229,7 @@ public final class DungeonScreenHandler {
         }
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Floor {} is locked, opening unlock screen",
             floor.getId()
         );
@@ -244,7 +245,7 @@ public final class DungeonScreenHandler {
 
     private static int romanToInt(String roman) {
         if (roman == null || roman.isEmpty()) return 0;
-        roman = roman.toUpperCase();
+        roman = roman.toUpperCase(Locale.ROOT);
 
         return switch (roman) {
             case "I" -> 1;

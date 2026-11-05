@@ -663,7 +663,10 @@ public final class TilemanState {
     private void onXpFrenzyExpired() {
         TilemanChat.warn("XP Frenzy has expired!");
         Minecraft client = Minecraft.getInstance();
-        if (client.player != null) {
+        if (
+            client.player != null &&
+            TilemanConfig.getInstance().isFrenzySoundEnabled()
+        ) {
             client.player.playSound(
                 net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,
                 1.0f,

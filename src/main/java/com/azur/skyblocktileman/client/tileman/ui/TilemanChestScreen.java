@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.ui;
 
+import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
@@ -150,7 +151,10 @@ public abstract class TilemanChestScreen extends ContainerScreen {
     }
 
     protected void playConfirm() {
-        if (minecraft.player != null) {
+        if (
+            minecraft.player != null &&
+            TilemanConfig.getInstance().isPurchaseSoundEnabled()
+        ) {
             minecraft.player.playSound(
                 SoundEvents.EXPERIENCE_ORB_PICKUP,
                 1.0f,

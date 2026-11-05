@@ -215,7 +215,10 @@ public class SlayerTracker {
 
     private void playCompletionSound() {
         Minecraft client = Minecraft.getInstance();
-        if (client.player != null) {
+        if (
+            client.player != null &&
+            TilemanConfig.getInstance().isMilestoneSoundEnabled()
+        ) {
             client.player.playSound(
                 SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
                 1.0f,

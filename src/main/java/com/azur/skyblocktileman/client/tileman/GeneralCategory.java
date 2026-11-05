@@ -30,6 +30,14 @@ public class GeneralCategory {
 
     @Expose
     @ConfigOption(
+        name = "Chat Feedback",
+        desc = "Post Tileman status and success messages in chat. Denials and warnings always show."
+    )
+    @ConfigEditorBoolean
+    public boolean chatInfo = true;
+
+    @Expose
+    @ConfigOption(
         name = "Debug Categories",
         desc = "Choose which debug messages to show."
     )
@@ -80,14 +88,6 @@ public class GeneralCategory {
 
         @Expose
         @ConfigOption(
-            name = "Rendering",
-            desc = "Log overlay and HUD rendering."
-        )
-        @ConfigEditorBoolean
-        public boolean rendering = false;
-
-        @Expose
-        @ConfigOption(
             name = "Slayer",
             desc = "Log slayer quest detection and milestone tracking."
         )
@@ -101,13 +101,5 @@ public class GeneralCategory {
         )
         @ConfigEditorBoolean
         public boolean dungeon = true;
-
-        @Expose
-        @ConfigOption(
-            name = "Chat",
-            desc = "Log all chat messages. Very spammy, intended only for debugging."
-        )
-        @ConfigEditorBoolean
-        public boolean chat = false;
     }
 }

@@ -8,6 +8,7 @@ import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
 import com.azur.skyblocktileman.client.tileman.shop.TilemanShopScreen;
 import com.azur.skyblocktileman.client.tileman.ui.TilemanHubScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import java.util.Locale;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -259,7 +260,9 @@ public final class TilemanCommands {
         FabricClientCommandSource source,
         String floorId
     ) {
-        DungeonFloor floor = DungeonFloor.fromId(floorId.toUpperCase());
+        DungeonFloor floor = DungeonFloor.fromId(
+            floorId.toUpperCase(Locale.ROOT)
+        );
 
         if (floor == null) {
             source.sendError(

@@ -1,6 +1,8 @@
 package com.azur.skyblocktileman.client.tileman;
 
 import com.azur.skyblocktileman.SkyblockTileman;
+import java.util.ArrayList;
+import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -32,40 +34,28 @@ public final class TilemanHudOverlay {
     private static final int TOOLTIP_BG = ARGB.color(220, 20, 20, 20);
     private static final int TOOLTIP_BORDER = ARGB.color(255, 80, 80, 80);
 
-    private static final Identifier ICON_TOKENS =
-        SkyblockTileman.id("textures/hud/tokens.png");
-    private static final Identifier ICON_UNLOCKED =
-        SkyblockTileman.id("textures/hud/unlocked.png");
-    private static final Identifier ICON_TOTAL_XP =
-        SkyblockTileman.id("textures/hud/total_xp.png");
-    private static final Identifier ICON_NEXT_TOKEN =
-        SkyblockTileman.id("textures/hud/next_token.png");
-    private static final Identifier ICON_RULE_BROKEN =
-        SkyblockTileman.id("textures/hud/rule_broken.png");
+    private static final Identifier ICON_TOKENS = SkyblockTileman.id(
+        "textures/hud/tokens.png"
+    );
+    private static final Identifier ICON_UNLOCKED = SkyblockTileman.id(
+        "textures/hud/unlocked.png"
+    );
+    private static final Identifier ICON_TOTAL_XP = SkyblockTileman.id(
+        "textures/hud/total_xp.png"
+    );
+    private static final Identifier ICON_NEXT_TOKEN = SkyblockTileman.id(
+        "textures/hud/next_token.png"
+    );
+    private static final Identifier ICON_RULE_BROKEN = SkyblockTileman.id(
+        "textures/hud/rule_broken.png"
+    );
 
-    private static final Identifier[] ICONS = {
-        ICON_TOKENS,
-        ICON_UNLOCKED,
-        ICON_TOTAL_XP,
-        ICON_NEXT_TOKEN,
-        ICON_RULE_BROKEN,
-    };
-
-    private static final String[] LABELS = {
-        "Tokens",
-        "Blocks",
-        "Total XP",
-        "Next",
-        "Breaks",
-    };
-
-    private static final String[] TOOLTIPS = {
-        "Available tokens to unlock blocks",
-        "Total blocks you have unlocked",
-        "Total skill XP earned across all skills",
-        "XP progress toward next token",
-        "Times you stood on a locked block",
-    };
+    private record HudRow(
+        Identifier icon,
+        String label,
+        String value,
+        String tooltip
+    ) {}
 
     private static final int ICON_SIZE = 12;
     private static final int LINE_HEIGHT = 14;
@@ -96,7 +86,7 @@ public final class TilemanHudOverlay {
     private static int lastHudWidth = 0;
     private static int lastFirstLineY = 0;
     private static int lastLineHeight = LINE_HEIGHT;
-    private static int lastLineCount = 0;
+    private static List<HudRow> lastRows = List.of();
 
     private TilemanHudOverlay() {}
 
@@ -173,26 +163,78 @@ public final class TilemanHudOverlay {
 
         TilemanState state = TilemanState.getInstance();
         int tokens = state.getTokens();
-        int unlockedBlocks = state.getUnlockedBlocks().size();
+        boolean allIslands = config.isTilesCountAllIslands();
+        int unlockedBlocks = allIslands
+            ? state.getTotalUnlockedBlocks()
+            : state.getUnlockedBlocks().size();
         long totalXp = state.getTotalSkillXp();
         long currentXp = state.getXpSinceLastToken();
         long xpNeeded = state.getXpForNextToken();
         int ruleBreaks = state.getRuleBreaks();
 
-        String[] values = new String[] {
-            String.valueOf(tokens),
-            String.valueOf(unlockedBlocks),
-            formatNumber(totalXp),
-            formatNumber(currentXp) + "/" + formatNumber(xpNeeded),
-            String.valueOf(ruleBreaks),
-        };
+        List<HudRow> rows = new ArrayList<>();
+        if (config.isHudRowTokens()) {
+            rows.add(
+                new HudRow(
+                    ICON_TOKENS,
+                    "Tokens",
+                    String.valueOf(tokens),
+                    "Available tokens to unlock blocks"
+                )
+            );
+        }
+        if (config.isHudRowTiles()) {
+            rows.add(
+                new HudRow(
+                    ICON_UNLOCKED,
+                    "Blocks",
+                    String.valueOf(unlockedBlocks),
+                    allIslands
+                        ? "Tiles unlocked across all islands"
+                        : "Tiles unlocked on this island"
+                )
+            );
+        }
+        if (config.isHudRowTotalXp()) {
+            rows.add(
+                new HudRow(
+                    ICON_TOTAL_XP,
+                    "Total XP",
+                    formatNumber(totalXp),
+                    "Total skill XP earned across all skills"
+                )
+            );
+        }
+        if (config.isHudRowNextToken()) {
+            rows.add(
+                new HudRow(
+                    ICON_NEXT_TOKEN,
+                    "Next",
+                    formatNumber(currentXp) + "/" + formatNumber(xpNeeded),
+                    "XP progress toward next token"
+                )
+            );
+        }
+        if (config.isHudRowRuleBreaks()) {
+            rows.add(
+                new HudRow(
+                    ICON_RULE_BROKEN,
+                    "Breaks",
+                    String.valueOf(ruleBreaks),
+                    "Times you stood on a locked block"
+                )
+            );
+        }
 
         boolean iconMode = config.isHudIconMode();
-        int labelWidth = iconMode ? ICON_SIZE : getMaxLabelWidth(client);
+        int labelWidth = iconMode ? ICON_SIZE : getMaxLabelWidth(client, rows);
 
         int maxValueWidth = 0;
-        for (String value : values) {
-            maxValueWidth = Math.max(maxValueWidth, client.font.width(value));
+        for (HudRow row : rows) {
+            maxValueWidth = Math.max(
+                maxValueWidth,
+                client.font.width(row.value())
+            );
         }
         int maxWidth = Math.max(
             client.font.width("Tileman"),
@@ -203,7 +245,7 @@ public final class TilemanHudOverlay {
         boolean statsShown = statsVisible || moveMode;
         int barSlot = healthVisible ? LINE_HEIGHT : 0;
         int totalHeight =
-            (statsShown ? LINE_HEIGHT + values.length * LINE_HEIGHT : 0) +
+            (statsShown ? LINE_HEIGHT + rows.size() * LINE_HEIGHT : 0) +
             barSlot;
 
         if (moveMode) {
@@ -240,7 +282,7 @@ public final class TilemanHudOverlay {
         lastHudTop = y;
         lastHudWidth = maxWidth;
         lastLineHeight = LINE_HEIGHT;
-        lastLineCount = values.length;
+        lastRows = statsShown ? rows : List.of();
 
         if (moveMode) {
             String hint = "Drag the HUD, then click Save";
@@ -298,13 +340,13 @@ public final class TilemanHudOverlay {
         int lineY = cursorY;
 
         if (statsShown) {
-            for (int i = 0; i < values.length; i++) {
+            for (HudRow row : rows) {
                 if (iconMode) {
-                    renderIcon(graphics, ICONS[i], x, lineY);
+                    renderIcon(graphics, row.icon(), x, lineY);
                 } else {
                     graphics.text(
                         client.font,
-                        Component.literal(LABELS[i]),
+                        Component.literal(row.label()),
                         x,
                         lineY + 2,
                         TEXT_COLOR
@@ -312,7 +354,7 @@ public final class TilemanHudOverlay {
                 }
                 graphics.text(
                     client.font,
-                    Component.literal(values[i]),
+                    Component.literal(row.value()),
                     x + labelWidth + 4,
                     lineY + 2,
                     TEXT_COLOR
@@ -324,10 +366,10 @@ public final class TilemanHudOverlay {
         renderTooltipIfHovered(graphics, client);
     }
 
-    private static int getMaxLabelWidth(Minecraft client) {
+    private static int getMaxLabelWidth(Minecraft client, List<HudRow> rows) {
         int max = 0;
-        for (String label : LABELS) {
-            max = Math.max(max, client.font.width(label));
+        for (HudRow row : rows) {
+            max = Math.max(max, client.font.width(row.label()));
         }
         return max;
     }
@@ -370,7 +412,7 @@ public final class TilemanHudOverlay {
         int firstLineY = lastFirstLineY;
         int hoveredIndex = -1;
 
-        for (int i = 0; i < lastLineCount; i++) {
+        for (int i = 0; i < lastRows.size(); i++) {
             int lineTop = firstLineY + i * lastLineHeight;
             int lineBottom = lineTop + lastLineHeight;
             if (mouseY >= lineTop && mouseY < lineBottom) {
@@ -379,11 +421,11 @@ public final class TilemanHudOverlay {
             }
         }
 
-        if (hoveredIndex < 0 || hoveredIndex >= TOOLTIPS.length) {
+        if (hoveredIndex < 0 || hoveredIndex >= lastRows.size()) {
             return;
         }
 
-        String tooltip = TOOLTIPS[hoveredIndex];
+        String tooltip = lastRows.get(hoveredIndex).tooltip();
         int tooltipWidth = client.font.width(tooltip) + 8;
         int tooltipHeight = 14;
 

@@ -16,16 +16,9 @@ import net.minecraft.world.effect.MobEffects;
 // Peak-style health bar: drains while off-tile, refills on-tile, warps to hub once it empties.
 public final class TilemanHealthHandler {
 
-    private static final long OFF_TILE_GRACE_MS = 3000;
     private static final long ON_TILE_GRACE_MS = 1000;
-    // a full bar lasts 45s of off-tile time; a dead bar refills in 30s on tiles
-    private static final float DRAIN_PER_MS = 1f / 45000f;
-    private static final float REGEN_PER_MS = 1f / 30000f;
     // the white damage trail slides down over this duration
     private static final float TRAIL_PER_MS = 1f / 2500f;
-
-    private static final float NAUSEA_AT = 0.66f;
-    private static final float BLINDNESS_AT = 0.33f;
 
     private static final int BAR_WIDTH = 72;
     public static final int BAR_HEIGHT = 6;
@@ -89,13 +82,16 @@ public final class TilemanHealthHandler {
             offMs = 0;
             onMs += dt;
             if (onMs >= ON_TILE_GRACE_MS) {
-                health = Math.min(1f, health + REGEN_PER_MS * dt);
+                health = Math.min(
+                    1f,
+                    health + config.getHealthRegenPerMs() * dt
+                );
             }
         } else {
             onMs = 0;
             offMs += dt;
-            if (offMs >= OFF_TILE_GRACE_MS) {
-                health -= DRAIN_PER_MS * dt;
+            if (offMs >= config.getOffTileGraceMs()) {
+                health -= config.getHealthDrainPerMs() * dt;
             }
         }
 
@@ -106,11 +102,16 @@ public final class TilemanHealthHandler {
         }
 
         if (config.isFakeEffectsEnabled()) {
-            updateEffect(client, MobEffects.NAUSEA, health < NAUSEA_AT, true);
+            updateEffect(
+                client,
+                MobEffects.NAUSEA,
+                health < config.getNauseaThreshold(),
+                true
+            );
             updateEffect(
                 client,
                 MobEffects.BLINDNESS,
-                health < BLINDNESS_AT,
+                health < config.getBlindnessThreshold(),
                 false
             );
         } else {
@@ -183,7 +184,10 @@ public final class TilemanHealthHandler {
             TilemanChat.warn("You collapsed!");
         }
 
-        if (client.player != null) {
+        if (
+            client.player != null &&
+            TilemanConfig.getInstance().isCollapseSoundEnabled()
+        ) {
             client.player.playSound(SoundEvents.CHAIN_BREAK, 1.0F, 0.6F);
         }
     }
@@ -246,7 +250,8 @@ public final class TilemanHealthHandler {
 
         // fill blinks bright red past the blindness threshold, since a text label would hit the stats rows
         boolean blinkWarn =
-            health < BLINDNESS_AT && (client.level.getGameTime() / 10) % 2 == 0;
+            health < TilemanConfig.getInstance().getBlindnessThreshold() &&
+            (client.level.getGameTime() / 10) % 2 == 0;
         int fillTop = blinkWarn ? COLLAPSE_TEXT : FILL_TOP;
         int fillBottom = blinkWarn ? COLLAPSE_TEXT : FILL_BOTTOM;
         graphics.fill(x, y, x + healthW, y + BAR_HEIGHT - 2, fillTop);

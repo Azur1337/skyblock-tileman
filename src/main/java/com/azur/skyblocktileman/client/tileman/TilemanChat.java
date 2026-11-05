@@ -12,10 +12,16 @@ public final class TilemanChat {
     private TilemanChat() {}
 
     public static void info(String message) {
+        if (!TilemanConfig.getInstance().isChatInfoEnabled()) {
+            return;
+        }
         send(message, ChatFormatting.GOLD);
     }
 
     public static void info(MutableComponent message) {
+        if (!TilemanConfig.getInstance().isChatInfoEnabled()) {
+            return;
+        }
         sendRaw(
             Component.literal(PREFIX)
                 .withStyle(ChatFormatting.GOLD)
@@ -33,6 +39,9 @@ public final class TilemanChat {
 
     // purchase feedback: green sentence, red item name
     public static void bought(String itemName) {
+        if (!TilemanConfig.getInstance().isChatInfoEnabled()) {
+            return;
+        }
         MutableComponent text = Component.literal(PREFIX)
             .append(
                 Component.literal("You bought ").withStyle(ChatFormatting.GREEN)

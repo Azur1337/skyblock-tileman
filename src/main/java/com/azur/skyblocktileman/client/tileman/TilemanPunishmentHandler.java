@@ -111,42 +111,50 @@ public final class TilemanPunishmentHandler {
         DeltaTracker tracker
     ) {
         Minecraft client = Minecraft.getInstance();
+        TilemanConfig config = TilemanConfig.getInstance();
         if (!TilemanState.getInstance().isTilemanActive()) {
             return;
         }
 
         if (TilemanFirstBlockMode.isActive()) {
-            int centerX = graphics.guiWidth() / 2;
-            graphics.pose().pushMatrix();
-            graphics.pose().translate(centerX, graphics.guiHeight() / 4);
-            graphics.pose().scale(2.0F, 2.0F);
-            graphics.centeredText(
-                client.font,
-                Component.literal("SELECT YOUR FIRST BLOCK"),
-                0,
-                0,
-                GREEN
-            );
-            graphics.pose().popMatrix();
+            if (config.isIslandBannersEnabled()) {
+                int centerX = graphics.guiWidth() / 2;
+                graphics.pose().pushMatrix();
+                graphics.pose().translate(centerX, graphics.guiHeight() / 4);
+                graphics.pose().scale(2.0F, 2.0F);
+                graphics.centeredText(
+                    client.font,
+                    Component.literal("SELECT YOUR FIRST BLOCK"),
+                    0,
+                    0,
+                    GREEN
+                );
+                graphics.pose().popMatrix();
 
-            graphics.pose().pushMatrix();
-            graphics.pose().translate(centerX, graphics.guiHeight() / 4 + 30);
-            graphics.centeredText(
-                client.font,
-                Component.literal("Hold ")
-                    .append(
-                        TilemanSelectionMode.UNLOCK_MODE_KEY.getTranslatedKeyMessage()
-                    )
-                    .append(Component.literal(" and click a block to start")),
-                0,
-                0,
-                GREEN
-            );
-            graphics.pose().popMatrix();
+                graphics.pose().pushMatrix();
+                graphics
+                    .pose()
+                    .translate(centerX, graphics.guiHeight() / 4 + 30);
+                graphics.centeredText(
+                    client.font,
+                    Component.literal("Hold ")
+                        .append(
+                            TilemanSelectionMode.UNLOCK_MODE_KEY.getTranslatedKeyMessage()
+                        )
+                        .append(
+                            Component.literal(" and click a block to start")
+                        ),
+                    0,
+                    0,
+                    GREEN
+                );
+                graphics.pose().popMatrix();
+            }
             return;
         }
 
         if (
+            config.isIslandBannersEnabled() &&
             TilemanSelectionMode.isActive() &&
             TilemanState.getInstance().getShop().isRemoteUnlockPending()
         ) {
@@ -175,7 +183,7 @@ public final class TilemanPunishmentHandler {
             graphics.pose().popMatrix();
         }
 
-        if (!violating) {
+        if (!violating || !config.isRuleBrokenBannerEnabled()) {
             return;
         }
 

@@ -4,6 +4,7 @@ import com.azur.skyblocktileman.client.tileman.DebugCategory;
 import com.azur.skyblocktileman.client.tileman.HypixelApiClient;
 import com.azur.skyblocktileman.client.tileman.HypixelUtil;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
+import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
@@ -64,7 +65,10 @@ public class DungeonTracker {
         );
 
         Minecraft client = Minecraft.getInstance();
-        if (client.player != null) {
+        if (
+            client.player != null &&
+            TilemanConfig.getInstance().isMilestoneSoundEnabled()
+        ) {
             client.player.playSound(
                 SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
                 1.0f,
@@ -90,7 +94,7 @@ public class DungeonTracker {
 
         if (apiKey == null || apiKey.isBlank()) {
             TilemanLog.debug(
-                DebugCategory.ALL,
+                DebugCategory.DUNGEON,
                 "No API key, skipping dungeon fetch"
             );
             return;
@@ -100,7 +104,7 @@ public class DungeonTracker {
             result -> {
                 if (!result.success()) {
                     TilemanLog.debug(
-                        DebugCategory.ALL,
+                        DebugCategory.DUNGEON,
                         "Failed to fetch dungeons: {}",
                         result.errorMessage()
                     );
@@ -154,12 +158,27 @@ public class DungeonTracker {
     }
 
     private void processApiResult(HypixelApiClient.ProfilesResult result) {
+        // never attribute an API result to the wrong profile (auto/manual sync can race a switch)
+        String activeProfile = TilemanState.getInstance().getActiveProfileId();
+        if (
+            result.profileId() != null &&
+            !result.profileId().equals(activeProfile)
+        ) {
+            TilemanLog.debug(
+                DebugCategory.DUNGEON,
+                "Skipping dungeon result for profile {} (active is {})",
+                result.profileId(),
+                activeProfile
+            );
+            return;
+        }
+
         DungeonData data = getDungeonData();
 
         // History is never rewarded: the first API result seeds the counter
         if (!data.isBaselineFetched()) {
             TilemanLog.debug(
-                DebugCategory.ALL,
+                DebugCategory.DUNGEON,
                 "Setting dungeon baseline from API"
             );
 
@@ -227,13 +246,16 @@ public class DungeonTracker {
             );
 
             Minecraft client = Minecraft.getInstance();
-            if (client.player != null) {
+            if (
+                client.player != null &&
+                TilemanConfig.getInstance().isDungeonRewardSoundEnabled()
+            ) {
                 client.player.playSound(SoundEvents.PLAYER_LEVELUP, 1.0f, 1.0f);
             }
         }
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Dungeon completions updated from API"
         );
     }
@@ -243,11 +265,16 @@ public class DungeonTracker {
         int currentApiCompletions,
         DungeonData data
     ) {
+        int rewardedSoFar = data.getRewardedCompletions(floor);
+
         if (!data.isUnlocked(floor)) {
+            // locked: consume the count so clears done while locked are never paid on unlock
+            if (currentApiCompletions > rewardedSoFar) {
+                data.setRewardedCompletions(floor, currentApiCompletions);
+            }
             return 0;
         }
 
-        int rewardedSoFar = data.getRewardedCompletions(floor);
         int newCompletions = currentApiCompletions - rewardedSoFar;
 
         if (newCompletions <= 0) {
@@ -255,7 +282,7 @@ public class DungeonTracker {
         }
 
         TilemanLog.debug(
-            DebugCategory.ALL,
+            DebugCategory.DUNGEON,
             "Floor {} has {} new completions (was {}, now {})",
             floor.getId(),
             newCompletions,
@@ -271,18 +298,19 @@ public class DungeonTracker {
             totalTokens += reward;
         }
 
+        // local completion count tracks every clear, not just the rewarded ones
+        DungeonData.FloorStats stats = data.getOrCreateFloorStats(floor);
+        stats.completions += newCompletions;
+
         if (totalTokens > 0) {
             TilemanState.getInstance().addTokens(totalTokens);
             TilemanLog.debug(
-                DebugCategory.ALL,
+                DebugCategory.DUNGEON,
                 "Awarded {} tokens for {} on {} completions",
                 totalTokens,
                 floor.getId(),
                 newCompletions
             );
-
-            DungeonData.FloorStats stats = data.getFloorStats(floor);
-            stats.completions += newCompletions;
         }
 
         data.setRewardedCompletions(floor, currentApiCompletions);

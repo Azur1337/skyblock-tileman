@@ -34,6 +34,10 @@ public class TilemanMoulConfig extends Config {
     public PunishmentCategory punishment = new PunishmentCategory();
 
     @Expose
+    @Category(name = "Sounds", desc = "Tileman feedback sounds")
+    public SoundsCategory sounds = new SoundsCategory();
+
+    @Expose
     @Category(name = "Keybinds", desc = "Keybinds for Tileman actions")
     public KeybindCategory keybinds = new KeybindCategory();
 

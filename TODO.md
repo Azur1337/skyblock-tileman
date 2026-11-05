@@ -116,7 +116,10 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
       break, slayer taint, thunder or health drain occurs. Threshold is a hypothesis pending field
       test; 0 disables the feature
 - [ ] Unify the two `findStandingBlock` implementations (punishment vs BlockValidation have different tolerances -> contradictory UI signals on stairs/slabs)
-- [ ] Frenzy timer: store expiry timestamp instead of accumulating deltas (lag spikes and logout currently freeze it)
+- [x] Frenzy timer: store expiry timestamp instead of accumulating deltas. `ShopData` now keeps
+      `xpFrenzyExpiresAtMs`; `isXpFrenzyActive`/`getXpFrenzyRemainingMs` are time-derived and
+      `tickFrenzy()` only clears on the edge, so lag spikes and logouts can no longer freeze or
+      stretch a frenzy. Old saves lose any in-flight frenzy (acceptable)
 - [x] `ProfileData.getUnlockedBlocks(island)`: reads no longer create entries. Split into a
       non-mutating `getUnlockedBlocks` and `getOrCreateUnlockedBlocks` for the write path, with
       `TilemanState.markIslandVisited` as the one place an island is registered. Previously every

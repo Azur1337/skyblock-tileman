@@ -83,7 +83,12 @@ public final class TilemanLoginHandler {
             return;
         }
         String activeProfile = TilemanState.getInstance().getActiveProfileId();
-        if (activeProfile.equals(lastFetchedProfileId)) {
+        // skip only when the profile is known-decided; an undecided profile must re-fetch,
+        // else a reconnect leaves it un-promptable until restart
+        if (
+            activeProfile.equals(lastFetchedProfileId) &&
+            TilemanState.getInstance().getTilemanMode() != null
+        ) {
             return;
         }
         // profile genuinely changed: never serve the previous profile's cached payload
@@ -251,7 +256,6 @@ public final class TilemanLoginHandler {
         if (result.profileId().equals(promptedProfileId)) {
             return;
         }
-        promptedProfileId = result.profileId();
         handleOptInDecision(result);
     }
 
@@ -283,6 +287,9 @@ public final class TilemanLoginHandler {
             return;
         }
 
+        // only burn the once-per-connection flag when the prompt really shows, not when
+        // a missing creation date postpones the decision
+        promptedProfileId = result.profileId();
         ConfirmScreen.open(
             "Enable Tileman mode?",
             "New profile detected. You may only stand on blocks you unlock with tokens, earned from XP from now on.",

@@ -88,6 +88,14 @@ public class GeneralCategory {
 
         @Expose
         @ConfigOption(
+            name = "Punishment",
+            desc = "Log rule breaks, health collapse and transfer grace."
+        )
+        @ConfigEditorBoolean
+        public boolean punishment = true;
+
+        @Expose
+        @ConfigOption(
             name = "Slayer",
             desc = "Log slayer quest detection and milestone tracking."
         )

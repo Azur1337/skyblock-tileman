@@ -81,6 +81,7 @@ public final class TilemanConfig {
             case PROFILE -> debug.profile;
             case TOKENS -> debug.tokens;
             case BLOCKS -> debug.blocks;
+            case PUNISHMENT -> debug.punishment;
             case SLAYER -> debug.slayer;
             case DUNGEON -> debug.dungeon;
             case ALL -> true;

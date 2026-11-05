@@ -6,6 +6,7 @@ public enum DebugCategory {
     PROFILE("Profile", "Profile switches and API responses"),
     TOKENS("Tokens", "Token earning and spending"),
     BLOCKS("Blocks", "Block unlocking and first block mode"),
+    PUNISHMENT("Punishment", "Rule breaks, health bar and transfer grace"),
     SLAYER("Slayer", "Slayer quest detection and tracking"),
     DUNGEON("Dungeon", "Dungeon floor detection and blocking"),
     ALL("All", "All debug messages");

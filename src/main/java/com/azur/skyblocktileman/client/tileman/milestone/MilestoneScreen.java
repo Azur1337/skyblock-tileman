@@ -114,7 +114,6 @@ public class MilestoneScreen extends TilemanChestScreen {
             case SKILL -> Items.ENCHANTED_BOOK;
             case SLAYER -> Items.WITHER_SKELETON_SKULL;
             case CHALLENGE -> Items.GOLDEN_APPLE;
-            case FLAWLESS -> Items.DIAMOND;
             case SECRET -> Items.ENDER_EYE;
         };
     }

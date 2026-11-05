@@ -75,8 +75,14 @@ public final class TilemanPunishmentHandler {
         lastLevel = client.level;
         lastPos = playerPos;
         if (transferred || jumped) {
-            graceUntilMs =
-                System.currentTimeMillis() + config.getTransferGraceMs();
+            long graceMs = config.getTransferGraceMs();
+            graceUntilMs = System.currentTimeMillis() + graceMs;
+            TilemanLog.debug(
+                DebugCategory.PUNISHMENT,
+                "Transfer grace armed for {} ms ({})",
+                graceMs,
+                transferred ? "server transfer" : "position jump"
+            );
         }
 
         if (TilemanFirstBlockMode.isActive()) {
@@ -117,6 +123,12 @@ public final class TilemanPunishmentHandler {
 
         if (wasOnSafeBlock) {
             TilemanState.getInstance().addRuleBreak();
+            TilemanLog.debug(
+                DebugCategory.PUNISHMENT,
+                "Rule break booked at {} on island {}",
+                playerPos,
+                TilemanState.getInstance().getActiveIsland()
+            );
             MilestoneTracker.getInstance().onRuleBreak();
             MilestoneTracker.getInstance().resetFlawlessTracking();
             SlayerTracker.getInstance().onSteppedOnLockedTile();

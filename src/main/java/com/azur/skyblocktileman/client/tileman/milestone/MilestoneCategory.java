@@ -5,7 +5,6 @@ public enum MilestoneCategory {
     SKILL("Skills"),
     SLAYER("Slayer"),
     CHALLENGE("Challenges"),
-    FLAWLESS("Flawless"),
     SECRET("Secret");
 
     private final String displayName;

@@ -20,7 +20,7 @@ public class ShopData {
     private int frenzyPowerLevel = 0;
 
     private boolean remoteUnlockPending = false;
-    private long xpFrenzyRemainingMs = 0;
+    private long xpFrenzyExpiresAtMs = 0;
     private int xpFrenzyActivePower = 0;
 
     private int totalSpent = 0;
@@ -32,10 +32,7 @@ public class ShopData {
     }
 
     public void setLuckyUnlockLevel(int level) {
-        this.luckyUnlockLevel = Math.min(
-            LUCKY_MAX_LEVEL,
-            Math.max(0, level)
-        );
+        this.luckyUnlockLevel = Math.min(LUCKY_MAX_LEVEL, Math.max(0, level));
     }
 
     public int getLuckyRefundPercent() {
@@ -106,7 +103,7 @@ public class ShopData {
     }
 
     public long getXpFrenzyRemainingMs() {
-        return xpFrenzyRemainingMs;
+        return Math.max(0, xpFrenzyExpiresAtMs - System.currentTimeMillis());
     }
 
     public int getXpFrenzyActivePower() {
@@ -114,19 +111,25 @@ public class ShopData {
     }
 
     public boolean isXpFrenzyActive() {
-        return xpFrenzyRemainingMs > 0;
+        return System.currentTimeMillis() < xpFrenzyExpiresAtMs;
     }
 
     public void activateXpFrenzy() {
         int durationMinutes = 15 + frenzyDurationLevel * 5;
         int power = 50 + frenzyPowerLevel * 10;
-        this.xpFrenzyRemainingMs = durationMinutes * 60 * 1000L;
+        // absolute expiry, so lag spikes and logouts cannot freeze or stretch the timer
+        this.xpFrenzyExpiresAtMs =
+            System.currentTimeMillis() + durationMinutes * 60_000L;
         this.xpFrenzyActivePower = power;
     }
 
-    public void tickFrenzy(long deltaMs) {
-        if (xpFrenzyRemainingMs > 0) {
-            xpFrenzyRemainingMs = Math.max(0, xpFrenzyRemainingMs - deltaMs);
+    public void tickFrenzy() {
+        if (
+            xpFrenzyExpiresAtMs > 0 &&
+            System.currentTimeMillis() >= xpFrenzyExpiresAtMs
+        ) {
+            xpFrenzyExpiresAtMs = 0;
+            xpFrenzyActivePower = 0;
         }
     }
 

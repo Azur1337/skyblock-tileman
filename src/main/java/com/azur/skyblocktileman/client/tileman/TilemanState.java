@@ -654,10 +654,10 @@ public final class TilemanState {
         return true;
     }
 
-    public void tickShop(long deltaMs) {
+    public void tickShop() {
         ShopData shop = activeProfile().getShop();
         boolean wasActive = shop.isXpFrenzyActive();
-        shop.tickFrenzy(deltaMs);
+        shop.tickFrenzy();
         if (wasActive && !shop.isXpFrenzyActive()) {
             onXpFrenzyExpired();
         }

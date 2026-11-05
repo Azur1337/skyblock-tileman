@@ -18,7 +18,6 @@ import com.azur.skyblocktileman.client.tileman.TilemanRenderer;
 import com.azur.skyblocktileman.client.tileman.TilemanSelectionMode;
 import com.azur.skyblocktileman.client.tileman.TilemanShopTicker;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
-import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonTooltipHandler;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerFeature;
 import net.fabricmc.api.ClientModInitializer;
@@ -50,9 +49,8 @@ public class SkyblockTilemanClient implements ClientModInitializer {
         DungeonTooltipHandler.register();
         SlayerFeature.register();
 
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            TilemanState.getInstance().save();
-            XpReconciler.getInstance().shutdown();
-        });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client ->
+            TilemanState.getInstance().save()
+        );
     }
 }

@@ -262,6 +262,14 @@ public final class SkillXpParser {
         return CUMULATIVE_XP[maxLevel];
     }
 
+    public static boolean isTokenSkill(String skill) {
+        return TOKEN_SKILLS.contains(skill);
+    }
+
+    public static long maxXPFor(String skill) {
+        return skillXpCap(skill);
+    }
+
     // XP beyond a skill's max level earns no tokens
     private static long cappedXp(String skill, long xp) {
         return Math.min(xp, skillXpCap(skill));

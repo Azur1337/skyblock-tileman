@@ -38,9 +38,6 @@ public final class TilemanLoginHandler {
 
     public static void register() {
         ClientPlayConnectionEvents.JOIN.register(TilemanLoginHandler::onJoin);
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            XpReconciler.getInstance().reset();
-        });
     }
 
     public static String getApiKey() {
@@ -190,18 +187,8 @@ public final class TilemanLoginHandler {
         // the opt-in question waits until we know the player is really on Skyblock
         maybeHandleOptIn();
 
-        if (result.skillXp() != null) {
-            for (var entry : result.skillXp().entrySet()) {
-                state.setSkillXp(entry.getKey(), entry.getValue());
-            }
-        }
-
-        XpReconciler.getInstance().initialize(
-            cachedPlayerUuid,
-            cachedApiKey,
-            result.totalSkillXp()
-        );
-
+        // stored XP anchoring and drift awards both happen in XpReconciler.reconcile, which
+        // the dungeon result path at the end of this method runs for us on the client thread
         TilemanLog.debug(
             DebugCategory.PROFILE,
             "Loaded Tileman baseline: profile {} ({}), total Skill XP = {}, tokens = {}",

@@ -8,6 +8,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
@@ -174,6 +175,9 @@ public class DungeonTracker {
         }
 
         DungeonData data = getDungeonData();
+
+        // the same payload carries absolute skill XP totals; correct local drift against them
+        XpReconciler.getInstance().reconcile(result);
 
         // History is never rewarded: the first API result seeds the counter
         if (!data.isBaselineFetched()) {

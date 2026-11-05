@@ -218,7 +218,9 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 
 ## XpReconciler decision
 
-- [ ] Either implement or delete. Intended: periodically fetch API skill XP totals, compare to
-      local tracked totals, correct drift (missed actionbar drops, restarts). `fetchTotalSkillXp`
-      no longer exists (deleted in the merged-fetch cleanup); the merged `fetchProfiles` result
-      already carries per-skill XP, so a real reconciler would diff that against `ProfileData.skillXp`
+- [x] Implemented. `XpReconciler.reconcile(ProfilesResult)` runs from `DungeonTracker.processApiResult`
+      (both the JOIN baseline and the 2-min poll feed it, no extra API cost). Opted-in profiles:
+      API-minus-stored XP per skill is awarded through `onXpGained` + milestone hooks (capped at skill
+      max, token skills only, profile-id guard inherited). Undecided/declined: silent anchor only.
+      Decision behind it: a Tileman profile is created after install, so its whole API XP total is
+      challenge-earned and safe to reconcile against; the stub's uuid/key/scheduler fields are gone.

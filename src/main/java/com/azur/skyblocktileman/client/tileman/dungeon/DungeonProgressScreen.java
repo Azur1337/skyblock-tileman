@@ -171,7 +171,8 @@ public class DungeonProgressScreen extends TilemanChestScreen {
         onClick(slot, () -> {
             playNav();
             showingMasterMode = !showingMasterMode;
-            loadView();
+            // re-open a fresh screen so background-overwrite mods repaint the new view
+            open(getReturnTo());
         });
     }
 

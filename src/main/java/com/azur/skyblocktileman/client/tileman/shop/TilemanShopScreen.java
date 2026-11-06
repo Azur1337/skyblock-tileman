@@ -35,12 +35,19 @@ public class TilemanShopScreen extends TilemanChestScreen {
     }
 
     public static void open(Runnable back) {
+        open(null, back);
+    }
+
+    // every view change re-opens a fresh screen instead of swapping items in place,
+    // so mods that paint over the chest background redraw it for the new view
+    private static void open(ShopCategory category, Runnable back) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return;
         }
         client.schedule(() -> {
             TilemanShopScreen screen = new TilemanShopScreen();
+            screen.currentCategory = category;
             screen.setReturnTo(back);
             screen.loadView();
             client.gui.setScreen(screen);
@@ -82,8 +89,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
         );
         onClick(slot, () -> {
             playNav();
-            currentCategory = category;
-            loadView();
+            open(category, getReturnTo());
         });
     }
 
@@ -98,8 +104,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
     }
 
     private void goMainMenu() {
-        currentCategory = null;
-        loadView();
+        open(getReturnTo());
     }
 
     private void loadPermanentItems() {

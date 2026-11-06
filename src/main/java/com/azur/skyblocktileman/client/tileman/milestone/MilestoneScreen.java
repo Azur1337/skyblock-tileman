@@ -25,12 +25,19 @@ public class MilestoneScreen extends TilemanChestScreen {
     }
 
     public static void open(Runnable back) {
+        open(null, back);
+    }
+
+    // every view change re-opens a fresh screen instead of swapping items in place,
+    // so mods that paint over the chest background redraw it for the new view
+    private static void open(MilestoneCategory category, Runnable back) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return;
         }
         client.schedule(() -> {
             MilestoneScreen screen = new MilestoneScreen();
+            screen.currentCategory = category;
             screen.setReturnTo(back);
             screen.loadView();
             client.gui.setScreen(screen);
@@ -103,8 +110,7 @@ public class MilestoneScreen extends TilemanChestScreen {
         setItem(slot, item.build());
         onClick(slot, () -> {
             playNav();
-            currentCategory = category;
-            loadView();
+            open(category, getReturnTo());
         });
     }
 
@@ -140,8 +146,7 @@ public class MilestoneScreen extends TilemanChestScreen {
     }
 
     private void goMainMenu() {
-        currentCategory = null;
-        loadView();
+        open(getReturnTo());
     }
 
     private TilemanItem createMilestoneItem(MilestoneType type) {

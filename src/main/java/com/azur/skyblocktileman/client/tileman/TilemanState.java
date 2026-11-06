@@ -169,7 +169,19 @@ public final class TilemanState {
         activeProfileId = data.getLastActiveProfileId();
         activeIsland = data.getLastActiveIsland();
         migrateOptIn();
+        migrateAwardedXp();
         rebuildUnlockIndex();
+    }
+
+    // awardedXp only exists since off-tile tracking; legacy totals were all awarded
+    private void migrateAwardedXp() {
+        boolean changed = false;
+        for (ProfileData profile : data.getProfiles().values()) {
+            changed |= profile.backfillAwardedXp();
+        }
+        if (changed) {
+            save();
+        }
     }
 
     // profiles with existing progress keep working; firstInstallMs anchors the new-profile check
@@ -371,6 +383,8 @@ public final class TilemanState {
     public void onXpGained(String skill, long xpAmount) {
         if (xpAmount <= 0) return;
 
+        activeProfile().addAwardedXp(skill, xpAmount);
+
         double multiplier = getEffectiveXpMultiplier(skill);
         long effectiveXp = (long) (xpAmount * multiplier);
 
@@ -415,6 +429,24 @@ public final class TilemanState {
         }
 
         return multiplier;
+    }
+
+    // off-tile XP is counted so the reconciler can subtract it from the API total,
+    // but it never enters the token system
+    public void addOffTileXp(String skill, long amount) {
+        if (amount <= 0) {
+            return;
+        }
+        activeProfile().addOffTileXp(skill, amount);
+        save();
+    }
+
+    public long getAwardedXp(String skill) {
+        return activeProfile().getAwardedXp(skill);
+    }
+
+    public long getOffTileXp(String skill) {
+        return activeProfile().getOffTileXp(skill);
     }
 
     public int getTokensEarned() {

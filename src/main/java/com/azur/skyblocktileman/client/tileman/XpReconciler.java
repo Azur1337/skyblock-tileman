@@ -44,17 +44,20 @@ public final class XpReconciler {
             long apiXp = entry.getValue();
             long stored = state.getSkillXp(skill);
 
-            if (apiXp <= stored) {
-                continue;
+            if (apiXp > stored) {
+                state.setSkillXp(skill, apiXp);
             }
-            state.setSkillXp(skill, apiXp);
 
             if (!SkillXpParser.isTokenSkill(skill)) {
                 continue;
             }
 
+            // the API total includes off-tile grinding, which must never mint tokens:
+            // the grantable ceiling is the API total minus counted off-tile XP, and
+            // awardedXp is everything that already entered the token system
             long cap = SkillXpParser.maxXPFor(skill);
-            long missed = Math.min(apiXp, cap) - Math.min(stored, cap);
+            long grantable = Math.min(apiXp, cap) - state.getOffTileXp(skill);
+            long missed = grantable - state.getAwardedXp(skill);
             if (missed <= 0) {
                 continue;
             }

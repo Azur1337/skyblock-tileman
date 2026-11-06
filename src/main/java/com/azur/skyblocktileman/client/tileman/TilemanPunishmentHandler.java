@@ -253,6 +253,28 @@ public final class TilemanPunishmentHandler {
         return dx * dx + dy * dy + dz * dz;
     }
 
+    // fresh standing check for the token economy; deliberately independent of the
+    // punishment toggle, and first-block mode counts as safe (nothing to withhold yet)
+    public static boolean isPlayerOnUnlockedTile() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.level == null) {
+            return false;
+        }
+        if (TilemanFirstBlockMode.isActive()) {
+            return true;
+        }
+        BlockPos standingOn = findStandingBlock(
+            client.level,
+            client.player.getX(),
+            client.player.getY(),
+            client.player.getZ()
+        );
+        return TilemanState.getInstance().isUnlockedColumn(
+            standingOn,
+            client.level
+        );
+    }
+
     // package-visible so the health handler can reuse the exact same standing check
     static BlockPos findStandingBlock(
         Level level,

@@ -297,7 +297,7 @@ public final class SkillXpParser {
             return;
         }
 
-        state.onXpGained(skill, xpGained);
+        awardOrWithhold(skill, xpGained);
 
         TilemanLog.debug(
             DebugCategory.TOKENS,
@@ -308,6 +308,23 @@ public final class SkillXpParser {
         );
 
         MilestoneTracker.getInstance().onXpGained(skill, xpGained);
+    }
+
+    // XP gained while standing on locked tiles is counted (so the reconciler can
+    // subtract it from the API total) but never mints tokens
+    private static void awardOrWithhold(String skill, long amount) {
+        TilemanState state = TilemanState.getInstance();
+        if (TilemanPunishmentHandler.isPlayerOnUnlockedTile()) {
+            state.onXpGained(skill, amount);
+            return;
+        }
+        state.addOffTileXp(skill, amount);
+        TilemanLog.debug(
+            DebugCategory.TOKENS,
+            "Withheld {} off-tile {} XP from tokens",
+            amount,
+            skill
+        );
     }
 
     private static void processXpUpdate(
@@ -355,7 +372,7 @@ public final class SkillXpParser {
             return;
         }
 
-        state.onXpGained(skill, xpGained);
+        awardOrWithhold(skill, xpGained);
 
         TilemanLog.debug(
             DebugCategory.TOKENS,

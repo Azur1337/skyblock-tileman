@@ -18,6 +18,10 @@ public class ProfileData {
     private int ruleBreaks = 0;
     private final Map<String, Long> skillXp = new HashMap<>();
     private final Map<String, Long> tokenPools = new HashMap<>();
+    // raw XP that has entered the token system (multipliers apply inside the award)
+    private final Map<String, Long> awardedXp = new HashMap<>();
+    // raw XP earned while standing on locked tiles: counted, never awarded
+    private final Map<String, Long> offTileXp = new HashMap<>();
     private final Map<String, Set<BlockCoord>> islands = new HashMap<>();
     private ShopData shop = new ShopData();
     private MilestoneData milestones = new MilestoneData();
@@ -60,6 +64,37 @@ public class ProfileData {
 
     public void setTokenPool(String skill, long xp) {
         tokenPools.put(skill, Math.max(0, xp));
+    }
+
+    public long getAwardedXp(String skill) {
+        return awardedXp.getOrDefault(skill, 0L);
+    }
+
+    public void addAwardedXp(String skill, long amount) {
+        awardedXp.merge(skill, amount, Long::sum);
+    }
+
+    public long getOffTileXp(String skill) {
+        return offTileXp.getOrDefault(skill, 0L);
+    }
+
+    public void addOffTileXp(String skill, long amount) {
+        offTileXp.merge(skill, amount, Long::sum);
+    }
+
+    // saves predating off-tile tracking awarded everything in skillXp; backfill so the
+    // reconciler does not treat that history as unawarded
+    public boolean backfillAwardedXp() {
+        boolean changed = false;
+        for (Map.Entry<String, Long> entry : skillXp.entrySet()) {
+            if (
+                entry.getValue() > 0 && !awardedXp.containsKey(entry.getKey())
+            ) {
+                awardedXp.put(entry.getKey(), entry.getValue());
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     public long getSkillXp(String skill) {

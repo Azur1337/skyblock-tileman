@@ -92,6 +92,15 @@ public final class TilemanPunishmentHandler {
             return;
         }
 
+        if (TilemanIslandHandler.inDungeon()) {
+            // exempt zone: everywhere in a dungeon counts as a valid tile
+            violating = false;
+            wasOnSafeBlock = true;
+            soundCooldown = 0;
+            MilestoneTracker.getInstance().startFlawlessTracking();
+            return;
+        }
+
         if (System.currentTimeMillis() < graceUntilMs) {
             // the landing has not settled yet: no break, no taint, no thunder
             violating = false;
@@ -260,7 +269,9 @@ public final class TilemanPunishmentHandler {
         if (client.player == null || client.level == null) {
             return false;
         }
-        if (TilemanFirstBlockMode.isActive()) {
+        if (
+            TilemanFirstBlockMode.isActive() || TilemanIslandHandler.inDungeon()
+        ) {
             return true;
         }
         BlockPos standingOn = findStandingBlock(

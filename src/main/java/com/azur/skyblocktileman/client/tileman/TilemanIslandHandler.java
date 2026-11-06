@@ -4,6 +4,7 @@ import com.azur.skyblocktileman.client.tileman.milestone.MilestoneTracker;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerFeature;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.Set;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -16,6 +17,20 @@ import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 public final class TilemanIslandHandler {
 
     private static final int RECHECK_INTERVAL_TICKS = 100;
+
+    // dungeon instances are exempt zones: no tiles to own, no enforcement
+    private static final Set<String> DUNGEON_ISLANDS = Set.of(
+        "dungeon",
+        "dungeon_hub"
+    );
+
+    public static boolean isDungeonIsland(String islandId) {
+        return islandId != null && DUNGEON_ISLANDS.contains(islandId);
+    }
+
+    public static boolean inDungeon() {
+        return isDungeonIsland(TilemanState.getInstance().getActiveIsland());
+    }
 
     private static int tickCounter = 0;
     private static boolean inSkyblock = false;
@@ -217,6 +232,7 @@ public final class TilemanIslandHandler {
         }
 
         if (
+            !isDungeonIsland(islandId) &&
             state.getUnlockedBlocks().isEmpty() &&
             !TilemanFirstBlockMode.isActive()
         ) {

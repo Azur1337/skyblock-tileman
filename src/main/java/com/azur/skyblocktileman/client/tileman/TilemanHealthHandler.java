@@ -60,7 +60,8 @@ public final class TilemanHealthHandler {
             TilemanState.getInstance().isTilemanActive() &&
             config.isPunishmentEnabled() &&
             config.isHealthPunishmentEnabled() &&
-            !TilemanFirstBlockMode.isActive();
+            !TilemanFirstBlockMode.isActive() &&
+            !TilemanIslandHandler.inDungeon();
 
         if (!live) {
             reset();
@@ -229,7 +230,8 @@ public final class TilemanHealthHandler {
             TilemanState.getInstance().isTilemanActive() &&
             config.isPunishmentEnabled() &&
             config.isHealthPunishmentEnabled() &&
-            !TilemanFirstBlockMode.isActive()
+            !TilemanFirstBlockMode.isActive() &&
+            !TilemanIslandHandler.inDungeon()
         );
     }
 

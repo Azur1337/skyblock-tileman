@@ -115,7 +115,9 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
       player jumps >15 blocks in one tick (warps, respawns, soul teleports); during grace no rule
       break, slayer taint, thunder or health drain occurs. Threshold is a hypothesis pending field
       test; 0 disables the feature
-- [ ] Unify the two `findStandingBlock` implementations (punishment vs BlockValidation have different tolerances -> contradictory UI signals on stairs/slabs)
+- [x] Unify the two `findStandingBlock` implementations: `BlockValidation`'s copy is deleted;
+      the compass and the off-tile economy check both use `TilemanPunishmentHandler.isPlayerOnUnlockedTile`
+      (column check + the wider stairs/slab tolerance), so UI and enforcement can no longer disagree
 - [x] Frenzy timer: store expiry timestamp instead of accumulating deltas. `ShopData` now keeps
       `xpFrenzyExpiresAtMs`; `isXpFrenzyActive`/`getXpFrenzyRemainingMs` are time-derived and
       `tickFrenzy()` only clears on the edge, so lag spikes and logouts can no longer freeze or

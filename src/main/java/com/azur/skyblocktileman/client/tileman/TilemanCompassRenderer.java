@@ -45,7 +45,8 @@ public final class TilemanCompassRenderer {
             return;
         }
 
-        if (BlockValidation.isPlayerOnUnlockedBlock()) {
+        // shared authoritative standing check; also exempts dungeons
+        if (TilemanPunishmentHandler.isPlayerOnUnlockedTile()) {
             return;
         }
 

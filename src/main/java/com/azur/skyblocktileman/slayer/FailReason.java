@@ -2,7 +2,6 @@ package com.azur.skyblocktileman.slayer;
 
 /** Why a slayer quest ended in failure. */
 public enum FailReason {
-
     /** "You died!" line, or a "You were killed by" line just before the failure. */
     DEATH,
 
@@ -13,9 +12,8 @@ public enum FailReason {
     UNKNOWN,
 
     /**
-     * The quest vanished from the scoreboard with no failure message. Hypixel
-     * drops the quest silently when you leave the boss lobby, so this is a fail
-     * the player cannot see and must not be able to farm around.
+     * The quest vanished from the scoreboard with no failure message. Leaving
+     * the boss lobby drops the quest silently.
      */
-    ABANDONED
+    ABANDONED,
 }

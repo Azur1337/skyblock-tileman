@@ -1,9 +1,6 @@
 package com.azur.skyblocktileman.slayer;
 
-/**
- * Immutable view of the quest the detector currently believes is active.
- * Read this from an event handler instead of accumulating state yourself.
- */
+/** Immutable view of the quest the detector currently holds as active. */
 public record SlayerQuest(
     SlayerBoss boss,
     SlayerTier tier,
@@ -14,7 +11,6 @@ public record SlayerQuest(
     boolean bossSpawned,
     boolean bossSlain
 ) {
-
     public boolean identified() {
         return boss != null && tier.known();
     }

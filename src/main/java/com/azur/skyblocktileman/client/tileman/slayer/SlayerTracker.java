@@ -15,8 +15,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
 /**
- * Tileman's policy on top of slayer detection: what a clean run means, what
- * earns a milestone. All parsing lives in {@link com.azur.skyblocktileman.slayer}.
+ * Slayer policy: what a clean run means, what earns a milestone.
+ * Parsing lives in {@link com.azur.skyblocktileman.slayer}.
  */
 public class SlayerTracker {
 
@@ -81,10 +81,7 @@ public class SlayerTracker {
         }
     }
 
-    /**
-     * The kill moment. Tainted is deliberately not read here: the walk back to
-     * Maddox is part of the challenge, so cleanliness is judged at turn-in.
-     */
+    /** Kill moment. Cleanliness is judged at turn-in, not here. */
     public void onBossSlain(SlayerBoss slain, SlayerTier slainTier) {
         bossSlain = true;
         TilemanLog.debug(

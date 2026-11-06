@@ -1,11 +1,7 @@
 package com.azur.skyblocktileman.slayer;
 
-/**
- * How the detector arrived at a tier. Consumers that gate rewards should insist
- * on SCOREBOARD: the XP table is derived from wiki data that Hypixel rebalances.
- */
+/** How the detector arrived at a tier. Only SCOREBOARD is safe for gating rewards. */
 public enum TierSource {
-
     /** Not resolved yet. */
     NONE,
 

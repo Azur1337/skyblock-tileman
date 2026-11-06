@@ -5,8 +5,7 @@ import com.azur.skyblocktileman.client.tileman.ui.Fmt;
 import java.util.Map;
 
 // Corrects XP drift against the API's absolute skill totals on every profiles payload.
-// A Tileman profile can only have been created after install, so its API XP was all earned
-// under the challenge: missed action bar drops are re-awarded instead of anchoring silently.
+// On an opted-in profile the difference is awarded through the normal token path.
 public final class XpReconciler {
 
     private static XpReconciler instance;

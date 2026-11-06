@@ -70,7 +70,7 @@ public final class HypixelApiClient {
     private static long cachedAtMs;
     private static CompletableFuture<ProfilesResult> inFlight;
 
-    // bug protection: one client must never hammer the shared key, worst case 120 req/h
+    // courtesy limit on the shared key, worst case 120 req/h
     private static final long CLIENT_MIN_INTERVAL_MS = 30_000;
     private static long lastRequestStartedMs = 0;
 

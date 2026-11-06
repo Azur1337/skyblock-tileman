@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 
-// Derived, never persisted: packed x,z column to the y's unlocked in it, rebuilt on profile/island change; primitive maps avoid per-lookup boxing.
+// packed x,z column to the y's unlocked in it, rebuilt on profile/island change
 final class UnlockIndex {
 
     private static final IntSet NO_Y = new IntOpenHashSet(0);

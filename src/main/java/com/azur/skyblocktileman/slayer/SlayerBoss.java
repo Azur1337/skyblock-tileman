@@ -4,11 +4,8 @@ import java.util.Locale;
 
 /**
  * The six Hypixel slayer bosses, with the combat XP needed to spawn each tier.
- *
- * Thresholds follow minecraft.wiki and were cross-checked against real captures
- * on 2026-10-25 (Revenant T1/T2/T4/T5 and Voidgloom T2 all matched exactly).
- * Hypixel rebalances these, most recently on 2026-09-30, so they are treated as
- * an inference only and never allowed to override a scoreboard reading.
+ * Thresholds are wiki-derived and Hypixel rebalances them, so the scoreboard
+ * tier wins over a table match.
  */
 public enum SlayerBoss {
     // mob keywords must list irregular plurals: "wolves" does not contain
@@ -109,10 +106,7 @@ public enum SlayerBoss {
         return SlayerTier.fromValue(maxTier);
     }
 
-    /**
-     * The boss renames itself at its top tier (Revenant Horror V spawns as
-     * "Atoned Horror"), so both names must be recognised.
-     */
+    /** Top-tier bosses rename (Revenant Horror V spawns as "Atoned Horror"). */
     public boolean matches(String text) {
         if (text == null) {
             return false;
@@ -152,11 +146,7 @@ public enum SlayerBoss {
         return false;
     }
 
-    /**
-     * Nearest threshold wins, and a poor match returns UNKNOWN rather than a
-     * confident guess. The old exact-threshold chain silently mis-tiered every
-     * boss once Hypixel moved the numbers, which locked a T4 into T3 forever.
-     */
+    /** Nearest threshold wins; a poor match returns UNKNOWN instead of guessing. */
     public SlayerTier inferTierFromCombatXp(long combatXp) {
         if (combatXp <= 0) {
             return SlayerTier.UNKNOWN;

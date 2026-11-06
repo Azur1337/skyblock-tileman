@@ -1,11 +1,7 @@
 package com.azur.skyblocktileman.slayer;
 
-/**
- * Slayer quest tier. UNKNOWN is a real state, not a zero: the detector refuses
- * to guess a tier it cannot support.
- */
+/** Slayer quest tier. UNKNOWN means there is no solid reading yet. */
 public enum SlayerTier {
-
     UNKNOWN(0),
     ONE(1),
     TWO(2),

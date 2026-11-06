@@ -122,8 +122,7 @@ public class ProfileData {
         return islands;
     }
 
-    // reads must not create entries and must not hand out the live set; the only writer
-    // path is getOrCreateUnlockedBlocks via TilemanState.unlockBlock
+    // read-only view; TilemanState.unlockBlock is the only writer
     public Set<BlockCoord> getUnlockedBlocks(String island) {
         Set<BlockCoord> blocks = islands.get(island);
         return blocks == null ? Set.of() : Collections.unmodifiableSet(blocks);

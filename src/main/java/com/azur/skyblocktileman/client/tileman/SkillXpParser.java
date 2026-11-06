@@ -310,8 +310,7 @@ public final class SkillXpParser {
         MilestoneTracker.getInstance().onXpGained(skill, xpGained);
     }
 
-    // XP gained while standing on locked tiles is counted (so the reconciler can
-    // subtract it from the API total) but never mints tokens
+    // off-tile XP is counted for the reconciler but does not mint tokens
     private static void awardOrWithhold(String skill, long amount) {
         TilemanState state = TilemanState.getInstance();
         if (TilemanPunishmentHandler.isPlayerOnUnlockedTile()) {

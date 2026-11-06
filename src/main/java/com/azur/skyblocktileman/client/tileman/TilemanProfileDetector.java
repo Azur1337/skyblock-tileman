@@ -85,9 +85,9 @@ public final class TilemanProfileDetector {
         }
     }
 
-    // Adopts a profile id from any authoritative source: the chat Profile ID line or the
-    // profile field Hypixel embeds in every /locraw reply. Chat mods that eat the switch
-    // messages must not be able to strand Tileman on a stale profile.
+    // Adopts a profile id from any authoritative source: the chat Profile ID line or
+    // the profile field in a /locraw reply, so chat mods can't strand Tileman on a
+    // stale profile.
     static void handleProfileId(
         String profileId,
         String cuteName,
@@ -144,9 +144,8 @@ public final class TilemanProfileDetector {
     }
 
     // Backstop when chat mods eat both the Profile ID line and the locraw reply: the
-    // profiles API knows which profile is selected. Adopt on a cute-name match with the
-    // pending chat switch, else require two consecutive identical mismatched results so a
-    // response issued mid-switch cannot revert a fresher adoption.
+    // profiles API knows which profile is selected. Adopt on a cute-name match with a
+    // pending switch, else require two consecutive identical mismatches.
     public static void confirmFromApi(String profileId, String cuteName) {
         if (profileId == null || profileId.isEmpty()) {
             return;

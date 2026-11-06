@@ -10,13 +10,8 @@ import java.util.regex.Pattern;
 
 /**
  * Turns Hypixel slayer chat and scoreboard text into typed {@link SlayerEvent}s.
- *
- * This class deliberately depends on nothing from Minecraft or from the rest of
- * the mod: it takes plain strings and emits plain objects, so it can be unit
- * tested, and lifted out as its own artifact unchanged. Feed it from an adapter
- * that owns the game hooks.
- *
- * Not thread safe. Call it from the client thread.
+ * No Minecraft or mod imports so it can be tested standalone.
+ * Not thread safe, call from the client thread.
  */
 public final class SlayerDetector {
 
@@ -141,9 +136,8 @@ public final class SlayerDetector {
     // ------------------------------------------------------------------ chat
 
     /**
-     * Feed one received chat message here, with colour codes already stripped.
-     * Action-bar and title text must not be routed here or the boss-spawn
-     * patterns can double count.
+     * Feed one chat line here, colour codes already stripped. Do not route
+     * action-bar or title text in, the boss-spawn patterns would double count.
      */
     public void onChatLine(String line) {
         if (line == null || line.isBlank()) {
@@ -235,7 +229,11 @@ public final class SlayerDetector {
             requiredCombatXp = xp;
         }
 
-        if (fromMob != null && xp > 0 && TierSource.XP_TABLE.strongerThan(tierSource)) {
+        if (
+            fromMob != null &&
+            xp > 0 &&
+            TierSource.XP_TABLE.strongerThan(tierSource)
+        ) {
             SlayerTier inferred = fromMob.inferTierFromCombatXp(xp);
             if (inferred.known()) {
                 tier = inferred;
@@ -263,7 +261,9 @@ public final class SlayerDetector {
         // the spawn line prints the tier ("Revenant Horror III"); a renamed top-tier
         // boss ("Atoned Horror") drops the numeral but is always the max tier.
         // It never overrides a live scoreboard reading.
-        if (named != null && TierSource.SPAWN_MESSAGE.strongerThan(tierSource)) {
+        if (
+            named != null && TierSource.SPAWN_MESSAGE.strongerThan(tierSource)
+        ) {
             SlayerTier fromName = tierFromBossName(named, mobName);
             if (fromName.known()) {
                 tier = fromName;
@@ -299,8 +299,7 @@ public final class SlayerDetector {
 
     /**
      * Feed the sidebar here, top line first, colour codes stripped. An empty
-     * list means "no sidebar available", which is deliberately not treated as
-     * evidence that the quest disappeared.
+     * list means no sidebar available, not that the quest disappeared.
      */
     public void onScoreboard(List<String> lines) {
         if (!active) {

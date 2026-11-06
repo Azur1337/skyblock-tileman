@@ -262,8 +262,8 @@ public final class TilemanPunishmentHandler {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    // fresh standing check for the token economy; deliberately independent of the
-    // punishment toggle, and first-block mode counts as safe (nothing to withhold yet)
+    // standing check for the token economy, independent of the punishment toggle;
+    // first-block mode counts as safe
     public static boolean isPlayerOnUnlockedTile() {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || client.level == null) {

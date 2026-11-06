@@ -30,7 +30,7 @@ public final class TilemanModApiBridge {
         try {
             Handlers.subscribe();
         } catch (LinkageError | RuntimeException e) {
-            // an installed but incompatible mod-api must never take the game down
+            // an incompatible mod-api install should not crash the game
             present = false;
             TilemanLog.debug(
                 DebugCategory.ISLAND,

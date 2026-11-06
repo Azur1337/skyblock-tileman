@@ -22,10 +22,8 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 
 /**
- * The only place slayer detection touches Minecraft: feeds raw chat and sidebar
- * text into {@link SlayerDetector} and routes the resulting events to
- * {@link SlayerTracker}. Keeping it here is what lets the detector stay free of
- * mod types.
+ * Feeds chat and sidebar text into {@link SlayerDetector} and routes the
+ * events to {@link SlayerTracker}.
  */
 public final class SlayerFeature {
 
@@ -95,11 +93,7 @@ public final class SlayerFeature {
         DETECTOR.onScoreboard(lines);
     }
 
-    /**
-     * Dump exactly what the detector sees, but only when the slayer debug category
-     * is on and the sidebar actually changed, so the scoreboard path can be verified
-     * against a live quest without per-poll spam.
-     */
+    /** Logs the detector's view when the slayer debug category is on and the sidebar changed. */
     private static void dumpSidebarIfChanged(List<String> lines) {
         if (!TilemanConfig.getInstance().isDebugEnabled(DebugCategory.SLAYER)) {
             return;
@@ -142,9 +136,8 @@ public final class SlayerFeature {
     }
 
     /**
-     * The visible text of one sidebar line, resolved exactly like vanilla's HUD:
-     * the owner is an invisible sort token and Hypixel carries the real text in a
-     * player team prefix, so it must go through formatNameForTeam(getPlayersTeam(..)).
+     * Visible text of a sidebar line, resolved like vanilla's HUD: the owner
+     * name is an invisible sort token, the real text sits in a team prefix.
      */
     private static String sidebarText(
         Scoreboard scoreboard,

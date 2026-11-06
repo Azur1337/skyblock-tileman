@@ -78,38 +78,51 @@ public final class TilemanProfileDetector {
 
         Matcher idMatcher = PROFILE_ID_PATTERN.matcher(text);
         if (idMatcher.find()) {
-            String profileId = idMatcher.group(1);
-            String currentProfile =
-                TilemanState.getInstance().getActiveProfileId();
-
-            if (!profileId.equals(currentProfile)) {
-                TilemanState.getInstance().setActiveProfile(profileId);
-                SkillXpParser.resetTracking();
-                // a live slayer quest belongs to the previous profile, drop it
-                SlayerFeature.reset();
-                // profile changed after JOIN already ran its skip-check; re-sync baseline
-                TilemanLoginHandler.fetchBaselineIfNeeded();
-
-                if (pendingProfileName != null) {
-                    TilemanLog.debug(
-                        DebugCategory.PROFILE,
-                        "Switched to profile {} ({})",
-                        pendingProfileName,
-                        profileId
-                    );
-                    TilemanChat.info(
-                        "Switched to Tileman profile: " + pendingProfileName
-                    );
-                } else {
-                    TilemanLog.debug(
-                        DebugCategory.PROFILE,
-                        "Joined profile {}",
-                        profileId
-                    );
-                    TilemanChat.info("Loaded Tileman profile: " + profileId);
-                }
-            }
-            pendingProfileName = null;
+            handleProfileId(idMatcher.group(1), null, "chat");
         }
+    }
+
+    // Adopts a profile id from any authoritative source: the chat Profile ID line or the
+    // profile field Hypixel embeds in every /locraw reply. Chat mods that eat the switch
+    // messages must not be able to strand Tileman on a stale profile.
+    static void handleProfileId(
+        String profileId,
+        String cuteName,
+        String source
+    ) {
+        if (profileId == null || profileId.isEmpty()) {
+            return;
+        }
+        TilemanState state = TilemanState.getInstance();
+        String currentProfile = state.getActiveProfileId();
+        if (profileId.equals(currentProfile)) {
+            pendingProfileName = null;
+            return;
+        }
+
+        boolean firstDetection = "unknown".equals(currentProfile);
+        TilemanLog.debug(
+            DebugCategory.PROFILE,
+            "Profile switch detected via {}: {} -> {}",
+            source,
+            currentProfile,
+            profileId
+        );
+        state.setActiveProfile(profileId);
+        SkillXpParser.resetTracking();
+        // a live slayer quest belongs to the previous profile, drop it
+        SlayerFeature.reset();
+        // profile changed after JOIN already ran its skip-check; re-sync baseline
+        TilemanLoginHandler.fetchBaselineIfNeeded();
+
+        String name = cuteName != null ? cuteName : pendingProfileName;
+        if (name != null && !firstDetection) {
+            TilemanChat.info("Switched to Tileman profile: " + name);
+        } else if (name != null) {
+            TilemanChat.info("Loaded Tileman profile: " + name);
+        } else {
+            TilemanChat.info("Loaded Tileman profile: " + profileId);
+        }
+        pendingProfileName = null;
     }
 }

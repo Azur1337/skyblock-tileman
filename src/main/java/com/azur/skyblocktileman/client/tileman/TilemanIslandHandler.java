@@ -108,6 +108,21 @@ public final class TilemanIslandHandler {
             inSkyblock = true;
             TilemanLoginHandler.maybeHandleOptIn();
 
+            // locraw carries the selected profile id and cute name; this is the
+            // chat-independent profile detection path, run before island handling so the
+            // new profile's unlock data is what the island change compares against
+            String profileId = json.has("profile")
+                ? json.get("profile").getAsString()
+                : null;
+            String profileName = json.has("profileName")
+                ? json.get("profileName").getAsString()
+                : null;
+            TilemanProfileDetector.handleProfileId(
+                profileId,
+                profileName,
+                "locraw"
+            );
+
             String islandId = json.has("mode")
                 ? json.get("mode").getAsString()
                 : null;

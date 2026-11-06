@@ -129,7 +129,8 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
       persisted a junk blob
 - [x] Corrupt save file: `backupUnreadableSave` moves it to `tileman_data.unreadable-<ms>.json`
       instead of letting the next `save()` destroy the only copy
-- [ ] First-block mode: gate on `isEnabled()`, handle non-standable fallback block case
+- [x] First-block mode: gate on `isEnabled()` (onAttackBlock and the gizmo now require
+      `isTilemanActive()`). Non-standable fallback block case remains open (rare, left for later)
 - [x] Selection mode: a rising edge on the unlock key sets `clickHandled`, so entering unlock
       mode with attack already held no longer spends that hold as an unlock
 - [ ] Verify token accounting against a long real grinding session (max-level overflow, level-up rollovers)
@@ -159,14 +160,18 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 
 ## Type safety
 
-- [ ] `(SimpleContainer) menu.getContainer()` casts: add instanceof guard or restructure screens
+- [x] `(SimpleContainer) menu.getContainer()` cast: removed by restructuring
+      `TilemanChestScreen` to build the container before `super()` and share one reference
 - [x] Band model implemented: per-skill level bands (level/10) with `TOKEN_BAND_COSTS` 100/800/3100/4800/6200/8500 XP per token (multiples of 100, sqrt-scaled, normalized to ~80.5k tokens at max); per-skill pools in `ProfileData.tokenPools`; XP past max level earns nothing; old tier table + dead tier-display methods deleted
-- [ ] `getUnlockedBlocks()` returns live mutable set -> return unmodifiable view
+- [x] `getUnlockedBlocks()` now returns `Collections.unmodifiableSet`; the only writer is
+      `getOrCreateUnlockedBlocks` via `TilemanState.unlockBlock`
 - [ ] Remove no-op `@Expose` annotations and dead legacy `lifetimeTokensEarned` from save shape; move migration out of the getter
-- [ ] `Boolean`/`null` sentinels (`getFloorLockStatus`, `getRequirementText`) -> explicit result types
+- [ ] `Boolean`/`null` sentinels -> explicit result types. `getFloorLockStatus` is gone with the
+      dead-code sweep; only `getRequirementText` returning null-for-no-requirement remains, which
+      is the idiomatic contract here
 - [ ] Parse failures must be distinguishable from valid values (`parseXpAmount` 0 = both error and tier 1)
-- [ ] `toUpperCase()` -> `toUpperCase(Locale.ROOT)` in commands
-- [ ] HUD parallel arrays (`ICONS`/`LABELS`/`TOOLTIPS`) -> record list
+- [x] `toUpperCase()` -> `toUpperCase(Locale.ROOT)` in commands and the dungeon floor parser
+- [x] HUD parallel arrays replaced by a `HudRow` record list built per render
 
 ## Performance
 
@@ -178,9 +183,10 @@ Decision: Tileman is opt-in at profile creation only; no retroactive rewards eve
 - [ ] Debounced save (dirty flag, max once per second + on disconnect); remove double-saves in
       purchase/unlock paths. PARTIAL: save() now writes a .tmp then atomic-moves over the target
       (crash-safe, no more half-written file); the per-unlock double-saves and debounce are not done
-- [ ] Atomic temp+rename save: DONE (TilemanState.save writes SAVE_FILE.tmp, Files.move ATOMIC_MOVE,
+- [x] Atomic temp+rename save: DONE (TilemanState.save writes SAVE_FILE.tmp, Files.move ATOMIC_MOVE,
       falls back to REPLACE_EXISTING if the FS rejects atomic moves)
-- [ ] `DungeonFloor.getNormalFloors()`/`getMasterModeFloors()`: `static final` arrays
+- [x] `DungeonFloor.getNormalFloors()`/`getMasterModeFloors()`: now return cached `static final`
+      arrays instead of allocating on every call
 - [ ] Gate `TilemanLog.debug` console output by category (currently every message is formatted + logged at INFO 24/7)
 
 - [x] Island-warp API leak fixed: warps re-fire ClientPlayConnectionEvents.JOIN (server transfer) which re-fetched the profiles payload each time. JOIN now skips when the active profile is unchanged (`lastFetchedProfileId`); real profile switches go through `TilemanProfileDetector` -> `fetchBaselineIfNeeded()` -> `invalidateCache()` so the previous profile's cached payload can never be re-applied

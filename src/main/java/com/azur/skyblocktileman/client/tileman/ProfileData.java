@@ -3,6 +3,7 @@ package com.azur.skyblocktileman.client.tileman;
 import com.azur.skyblocktileman.client.tileman.dungeon.DungeonData;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
 import com.azur.skyblocktileman.client.tileman.slayer.SlayerData;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -121,10 +122,11 @@ public class ProfileData {
         return islands;
     }
 
-    // reads must not create entries: querying an island would inflate the explored count and persist junk
+    // reads must not create entries and must not hand out the live set; the only writer
+    // path is getOrCreateUnlockedBlocks via TilemanState.unlockBlock
     public Set<BlockCoord> getUnlockedBlocks(String island) {
         Set<BlockCoord> blocks = islands.get(island);
-        return blocks == null ? Set.of() : blocks;
+        return blocks == null ? Set.of() : Collections.unmodifiableSet(blocks);
     }
 
     public Set<BlockCoord> getOrCreateUnlockedBlocks(String island) {

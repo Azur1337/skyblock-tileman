@@ -28,16 +28,26 @@ public abstract class TilemanChestScreen extends ContainerScreen {
     private Runnable returnTo;
 
     protected TilemanChestScreen(int rows, Component title) {
+        this(rows, title, new SimpleContainer(rows * COLS));
+    }
+
+    // the container is built before super so the menu and the field share one reference;
+    // no cast from menu.getContainer()
+    private TilemanChestScreen(
+        int rows,
+        Component title,
+        SimpleContainer container
+    ) {
         super(
-            buildMenu(rows),
+            buildMenu(rows, container),
             Minecraft.getInstance().player.getInventory(),
             title
         );
         this.rows = rows;
-        this.container = (SimpleContainer) this.menu.getContainer();
+        this.container = container;
     }
 
-    private static ChestMenu buildMenu(int rows) {
+    private static ChestMenu buildMenu(int rows, SimpleContainer container) {
         MenuType<ChestMenu> type = switch (rows) {
             case 1 -> MenuType.GENERIC_9x1;
             case 2 -> MenuType.GENERIC_9x2;
@@ -46,7 +56,6 @@ public abstract class TilemanChestScreen extends ContainerScreen {
             case 5 -> MenuType.GENERIC_9x5;
             default -> MenuType.GENERIC_9x6;
         };
-        SimpleContainer container = new SimpleContainer(rows * COLS);
         return new ChestMenu(
             type,
             0,

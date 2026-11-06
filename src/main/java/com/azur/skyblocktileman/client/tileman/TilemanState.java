@@ -680,7 +680,6 @@ public final class TilemanState {
             return false;
         }
         activeProfile().addTokensSpent(amount);
-        activeProfile().getShop().addSpent(amount);
         MilestoneTracker.getInstance().onShopPurchase(amount);
         save();
         return true;

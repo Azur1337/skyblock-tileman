@@ -131,7 +131,11 @@ public final class TilemanFirstBlockMode {
         BlockPos pos,
         Direction direction
     ) {
-        if (!active || !TilemanSelectionMode.UNLOCK_MODE_KEY.isDown()) {
+        if (
+            !active ||
+            !TilemanState.getInstance().isTilemanActive() ||
+            !TilemanSelectionMode.UNLOCK_MODE_KEY.isDown()
+        ) {
             return InteractionResult.PASS;
         }
 
@@ -176,7 +180,11 @@ public final class TilemanFirstBlockMode {
     }
 
     private static void onBeforeGizmos(LevelRenderContext context) {
-        if (!active || !TilemanSelectionMode.UNLOCK_MODE_KEY.isDown()) {
+        if (
+            !active ||
+            !TilemanState.getInstance().isTilemanActive() ||
+            !TilemanSelectionMode.UNLOCK_MODE_KEY.isDown()
+        ) {
             return;
         }
 

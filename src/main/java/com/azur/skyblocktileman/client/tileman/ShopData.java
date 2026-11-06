@@ -23,8 +23,6 @@ public class ShopData {
     private long xpFrenzyExpiresAtMs = 0;
     private int xpFrenzyActivePower = 0;
 
-    private int totalSpent = 0;
-
     private static final Random RANDOM = new Random();
 
     public int getLuckyUnlockLevel() {
@@ -131,10 +129,6 @@ public class ShopData {
             xpFrenzyExpiresAtMs = 0;
             xpFrenzyActivePower = 0;
         }
-    }
-
-    public void addSpent(int amount) {
-        this.totalSpent += amount;
     }
 
     // diminishing toward 100 percent: (1 - 0.9^level) * 100

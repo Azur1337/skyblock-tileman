@@ -104,10 +104,30 @@ public enum DungeonFloor {
     }
 
     public static DungeonFloor[] getNormalFloors() {
-        return new DungeonFloor[] { F1, F2, F3, F4, F5, F6, F7 };
+        return NORMAL_FLOORS;
     }
 
     public static DungeonFloor[] getMasterModeFloors() {
-        return new DungeonFloor[] { M1, M2, M3, M4, M5, M6, M7 };
+        return MASTER_FLOORS;
     }
+
+    private static final DungeonFloor[] NORMAL_FLOORS = {
+        F1,
+        F2,
+        F3,
+        F4,
+        F5,
+        F6,
+        F7,
+    };
+
+    private static final DungeonFloor[] MASTER_FLOORS = {
+        M1,
+        M2,
+        M3,
+        M4,
+        M5,
+        M6,
+        M7,
+    };
 }

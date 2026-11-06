@@ -1,67 +1,79 @@
 # Skyblock Tileman
 
-A Fabric client mod for Hypixel Skyblock that turns the map into a "Tileman" challenge: you start with a single unlocked block and can only stand on tiles you've unlocked. New tiles cost tokens, and tokens are earned by grinding Skill XP. Step off the unlocked path and the mod lets you know about it.
+Fabric client mod for Hypixel Skyblock that enforces a Tileman challenge: you may only stand on blocks you have unlocked. Unlocks cost tokens, tokens are earned from Skill XP. Built for [Derailious](https://www.youtube.com/@Derailious)'s Tileman series, and generally usable by anyone playing the challenge.
 
-Built for [Derailious](https://www.youtube.com/@Derailious)'s Tileman challenge series.
+Everything is client side. The mod never sends gameplay packets; the only things it sends to the server are a `/locraw` for island detection, a `/warp hub` when the health bar collapses, and whatever you trigger yourself.
 
-## How it works
+## Gameplay
 
-- **Tokens** are earned automatically as you gain Skill XP, tracked live from the action bar. The cost of the next token slowly rises the more total XP you've earned.
-- **Unlocking blocks** is done in Unlock Mode (hold the keybind, default `B`): look at a block next to one you've already unlocked, it outlines yellow, left click to spend a token and claim it.
-- **Unlocked blocks** are highlighted with a green overlay so you always know where you're allowed to walk.
-- **Islands** are detected automatically, and your first block is unlocked for free the moment you land on a new one.
-- **Breaking the rules** (standing on a block you haven't unlocked) triggers a big warning, a loud sound, and adds to your on-screen Rule Breaks counter.
-- Your progress (tokens, XP, unlocked blocks, rule breaks) is saved per Skyblock profile, so switching or coop-ing doesn't mix up your progress.
+- Skill XP from the five main skills (Combat, Mining, Foraging, Farming, Fishing) mints unlock tokens. The XP cost per token rises as your skill levels go up.
+- Unlock mode (hold `B`) outlines the aimed tile; left click spends one token. Tiles must be adjacent to one you already own.
+- Every island grants one free starting block the first time you land on it.
+- Unlocked tiles are highlighted, and a compass points at the nearest one while you are standing where you should not be.
+- Standing on a locked tile counts a rule break: warning banner, thunder, and a health bar that drains until you are back on your tiles. An empty bar warps you to the hub.
+- XP gained while off your tiles is tracked but never pays tokens, including retroactively through the API.
+- Dungeon instances are exempt: walk freely, no enforcement, XP still counts.
+- Shop (`/tileman shop`) sells upgrades and consumables for saved-up tokens. Milestones (`/tileman milestones`) pay tokens for progression, skills, slayer and clean-run challenges. Dungeon floors (`/tileman dungeons`) cost tokens to unlock and pay tokens per clear.
+- Progress is saved per Skyblock profile in `config/tileman/tileman_data.json`.
+
+## Setup
+
+None. Install the mod, play Skyblock on a profile created after installing it, and answer the opt-in prompt. Profiles that existed before installation are declined automatically; `/tileman optin on|off` overrides where the challenge rules allow.
+
+The mod ships with a Hypixel app API key for the Skill XP baseline and dungeon completion sync. If the shared key is rate limited, those two features pause quietly; token earning from the action bar keeps working.
 
 ## Requirements
 
 - Minecraft 26.2
-- [Fabric Loader](https://fabricmc.net/use/) 0.19.3+
-- [Fabric API](https://modrinth.com/mod/fabric-api) 0.155.2+26.2
+- Fabric Loader 0.19.3+
+- Fabric API 0.155.2+26.2
 - Java 25+
 
-MoulConfig and its Kotlin runtime are bundled into the mod jar directly, you don't need to install them separately.
+Optional: [Hypixel Mod API](https://modrinth.com/mod/hypixel-mod-api) for instant, push-based island detection instead of the `/locraw` fallback.
 
 ## Installing
 
-Grab the `-shadow.jar` from [Releases](../../releases) or the latest [Actions build](../../actions) and drop it into your `mods` folder alongside Fabric API. Don't use the `-slim.jar`, it's missing the bundled dependencies and will fail to load.
+Grab `skyblocktileman-<version>-shadow.jar` from [Releases](../../releases) and drop it in your `mods` folder alongside Fabric API. Also published on Modrinth. Use the shadow jar; the slim one has no bundled dependencies and will crash on load. Keep only one Tileman jar in the folder.
 
-## Setup
+## Commands
 
-To get an accurate starting XP total when you log in, Tileman fetches your Skill XP from the Hypixel API. Get a free key from the [Hypixel Developer Dashboard](https://developer.hypixel.net/) and pass it in either as a JVM system property or an environment variable before launching:
+| Command                                     | What it does                      |
+| ------------------------------------------- | --------------------------------- |
+| `/tileman`                                  | Opens the hub menu                |
+| `/tileman shop` / `milestones` / `dungeons` | Jump straight to a menu           |
+| `/tileman unlock <floor>`                   | Unlock a dungeon floor, e.g. `M7` |
+| `/tileman config`                           | Settings                          |
+| `/tileman enable [on                        | off]`                             | Master toggle                        |
+| `/tileman optin [on                         | off]`                             | Tileman mode for the current profile |
+| `/tileman overlay [on                       | off]`                             | Unlocked tile highlight              |
+| `/tileman debug [on                         | off]`                             | Mirror debug logs into chat          |
 
-```
--Dtileman.hypixelApiKey=your-key-here
-```
+## Keybinds
 
-```
-TILEMAN_HYPIXEL_API_KEY=your-key-here
-```
+- Unlock mode: `B` (hold)
+- Open hub: `K`
+- Move HUD: unbound by default
 
-If you skip this, the mod still works fine, it just starts tracking from 0 XP instead of your real total.
+Rebindable in vanilla Controls or the config screen; the two stay in sync.
 
-All other data (unlocked blocks, tokens, rule breaks, settings) is saved in `config/tileman/`.
+## Settings
 
-## Usage
-
-- **Unlock Mode**: hold `B` (rebindable in Controls) to enter unlock mode, look at a block adjacent to an unlocked one, left click to unlock it.
-- `/tileman config`: opens the settings menu.
-- `/tileman enable [on|off]`: toggles the whole mod.
-- `/tileman overlay [on|off]`: toggles the green unlocked-block overlay.
-- `/tileman debug [on|off]`: mirrors internal debug logging into chat.
+`/tileman config`. Worth knowing: turning off tile rule enforcement also disables the Flawless milestone family, since nothing is being tracked.
 
 ## Building from source
 
 ```
+cp .env.example .env   # add a Hypixel app key; the build fails without one
 ./gradlew build
 ```
 
-The built jars land in `build/libs/`.
+The key is bundled into the jar as a resource, which is why the build requires it. Output lands in `build/libs/`.
 
 ## Credits
 
-- [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) for the in-game settings menu.
-- [Hypixel API](https://api.hypixel.net/) for the Skill XP baseline.
+- [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) for the settings menu (bundled)
+- [Hypixel Public API](https://api.hypixel.net/) for Skill XP baselines and dungeon completions
+- [Hypixel Mod API](https://github.com/HypixelDev/ModAPI) for optional server location pushes
 
 ## License
 

@@ -18,7 +18,7 @@ public class ShopRequirements {
         8_000_000L,
         20_000_000L,
         45_000_000L,
-        80_000_000L
+        80_000_000L,
     };
 
     static {
@@ -112,7 +112,7 @@ public class ShopRequirements {
                     return (
                         "Requires " +
                         formatXp(required) +
-                        " total XP (you have " +
+                        " Total XP (you have " +
                         formatXp(have) +
                         ")"
                     );
@@ -129,10 +129,10 @@ public class ShopRequirements {
 
     private static String formatXp(long xp) {
         if (xp >= 1_000_000) {
-            return (xp / 1_000_000) + "M";
+            return xp / 1_000_000 + "M";
         }
         if (xp >= 1_000) {
-            return (xp / 1_000) + "k";
+            return xp / 1_000 + "k";
         }
         return String.valueOf(xp);
     }
@@ -142,6 +142,22 @@ public class ShopRequirements {
         if (req == null) return null;
         if (req.isMet()) return null;
         return req.getDisplayText();
+    }
+
+    // The milestone behind a locked upgrade, for the right click jump. The Lucky Unlock
+    // gates are raw total XP, which the Total XP Earned milestone tracks.
+    public static MilestoneType getRequirementMilestone(
+        String itemKey,
+        int targetLevel
+    ) {
+        if (itemKey.equals("lucky_unlock")) {
+            return MilestoneType.TOTAL_XP;
+        }
+        Requirement req = REQUIREMENTS.get(itemKey + "_" + targetLevel);
+        if (req == null) {
+            req = REQUIREMENTS.get(itemKey);
+        }
+        return req == null ? null : req.milestone();
     }
 
     public record Requirement(MilestoneType milestone, int requiredTier) {

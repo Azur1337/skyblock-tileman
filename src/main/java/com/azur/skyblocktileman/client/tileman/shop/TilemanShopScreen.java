@@ -3,6 +3,8 @@ package com.azur.skyblocktileman.client.tileman.shop;
 import com.azur.skyblocktileman.client.tileman.ShopData;
 import com.azur.skyblocktileman.client.tileman.TilemanChat;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
+import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
 import com.azur.skyblocktileman.client.tileman.ui.Theme;
 import com.azur.skyblocktileman.client.tileman.ui.TilemanChestScreen;
 import com.azur.skyblocktileman.client.tileman.ui.TilemanItem;
@@ -192,6 +194,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
         TilemanItem item = TilemanItem.of(icon);
         String status = null;
         String denyText = null;
+        boolean requirementLocked = false;
 
         if (level >= maxLevel) {
             status = Theme.GOOD + "[MAX]";
@@ -200,6 +203,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             denyText = ShopRequirements.getRequirementText(reqKey, level + 1);
             if (denyText != null) {
                 status = Theme.BAD + "[LOCKED]";
+                requirementLocked = true;
             } else if (tokens < price) {
                 status = Theme.BAD + "[LOCKED]";
                 denyText =
@@ -230,6 +234,9 @@ public class TilemanShopScreen extends TilemanChestScreen {
         } else {
             item.action("Click to purchase");
         }
+        if (requirementLocked) {
+            item.action("Right click: view milestone");
+        }
         item.value("Cost: " + price + " tokens");
         if (level > 0) {
             item.glint();
@@ -239,6 +246,18 @@ public class TilemanShopScreen extends TilemanChestScreen {
         onClick(slot, () ->
             buyUpgrade(label, reqKey, maxLevel, levelGet, priceFn, levelSet)
         );
+
+        if (requirementLocked) {
+            MilestoneType reqMilestone =
+                ShopRequirements.getRequirementMilestone(reqKey, level + 1);
+            if (reqMilestone != null) {
+                onRightClick(slot, () ->
+                    MilestoneScreen.open(reqMilestone, label, () ->
+                        open(currentCategory, getReturnTo())
+                    )
+                );
+            }
+        }
     }
 
     private void addAffinity(int slot, String skill) {
@@ -297,6 +316,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             .desc("Next unlock ignores adjacency");
         if (remoteReq != null) {
             remote.bad(remoteReq);
+            remote.action("Right click: view milestone");
         } else if (remoteReady) {
             remote.good("Ready to use!");
             remote.glint();
@@ -344,6 +364,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             .desc("+" + power + "% XP for " + duration + " minutes");
         if (frenzyReq != null) {
             frenzy.bad(frenzyReq);
+            frenzy.action("Right click: view milestone");
         } else if (frenzyActive) {
             frenzy.good(
                 Math.max(1, shop.getXpFrenzyRemainingMs() / 60000) +
@@ -374,6 +395,41 @@ public class TilemanShopScreen extends TilemanChestScreen {
                 shop::activateXpFrenzy
             );
         });
+        addConsumableRequirementJump(
+            remoteSlot,
+            "remote_unlock",
+            "Remote Unlock",
+            remoteReq != null
+        );
+        addConsumableRequirementJump(
+            frenzySlot,
+            "xp_frenzy",
+            "XP Frenzy",
+            frenzyReq != null
+        );
+    }
+
+    private void addConsumableRequirementJump(
+        int slot,
+        String itemKey,
+        String label,
+        boolean locked
+    ) {
+        if (!locked) {
+            return;
+        }
+        MilestoneType milestone = ShopRequirements.getRequirementMilestone(
+            itemKey,
+            0
+        );
+        if (milestone == null) {
+            return;
+        }
+        onRightClick(slot, () ->
+            MilestoneScreen.open(milestone, label, () ->
+                open(currentCategory, getReturnTo())
+            )
+        );
     }
 
     private void buyUpgrade(

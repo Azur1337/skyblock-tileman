@@ -22,6 +22,7 @@ public abstract class TilemanChestScreen extends ContainerScreen {
     private final SimpleContainer container;
     private final int rows;
     private final Map<Integer, Runnable> clickHandlers = new HashMap<>();
+    private final Map<Integer, Runnable> rightClickHandlers = new HashMap<>();
     private int ticksSinceRefresh;
     // when set, closing this screen re-opens the caller (e.g. the Hub) instead of the game
     private Runnable returnTo;
@@ -71,10 +72,16 @@ public abstract class TilemanChestScreen extends ContainerScreen {
         clickHandlers.put(slotId, handler);
     }
 
+    // UI-DESIGN section 5: right click is the context jump, e.g. requirement -> milestone
+    protected void onRightClick(int slotId, Runnable handler) {
+        rightClickHandlers.put(slotId, handler);
+    }
+
     // Hypixel-style frame: every slot gets a dark pane, content is placed on top.
     protected void buildFrame() {
         container.clearContent();
         clickHandlers.clear();
+        rightClickHandlers.clear();
         for (int i = 0; i < rows * COLS; i++) {
             container.setItem(i, Theme.pane());
         }
@@ -103,13 +110,18 @@ public abstract class TilemanChestScreen extends ContainerScreen {
         int button,
         ContainerInput type
     ) {
-        // UI-DESIGN section 5: only a plain left click acts. Number keys arrive as SWAP with
-        // button 0-8 (so key "1" is button 0!) and double-click as PICKUP_ALL with button 0,
-        // so the mode must be checked, not just the button.
-        if (type != ContainerInput.PICKUP || button != 0) {
+        // UI-DESIGN section 5: left click acts, right click jumps; number keys arrive as
+        // SWAP with button 0-8 (so key "1" is button 0!) and double-click as PICKUP_ALL with
+        // button 0, so the mode must be checked, not just the button.
+        if (type != ContainerInput.PICKUP) {
             return;
         }
-        Runnable handler = clickHandlers.get(slotId);
+        Runnable handler =
+            button == 0
+                ? clickHandlers.get(slotId)
+                : button == 1
+                  ? rightClickHandlers.get(slotId)
+                  : null;
         if (handler != null) {
             handler.run();
         }

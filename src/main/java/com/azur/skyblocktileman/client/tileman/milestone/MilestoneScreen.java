@@ -15,6 +15,8 @@ import net.minecraft.world.item.Items;
 public class MilestoneScreen extends TilemanChestScreen {
 
     private MilestoneCategory currentCategory = null;
+    private MilestoneType highlight = null;
+    private String highlightFor = null;
 
     private MilestoneScreen() {
         super(6, Component.literal("Tileman Milestones"));
@@ -28,9 +30,27 @@ public class MilestoneScreen extends TilemanChestScreen {
         open(null, back);
     }
 
+    // deep link: open the category of one milestone and mark it as the requirement source
+    public static void open(
+        MilestoneType type,
+        String requiredFor,
+        Runnable back
+    ) {
+        open(type.getCategory(), type, requiredFor, back);
+    }
+
     // every view change re-opens a fresh screen instead of swapping items in place,
     // so mods that paint over the chest background redraw it for the new view
     private static void open(MilestoneCategory category, Runnable back) {
+        open(category, null, null, back);
+    }
+
+    private static void open(
+        MilestoneCategory category,
+        MilestoneType highlight,
+        String requiredFor,
+        Runnable back
+    ) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return;
@@ -38,6 +58,8 @@ public class MilestoneScreen extends TilemanChestScreen {
         client.schedule(() -> {
             MilestoneScreen screen = new MilestoneScreen();
             screen.currentCategory = category;
+            screen.highlight = highlight;
+            screen.highlightFor = requiredFor;
             screen.setReturnTo(back);
             screen.loadView();
             client.gui.setScreen(screen);
@@ -158,6 +180,7 @@ public class MilestoneScreen extends TilemanChestScreen {
         TilemanItem item = TilemanItem.of(type.getIcon())
             .name(
                 Theme.NAME +
+                    (type == highlight ? "§6>>> " : "") +
                     type.getDisplayName() +
                     " " +
                     Theme.DESC +
@@ -223,6 +246,11 @@ public class MilestoneScreen extends TilemanChestScreen {
 
         if (completedTier == maxTier) {
             item.glint();
+        }
+
+        if (type == highlight && highlightFor != null) {
+            item.blank();
+            item.value("Required by: " + highlightFor);
         }
 
         return item;

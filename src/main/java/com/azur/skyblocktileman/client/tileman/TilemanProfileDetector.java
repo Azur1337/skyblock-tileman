@@ -42,6 +42,8 @@ public final class TilemanProfileDetector {
     );
 
     private static String pendingProfileName = null;
+    private static long pendingProfileNameAtMs = 0;
+    private static String pendingApiProfileId = null;
 
     private TilemanProfileDetector() {}
 
@@ -67,6 +69,7 @@ public final class TilemanProfileDetector {
             String profileName = switchMatcher.group(1);
             if (PROFILE_NAMES.contains(profileName)) {
                 pendingProfileName = profileName;
+                pendingProfileNameAtMs = System.currentTimeMillis();
                 TilemanLog.debug(
                     DebugCategory.PROFILE,
                     "Detected profile switch to {}, waiting for ID",
@@ -97,6 +100,7 @@ public final class TilemanProfileDetector {
         String currentProfile = state.getActiveProfileId();
         if (profileId.equals(currentProfile)) {
             pendingProfileName = null;
+            pendingApiProfileId = null;
             return;
         }
 
@@ -112,8 +116,12 @@ public final class TilemanProfileDetector {
         SkillXpParser.resetTracking();
         // a live slayer quest belongs to the previous profile, drop it
         SlayerFeature.reset();
-        // profile changed after JOIN already ran its skip-check; re-sync baseline
-        TilemanLoginHandler.fetchBaselineIfNeeded();
+        // profile changed after JOIN already ran its skip-check; re-sync baseline, unless the
+        // adoption came from the API result itself (it already is the fresh baseline)
+        if (!"api".equals(source)) {
+            TilemanLoginHandler.fetchBaselineIfNeeded();
+        }
+        pendingApiProfileId = null;
 
         String name = cuteName != null ? cuteName : pendingProfileName;
         if (name != null && !firstDetection) {
@@ -124,5 +132,43 @@ public final class TilemanProfileDetector {
             TilemanChat.info("Loaded Tileman profile: " + profileId);
         }
         pendingProfileName = null;
+    }
+
+    // True while chat saw a profile switch but the Profile ID line never arrived, e.g. a
+    // chat mod ate it. Expires so a lost line cannot pin the warp-skip on the baseline fetch.
+    static boolean isAwaitingProfileId() {
+        return (
+            pendingProfileName != null &&
+            System.currentTimeMillis() - pendingProfileNameAtMs < 60_000
+        );
+    }
+
+    // Backstop when chat mods eat both the Profile ID line and the locraw reply: the
+    // profiles API knows which profile is selected. Adopt on a cute-name match with the
+    // pending chat switch, else require two consecutive identical mismatched results so a
+    // response issued mid-switch cannot revert a fresher adoption.
+    public static void confirmFromApi(String profileId, String cuteName) {
+        if (profileId == null || profileId.isEmpty()) {
+            return;
+        }
+        String current = TilemanState.getInstance().getActiveProfileId();
+        if (profileId.equals(current)) {
+            pendingApiProfileId = null;
+            return;
+        }
+        if (
+            (cuteName != null && cuteName.equals(pendingProfileName)) ||
+            profileId.equals(pendingApiProfileId)
+        ) {
+            handleProfileId(profileId, cuteName, "api");
+        } else {
+            pendingApiProfileId = profileId;
+            TilemanLog.debug(
+                DebugCategory.PROFILE,
+                "API selected profile {} differs from active {}, awaiting confirmation",
+                profileId,
+                current
+            );
+        }
     }
 }

@@ -81,10 +81,12 @@ public final class TilemanLoginHandler {
         }
         String activeProfile = TilemanState.getInstance().getActiveProfileId();
         // skip only when the profile is known-decided; an undecided profile must re-fetch,
-        // else a reconnect leaves it un-promptable until restart
+        // else a reconnect leaves it un-promptable until restart. Awaiting a profile id from
+        // chat also forces the fetch: the switch happened, the ID line just got eaten.
         if (
             activeProfile.equals(lastFetchedProfileId) &&
-            TilemanState.getInstance().getTilemanMode() != null
+            TilemanState.getInstance().getTilemanMode() != null &&
+            !TilemanProfileDetector.isAwaitingProfileId()
         ) {
             return;
         }
@@ -180,7 +182,13 @@ public final class TilemanLoginHandler {
         }
 
         TilemanState state = TilemanState.getInstance();
-        state.setActiveProfile(result.profileId());
+        // the API's selected profile is authoritative; adopt through the shared idempotent
+        // path so a switch survives chat mods eating the switch lines and locraw alike
+        TilemanProfileDetector.handleProfileId(
+            result.profileId(),
+            result.cuteName(),
+            "api"
+        );
         lastFetchedProfileId = result.profileId();
         lastProfilesResult = result;
 

@@ -7,6 +7,7 @@ import com.azur.skyblocktileman.client.tileman.TilemanChat;
 import com.azur.skyblocktileman.client.tileman.TilemanConfig;
 import com.azur.skyblocktileman.client.tileman.TilemanLog;
 import com.azur.skyblocktileman.client.tileman.TilemanLoginHandler;
+import com.azur.skyblocktileman.client.tileman.TilemanProfileDetector;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.XpReconciler;
 import java.util.Map;
@@ -170,6 +171,11 @@ public class DungeonTracker {
                 "Skipping dungeon result for profile {} (active is {})",
                 result.profileId(),
                 activeProfile
+            );
+            // the mismatch may be a switch that chat mods hid; let the detector try to adopt
+            TilemanProfileDetector.confirmFromApi(
+                result.profileId(),
+                result.cuteName()
             );
             return;
         }

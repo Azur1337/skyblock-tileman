@@ -1,3 +1,5 @@
+![Skyblock Tileman](assets/wordmark.png)
+
 # Skyblock Tileman
 
 Fabric client mod for Hypixel Skyblock that enforces a Tileman challenge: you may only stand on blocks you have unlocked. Unlocks cost tokens, tokens are earned from Skill XP. Built for [Derailious](https://www.youtube.com/@Derailious)'s Tileman series, and generally usable by anyone playing the challenge.
@@ -37,16 +39,16 @@ Grab `skyblocktileman-<version>-shadow.jar` from [Releases](../../releases) and 
 
 ## Commands
 
-| Command                                     | What it does                      |
-| ------------------------------------------- | --------------------------------- |
-| `/tileman`                                  | Opens the hub menu                |
-| `/tileman shop` / `milestones` / `dungeons` | Jump straight to a menu           |
-| `/tileman unlock <floor>`                   | Unlock a dungeon floor, e.g. `M7` |
-| `/tileman config`                           | Settings                          |
-| `/tileman enable [on                        | off]`                             | Master toggle                        |
-| `/tileman optin [on                         | off]`                             | Tileman mode for the current profile |
-| `/tileman overlay [on                       | off]`                             | Unlocked tile highlight              |
-| `/tileman debug [on                         | off]`                             | Mirror debug logs into chat          |
+| Command                                     | What it does                         |
+| ------------------------------------------- | ------------------------------------ |
+| `/tileman`                                  | Opens the hub menu                   |
+| `/tileman shop` / `milestones` / `dungeons` | Jump straight to a menu              |
+| `/tileman unlock <floor>`                   | Unlock a dungeon floor, e.g. `M7`    |
+| `/tileman config`                           | Settings                             |
+| `/tileman enable [on \| off]`               | Master toggle                        |
+| `/tileman optin [on \| off]`                | Tileman mode for the current profile |
+| `/tileman overlay [on \| off]`              | Unlocked tile highlight              |
+| `/tileman debug [on \| off]`                | Mirror debug logs into chat          |
 
 ## Keybinds
 
@@ -78,3 +80,5 @@ The key is bundled into the jar as a resource, which is why the build requires i
 ## License
 
 CC0-1.0, see [LICENSE](LICENSE).
+
+![Skyblock Tileman teaser](assets/teaser.png)

@@ -50,6 +50,7 @@ SETTINGS-DESIGN.md
 
 .env
 *.png
+!assets/*.png
 meow.md
 youtuberinfo/
 crash-*.txt

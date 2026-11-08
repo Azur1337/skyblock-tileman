@@ -183,13 +183,13 @@ public class TilemanShopScreen extends TilemanChestScreen {
         Item icon,
         int maxLevel,
         IntSupplier levelGet,
-        IntUnaryOperator priceFn,
+        IntUnaryOperator priceFor,
         IntConsumer levelSet,
         String... desc
     ) {
         int tokens = TilemanState.getInstance().getTokens();
         int level = levelGet.getAsInt();
-        int price = priceFn.applyAsInt(level);
+        int price = priceFor.applyAsInt(level);
 
         TilemanItem item = TilemanItem.of(icon);
         String status = null;
@@ -244,7 +244,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
         setItem(slot, item.build());
 
         onClick(slot, () ->
-            buyUpgrade(label, reqKey, maxLevel, levelGet, priceFn, levelSet)
+            buyUpgrade(label, reqKey, maxLevel, levelGet, priceFor, levelSet)
         );
 
         if (requirementLocked) {
@@ -296,9 +296,8 @@ public class TilemanShopScreen extends TilemanChestScreen {
         ShopData shop = TilemanState.getInstance().getShop();
         int tokens = TilemanState.getInstance().getTokens();
 
-        String remoteReq = ShopRequirements.getConsumableRequirementText(
-            "remote_unlock"
-        );
+        String remoteRequirement =
+            ShopRequirements.getConsumableRequirementText("remote_unlock");
         boolean remoteReady = shop.isRemoteUnlockPending();
         int remotePrice = ShopData.getRemoteUnlockPrice();
 
@@ -306,7 +305,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             .name(
                 Theme.NAME +
                     "Remote Unlock " +
-                    (remoteReq != null
+                    (remoteRequirement != null
                         ? Theme.BAD + "[LOCKED]"
                         : remoteReady
                           ? Theme.GOOD + "[ACTIVE]"
@@ -314,8 +313,8 @@ public class TilemanShopScreen extends TilemanChestScreen {
             )
             .blank()
             .desc("Next unlock ignores adjacency");
-        if (remoteReq != null) {
-            remote.bad(remoteReq);
+        if (remoteRequirement != null) {
+            remote.bad(remoteRequirement);
             remote.action("Right click: view milestone");
         } else if (remoteReady) {
             remote.good("Ready to use!");
@@ -342,9 +341,8 @@ public class TilemanShopScreen extends TilemanChestScreen {
             );
         });
 
-        String frenzyReq = ShopRequirements.getConsumableRequirementText(
-            "xp_frenzy"
-        );
+        String frenzyRequirement =
+            ShopRequirements.getConsumableRequirementText("xp_frenzy");
         boolean frenzyActive = shop.isXpFrenzyActive();
         int frenzyPrice = ShopData.getXpFrenzyPrice();
         int power = 50 + shop.getFrenzyPowerLevel() * 10;
@@ -354,7 +352,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             .name(
                 Theme.NAME +
                     "XP Frenzy " +
-                    (frenzyReq != null
+                    (frenzyRequirement != null
                         ? Theme.BAD + "[LOCKED]"
                         : frenzyActive
                           ? Theme.GOOD + "[ACTIVE]"
@@ -362,8 +360,8 @@ public class TilemanShopScreen extends TilemanChestScreen {
             )
             .blank()
             .desc("+" + power + "% XP for " + duration + " minutes");
-        if (frenzyReq != null) {
-            frenzy.bad(frenzyReq);
+        if (frenzyRequirement != null) {
+            frenzy.bad(frenzyRequirement);
             frenzy.action("Right click: view milestone");
         } else if (frenzyActive) {
             frenzy.good(
@@ -399,13 +397,13 @@ public class TilemanShopScreen extends TilemanChestScreen {
             remoteSlot,
             "remote_unlock",
             "Remote Unlock",
-            remoteReq != null
+            remoteRequirement != null
         );
         addConsumableRequirementJump(
             frenzySlot,
             "xp_frenzy",
             "XP Frenzy",
-            frenzyReq != null
+            frenzyRequirement != null
         );
     }
 
@@ -437,7 +435,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
         String reqKey,
         int maxLevel,
         IntSupplier levelGet,
-        IntUnaryOperator priceFn,
+        IntUnaryOperator priceFor,
         IntConsumer levelSet
     ) {
         TilemanState state = TilemanState.getInstance();
@@ -452,7 +450,7 @@ public class TilemanShopScreen extends TilemanChestScreen {
             TilemanChat.warn(reqText);
             return;
         }
-        int price = priceFn.applyAsInt(level);
+        int price = priceFor.applyAsInt(level);
         if (!state.spendTokens(price)) {
             TilemanChat.warn(
                 "Not enough tokens! Need " +

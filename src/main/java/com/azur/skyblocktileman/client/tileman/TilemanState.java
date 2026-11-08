@@ -56,6 +56,10 @@ public final class TilemanState {
         8500, // levels 50-60
     };
 
+    // token cost never drops below this, even with Efficient Scaling or a bad balance.json
+    private static final int MIN_TOKEN_COST = 50;
+    private static final int LEVELS_PER_BAND = 10;
+
     private static final String[] TOKEN_SKILLS = {
         "Combat",
         "Mining",
@@ -141,7 +145,11 @@ public final class TilemanState {
     }
 
     public static int tokenBandCost(int band) {
-        return Balance.getInt("token.band." + band, TOKEN_BAND_COSTS[band], 50);
+        return Balance.getInt(
+            "token.band." + band,
+            TOKEN_BAND_COSTS[band],
+            MIN_TOKEN_COST
+        );
     }
 
     // bumped when unlocked tiles or the active island change, so cached views can detect staleness
@@ -521,7 +529,7 @@ public final class TilemanState {
 
         int bonus = activeProfile().getShop().getEfficientScalingBonus();
         if (bonus > 0) {
-            cost = Math.max(50, cost - (cost * bonus) / 100);
+            cost = Math.max(MIN_TOKEN_COST, cost - (cost * bonus) / 100);
         }
 
         return cost;
@@ -529,7 +537,7 @@ public final class TilemanState {
 
     private int getSkillTokenCostInternal(String skill) {
         int band = Math.min(
-            getSkillLevel(skill) / 10,
+            getSkillLevel(skill) / LEVELS_PER_BAND,
             TOKEN_BAND_COSTS.length - 1
         );
         return tokenBandCost(band);
@@ -644,6 +652,9 @@ public final class TilemanState {
         return true;
     }
 
+    // smallest shape extent in an axis that still counts as a full block
+    private static final double FULL_BLOCK_EXTENT = 0.9;
+
     private boolean isFullSolidBlock(
         BlockState state,
         Level level,
@@ -669,8 +680,10 @@ public final class TilemanState {
         double minY = shape.min(net.minecraft.core.Direction.Axis.Y);
         double maxY = shape.max(net.minecraft.core.Direction.Axis.Y);
 
-        boolean fullHorizontal = maxX - minX >= 0.9 && maxZ - minZ >= 0.9;
-        boolean significantHeight = maxY - minY >= 0.9;
+        boolean fullHorizontal =
+            maxX - minX >= FULL_BLOCK_EXTENT &&
+            maxZ - minZ >= FULL_BLOCK_EXTENT;
+        boolean significantHeight = maxY - minY >= FULL_BLOCK_EXTENT;
 
         return fullHorizontal && significantHeight;
     }

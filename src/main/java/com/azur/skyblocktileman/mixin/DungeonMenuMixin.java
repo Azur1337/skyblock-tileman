@@ -21,7 +21,7 @@ public abstract class DungeonMenuMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void tileman$onMouseClicked(
         MouseButtonEvent event,
-        boolean flag,
+        boolean isDoubleClick,
         CallbackInfoReturnable<Boolean> cir
     ) {
         if (!TilemanState.getInstance().isTilemanActive()) {

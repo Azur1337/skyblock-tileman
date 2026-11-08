@@ -39,6 +39,9 @@ public final class SkillXpParser {
         Map.entry("Social", 25)
     );
 
+    // max level assumed for skills missing from SKILL_MAX_LEVELS
+    private static final int DEFAULT_MAX_SKILL_LEVEL = 60;
+
     private static final long[] XP_REQUIRED = {
         0L, // 0
         50L, // 1
@@ -123,13 +126,6 @@ public final class SkillXpParser {
 
     private SkillXpParser() {}
 
-    public static void resetTracking() {
-        TilemanLog.debug(
-            DebugCategory.ACTION_BAR,
-            "Reset skill XP tracking for profile switch"
-        );
-    }
-
     public static int getLevelForXp(long totalXp) {
         for (int i = CUMULATIVE_XP.length - 1; i >= 0; i--) {
             if (totalXp >= CUMULATIVE_XP[i]) {
@@ -161,7 +157,10 @@ public final class SkillXpParser {
 
                 if (needed == 0) {
                     // needed == 0 means max level, where current is overflow XP past the cap
-                    int maxLevel = SKILL_MAX_LEVELS.getOrDefault(skill, 60);
+                    int maxLevel = SKILL_MAX_LEVELS.getOrDefault(
+                        skill,
+                        DEFAULT_MAX_SKILL_LEVEL
+                    );
                     level = maxLevel;
                     totalXp = CUMULATIVE_XP[maxLevel] + current;
 
@@ -266,7 +265,10 @@ public final class SkillXpParser {
     }
 
     private static long skillXpCap(String skill) {
-        int maxLevel = SKILL_MAX_LEVELS.getOrDefault(skill, 60);
+        int maxLevel = SKILL_MAX_LEVELS.getOrDefault(
+            skill,
+            DEFAULT_MAX_SKILL_LEVEL
+        );
         return CUMULATIVE_XP[maxLevel];
     }
 
@@ -397,8 +399,8 @@ public final class SkillXpParser {
         MilestoneTracker.getInstance().onXpGained(skill, xpGained);
     }
 
-    private static long parseXpNumber(String str) {
-        String cleaned = str.replace(",", "").toLowerCase();
+    private static long parseXpNumber(String rawText) {
+        String cleaned = rawText.replace(",", "").toLowerCase();
         double multiplier = 1;
         if (cleaned.endsWith("k")) {
             multiplier = 1_000;

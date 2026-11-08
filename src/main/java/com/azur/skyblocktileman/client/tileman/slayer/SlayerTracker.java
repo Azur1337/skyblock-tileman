@@ -10,7 +10,6 @@ import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
 import com.azur.skyblocktileman.slayer.FailReason;
 import com.azur.skyblocktileman.slayer.SlayerBoss;
 import com.azur.skyblocktileman.slayer.SlayerTier;
-import com.azur.skyblocktileman.slayer.TierSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
 
@@ -25,8 +24,6 @@ public class SlayerTracker {
     private boolean questActive = false;
     private SlayerBoss boss = null;
     private SlayerTier tier = SlayerTier.UNKNOWN;
-    private boolean bossSpawned = false;
-    private boolean bossSlain = false;
     private boolean tainted = false; // stepped on a locked tile during the quest
 
     public static SlayerTracker getInstance() {
@@ -42,15 +39,12 @@ public class SlayerTracker {
         questActive = true;
         boss = null;
         tier = SlayerTier.UNKNOWN;
-        bossSpawned = false;
-        bossSlain = false;
         tainted = false;
     }
 
     public void onQuestIdentified(
         SlayerBoss identified,
-        SlayerTier identifiedTier,
-        TierSource source
+        SlayerTier identifiedTier
     ) {
         boolean wasTracking = tier.atLeast(SlayerTier.FOUR);
         boss = identified;
@@ -69,8 +63,7 @@ public class SlayerTracker {
         }
     }
 
-    public void onBossSpawned(SlayerBoss spawned, SlayerTier spawnedTier) {
-        bossSpawned = true;
+    public void onBossSpawned(SlayerTier spawnedTier) {
         if (spawnedTier.known() && !tier.known()) {
             tier = spawnedTier;
         }
@@ -83,7 +76,6 @@ public class SlayerTracker {
 
     /** Kill moment. Cleanliness is judged at turn-in, not here. */
     public void onBossSlain(SlayerBoss slain, SlayerTier slainTier) {
-        bossSlain = true;
         TilemanLog.debug(
             DebugCategory.SLAYER,
             "[TRACKER] Boss slain: {} T{} tainted={}",
@@ -197,8 +189,6 @@ public class SlayerTracker {
         questActive = false;
         boss = null;
         tier = SlayerTier.UNKNOWN;
-        bossSpawned = false;
-        bossSlain = false;
         tainted = false;
     }
 

@@ -191,7 +191,7 @@ public final class SlayerFeature {
                     e.tier(),
                     e.source()
                 );
-                tracker.onQuestIdentified(e.boss(), e.tier(), e.source());
+                tracker.onQuestIdentified(e.boss(), e.tier());
             }
             case SlayerEvent.BossSpawned e -> {
                 TilemanLog.debug(
@@ -200,7 +200,7 @@ public final class SlayerFeature {
                     e.boss(),
                     e.tier()
                 );
-                tracker.onBossSpawned(e.boss(), e.tier());
+                tracker.onBossSpawned(e.tier());
             }
             case SlayerEvent.BossSlain e -> tracker.onBossSlain(
                 e.boss(),

@@ -13,6 +13,11 @@ public class ShopData {
     private static final int[] LUCKY_REFUND_PCT = { 5, 10, 15, 20, 20, 20 };
     private static final int[] LUCKY_GAIN_PCT = { 0, 0, 0, 0, 5, 10 };
 
+    private static final int FRENZY_BASE_MINUTES = 15;
+    private static final int FRENZY_MINUTES_PER_LEVEL = 5;
+    private static final int FRENZY_BASE_POWER = 50;
+    private static final int FRENZY_POWER_PER_LEVEL = 10;
+
     private int luckyUnlockLevel = 0;
     private int efficientScalingLevel = 0;
     private final Map<String, Integer> skillAffinityLevels = new HashMap<>();
@@ -113,8 +118,11 @@ public class ShopData {
     }
 
     public void activateXpFrenzy() {
-        int durationMinutes = 15 + frenzyDurationLevel * 5;
-        int power = 50 + frenzyPowerLevel * 10;
+        int durationMinutes =
+            FRENZY_BASE_MINUTES +
+            frenzyDurationLevel * FRENZY_MINUTES_PER_LEVEL;
+        int power =
+            FRENZY_BASE_POWER + frenzyPowerLevel * FRENZY_POWER_PER_LEVEL;
         // absolute expiry, so lag spikes and logouts cannot freeze or stretch the timer
         this.xpFrenzyExpiresAtMs =
             System.currentTimeMillis() + durationMinutes * 60_000L;

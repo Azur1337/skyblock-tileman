@@ -234,10 +234,9 @@ public final class DungeonScreenHandler {
             floor.getId()
         );
 
-        final DungeonFloor floorToUnlock = floor;
         Minecraft client = Minecraft.getInstance();
         client.schedule(() -> {
-            DungeonUnlockScreen.open(floorToUnlock);
+            DungeonUnlockScreen.open(floor);
         });
 
         return true;

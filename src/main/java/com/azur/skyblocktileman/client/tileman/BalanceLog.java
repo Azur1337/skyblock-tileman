@@ -12,15 +12,16 @@ import java.util.List;
 // when deciding balance changes. Trimmed on first write once it gets large.
 public final class BalanceLog {
 
-    private static final Path FILE = TilemanState.getSaveDir()
-        .resolve("balance_log.csv");
+    private static final Path FILE = TilemanState.getSaveDir().resolve(
+        "balance_log.csv"
+    );
     private static final int MAX_LINES = 20000;
     private static final int KEEP_LINES = 15000;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern(
         "yyyy-MM-dd HH:mm:ss"
     );
 
-    private static boolean trimmed;
+    private static boolean hasTrimmed;
 
     private BalanceLog() {}
 
@@ -31,7 +32,7 @@ public final class BalanceLog {
         long balance
     ) {
         try {
-            if (!trimmed) {
+            if (!hasTrimmed) {
                 trimIfNeeded();
             }
             if (!Files.exists(FILE)) {
@@ -70,7 +71,7 @@ public final class BalanceLog {
     }
 
     private static void trimIfNeeded() {
-        trimmed = true;
+        hasTrimmed = true;
         try {
             if (!Files.exists(FILE)) {
                 return;

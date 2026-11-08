@@ -27,8 +27,8 @@ public class SlayerData {
         if (boss == null) {
             return NONE;
         }
-        SlayerStats s = stats.get(boss.name());
-        return s == null ? NONE : s;
+        SlayerStats existing = stats.get(boss.name());
+        return existing == null ? NONE : existing;
     }
 
     private SlayerStats getOrCreateStats(SlayerBoss boss) {
@@ -51,19 +51,19 @@ public class SlayerData {
         if (boss == null) {
             return;
         }
-        SlayerStats s = getOrCreateStats(boss);
-        s.totalCompletions++;
+        SlayerStats bossStats = getOrCreateStats(boss);
+        bossStats.totalCompletions++;
 
         if (tier.atLeast(SlayerTier.FOUR)) {
-            s.t4PlusKills++;
-            s.flawlessT4Plus++;
+            bossStats.t4PlusKills++;
+            bossStats.flawlessT4Plus++;
             totalFlawlessT4Plus++;
             currentFlawlessStreak++;
             if (currentFlawlessStreak > bestFlawlessStreak) {
                 bestFlawlessStreak = currentFlawlessStreak;
             }
-            if (currentFlawlessStreak > s.bestStreak) {
-                s.bestStreak = currentFlawlessStreak;
+            if (currentFlawlessStreak > bossStats.bestStreak) {
+                bossStats.bestStreak = currentFlawlessStreak;
             }
         }
     }
@@ -76,12 +76,12 @@ public class SlayerData {
         if (boss == null) {
             return;
         }
-        SlayerStats s = getOrCreateStats(boss);
-        s.totalCompletions++;
+        SlayerStats bossStats = getOrCreateStats(boss);
+        bossStats.totalCompletions++;
 
         // tainted kills still count toward kill milestones, just not flawless ones
         if (tier.atLeast(SlayerTier.FOUR)) {
-            s.t4PlusKills++;
+            bossStats.t4PlusKills++;
             currentFlawlessStreak = 0;
         }
     }

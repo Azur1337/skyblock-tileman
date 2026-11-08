@@ -19,6 +19,12 @@ public final class TilemanHealthHandler {
     private static final long ON_TILE_GRACE_MS = 1000;
     // the white damage trail slides down over this duration
     private static final float TRAIL_PER_MS = 1f / 2500f;
+    // a suspended or lagging client must not book one huge drain step
+    private static final long MAX_TICK_DELTA_MS = 1000L;
+    // refresh blindness this close to expiry so it never visibly lapses
+    private static final int EFFECT_REFRESH_TICKS = 40;
+    private static final int BLINDNESS_DURATION_TICKS = 100;
+    private static final long COLLAPSE_FLASH_MS = 600;
 
     private static final int BAR_WIDTH = 72;
     public static final int BAR_HEIGHT = 6;
@@ -50,7 +56,8 @@ public final class TilemanHealthHandler {
 
     private static void onEndTick(Minecraft client) {
         long now = System.currentTimeMillis();
-        long dt = lastTickMs == 0 ? 0 : Math.min(now - lastTickMs, 1000L);
+        long dt =
+            lastTickMs == 0 ? 0 : Math.min(now - lastTickMs, MAX_TICK_DELTA_MS);
         lastTickMs = now;
 
         TilemanConfig config = TilemanConfig.getInstance();
@@ -155,12 +162,20 @@ public final class TilemanHealthHandler {
                         )
                     );
                 }
-            } else if (active == null || active.endsWithin(40)) {
+            } else if (
+                active == null || active.endsWithin(EFFECT_REFRESH_TICKS)
+            ) {
                 if (active != null) {
                     client.player.removeEffect(effect);
                 }
                 client.player.addEffect(
-                    new MobEffectInstance(effect, 100, 0, false, false)
+                    new MobEffectInstance(
+                        effect,
+                        BLINDNESS_DURATION_TICKS,
+                        0,
+                        false,
+                        false
+                    )
                 );
             }
         } else if (active != null) {
@@ -173,7 +188,7 @@ public final class TilemanHealthHandler {
         trail = 1f;
         offMs = 0;
         onMs = 0;
-        flashUntilMs = System.currentTimeMillis() + 600;
+        flashUntilMs = System.currentTimeMillis() + COLLAPSE_FLASH_MS;
         clearEffects(client);
 
         if (

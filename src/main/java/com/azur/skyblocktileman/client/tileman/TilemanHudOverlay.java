@@ -65,7 +65,6 @@ public final class TilemanHudOverlay {
 
     private static boolean moveMode = false;
     private static boolean dragging = false;
-    private static boolean draggedThisSession = false;
     private static boolean previousLeftPressed = false;
     private static boolean pendingMouseRelease = false;
     private static int dragOffsetX = 0;
@@ -133,7 +132,6 @@ public final class TilemanHudOverlay {
         savedY = config.getHudY();
         moveMode = true;
         dragging = false;
-        draggedThisSession = false;
         previousLeftPressed = false;
         // release happens in the render loop: the screen-close path grabs the mouse
         // again after this method returns, so releasing here would be undone
@@ -562,7 +560,6 @@ public final class TilemanHudOverlay {
                 mouseY <= bottom
             ) {
                 dragging = true;
-                draggedThisSession = true;
                 dragOffsetX = (int) Math.round(mouseX) - anchorX;
                 dragOffsetY = (int) Math.round(mouseY) - anchorY;
             }
@@ -640,7 +637,6 @@ public final class TilemanHudOverlay {
     private static void endMoveMode(Minecraft client) {
         moveMode = false;
         dragging = false;
-        draggedThisSession = false;
         pendingMouseRelease = false;
         client.mouseHandler.grabMouse();
     }

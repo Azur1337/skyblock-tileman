@@ -131,11 +131,11 @@ public class DungeonUnlockScreen extends TilemanChestScreen {
         item.blank();
         item.desc("Clear rewards:");
         item.desc("First 10 clears: " + floor.getBaseReward() + " tokens each");
-        item.desc(
-            "Clears 11-50: " +
-                Math.max(1, floor.getBaseReward() / 10) +
-                " tokens each"
+        int decayedReward = Math.max(
+            1,
+            floor.getBaseReward() / DungeonFloor.REWARD_DECAY_DIVISOR
         );
+        item.desc("Clears 11-50: " + decayedReward + " tokens each");
         return item;
     }
 }

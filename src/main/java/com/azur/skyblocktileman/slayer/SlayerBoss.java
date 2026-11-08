@@ -74,6 +74,9 @@ public enum SlayerBoss {
         900
     );
 
+    private static final int MIN_TIER_TOLERANCE_XP = 50;
+    private static final int TIER_TOLERANCE_DIVISOR = 4;
+
     private final String displayName;
     private final String highTierName;
     private final String[] mobKeywords;
@@ -164,7 +167,10 @@ public enum SlayerBoss {
         }
 
         // within 25% of the threshold, otherwise we are guessing
-        long tolerance = Math.max(50, combatXpToSpawn[best.value() - 1] / 4);
+        long tolerance = Math.max(
+            MIN_TIER_TOLERANCE_XP,
+            combatXpToSpawn[best.value() - 1] / TIER_TOLERANCE_DIVISOR
+        );
         return bestDistance <= tolerance ? best : SlayerTier.UNKNOWN;
     }
 

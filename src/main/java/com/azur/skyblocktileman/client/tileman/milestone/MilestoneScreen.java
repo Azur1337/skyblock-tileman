@@ -155,12 +155,12 @@ public class MilestoneScreen extends TilemanChestScreen {
             if (type.getCategory() != category) {
                 continue;
             }
-            int row = 1 + index / 7;
+            int row = 1 + index / ITEMS_PER_ROW;
             if (row > footerRow() - 1) {
                 break;
             }
             setItem(
-                slot(row, 1 + (index % 7)),
+                slot(row, 1 + (index % ITEMS_PER_ROW)),
                 createMilestoneItem(type).build()
             );
             index++;
@@ -255,6 +255,8 @@ public class MilestoneScreen extends TilemanChestScreen {
 
         return item;
     }
+
+    private static final int ITEMS_PER_ROW = 7;
 
     private static final int BAR_WIDTH = 20;
 

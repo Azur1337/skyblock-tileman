@@ -17,24 +17,24 @@ public final class Fmt {
 
     // fixed-dot abbreviations, never comma decimals: 12.5K / 3.4M / 1.1B
     public static String compact(long amount) {
-        double v = amount;
-        if (v >= 1_000_000_000) {
-            return trim(v / 1_000_000_000) + "B";
+        double value = amount;
+        if (value >= 1_000_000_000) {
+            return trim(value / 1_000_000_000) + "B";
         }
-        if (v >= 1_000_000) {
-            return trim(v / 1_000_000) + "M";
+        if (value >= 1_000_000) {
+            return trim(value / 1_000_000) + "M";
         }
-        if (v >= 10_000) {
-            return trim(v / 1_000) + "K";
+        if (value >= 10_000) {
+            return trim(value / 1_000) + "K";
         }
         return Long.toString(amount);
     }
 
     private static String trim(double value) {
-        String s = String.format(Locale.US, "%.1f", value);
-        if (s.endsWith(".0")) {
-            s = s.substring(0, s.length() - 2);
+        String text = String.format(Locale.US, "%.1f", value);
+        if (text.endsWith(".0")) {
+            text = text.substring(0, text.length() - 2);
         }
-        return s;
+        return text;
     }
 }

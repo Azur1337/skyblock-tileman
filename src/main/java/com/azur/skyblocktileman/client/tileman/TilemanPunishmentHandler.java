@@ -33,6 +33,8 @@ public final class TilemanPunishmentHandler {
     private static BlockPos lastPos = null;
     // 15 blocks in one tick is beyond any movement, so a larger jump means a teleport
     private static final long TELEPORT_DIST_SQR = 225;
+    private static final double STAND_BELOW_TOL = 0.1;
+    private static final double STAND_ABOVE_TOL = 1.0;
 
     public static boolean isInTransferGrace() {
         return System.currentTimeMillis() < graceUntilMs;
@@ -316,7 +318,10 @@ public final class TilemanPunishmentHandler {
 
             double blockTop = checkY + shape.max(Direction.Axis.Y);
             // Wider range (up to 1.0 above the top) so stairs, slabs and jumps still count
-            if (playerY >= blockTop - 0.1 && playerY <= blockTop + 1.0) {
+            if (
+                playerY >= blockTop - STAND_BELOW_TOL &&
+                playerY <= blockTop + STAND_ABOVE_TOL
+            ) {
                 return pos;
             }
         }

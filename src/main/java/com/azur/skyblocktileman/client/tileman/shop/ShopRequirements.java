@@ -132,10 +132,10 @@ public class ShopRequirements {
             return null;
         }
         String key = itemKey + "_" + targetLevel;
-        Requirement req = REQUIREMENTS.get(key);
-        if (req == null) return null;
-        if (req.isMet()) return null;
-        return req.getDisplayText();
+        Requirement requirement = REQUIREMENTS.get(key);
+        if (requirement == null) return null;
+        if (requirement.isMet()) return null;
+        return requirement.getDisplayText();
     }
 
     private static String formatXp(long xp) {
@@ -149,10 +149,10 @@ public class ShopRequirements {
     }
 
     public static String getConsumableRequirementText(String itemKey) {
-        Requirement req = REQUIREMENTS.get(itemKey);
-        if (req == null) return null;
-        if (req.isMet()) return null;
-        return req.getDisplayText();
+        Requirement requirement = REQUIREMENTS.get(itemKey);
+        if (requirement == null) return null;
+        if (requirement.isMet()) return null;
+        return requirement.getDisplayText();
     }
 
     // The milestone behind a locked upgrade, for the right click jump. The Lucky Unlock
@@ -164,11 +164,11 @@ public class ShopRequirements {
         if (itemKey.equals("lucky_unlock")) {
             return MilestoneType.TOTAL_XP;
         }
-        Requirement req = REQUIREMENTS.get(itemKey + "_" + targetLevel);
-        if (req == null) {
-            req = REQUIREMENTS.get(itemKey);
+        Requirement requirement = REQUIREMENTS.get(itemKey + "_" + targetLevel);
+        if (requirement == null) {
+            requirement = REQUIREMENTS.get(itemKey);
         }
-        return req == null ? null : req.milestone();
+        return requirement == null ? null : requirement.milestone();
     }
 
     public record Requirement(MilestoneType milestone, int requiredTier) {

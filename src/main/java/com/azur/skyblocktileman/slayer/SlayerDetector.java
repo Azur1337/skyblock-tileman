@@ -69,9 +69,12 @@ public final class SlayerDetector {
     /** Ticks a "You were killed by" line stays useful as failure evidence. */
     private static final int DEATH_SIGHTING_TICKS = 40;
 
+    /** Quest block under the scoreboard header: boss name plus two phase lines. */
+    private static final int QUEST_LINES_BELOW_HEADER = 3;
+
     private final List<Consumer<SlayerEvent>> listeners = new ArrayList<>();
 
-    private boolean active;
+    private boolean questActive;
     private SlayerBoss boss;
     private SlayerTier tier = SlayerTier.UNKNOWN;
     private TierSource tierSource = TierSource.NONE;
@@ -95,7 +98,7 @@ public final class SlayerDetector {
     }
 
     public Optional<SlayerQuest> current() {
-        if (!active) {
+        if (!questActive) {
             return Optional.empty();
         }
         return Optional.of(
@@ -164,7 +167,7 @@ public final class SlayerDetector {
         // here would credit a miniboss kill as a boss kill
         Matcher miniboss = MINIBOSS_SPAWNED.matcher(text);
         if (miniboss.find()) {
-            if (active) {
+            if (questActive) {
                 emit(new SlayerEvent.MinibossSpawned(miniboss.group(1)));
             }
             return;
@@ -207,7 +210,7 @@ public final class SlayerDetector {
 
     private void beginQuest() {
         clearQuest();
-        active = true;
+        questActive = true;
         emit(new SlayerEvent.QuestStarted());
         tryIdentify();
     }
@@ -217,7 +220,7 @@ public final class SlayerDetector {
         SlayerBoss fromMob = SlayerBoss.fromMobText(mobText);
 
         // must run before assigning boss/xp: beginQuest clears the quest state
-        if (!active) {
+        if (!questActive) {
             // requirement can reach us before the started line
             beginQuest();
         }
@@ -249,7 +252,7 @@ public final class SlayerDetector {
             boss = named;
         }
 
-        if (!active) {
+        if (!questActive) {
             beginQuest();
         }
 
@@ -276,7 +279,7 @@ public final class SlayerDetector {
     }
 
     private void onTurnedIn() {
-        if (!active) {
+        if (!questActive) {
             return;
         }
         emit(new SlayerEvent.QuestTurnedIn(boss, tier));
@@ -287,7 +290,7 @@ public final class SlayerDetector {
     private void fail(FailReason reason) {
         failReasonCountdown = -1;
         deathSightingCountdown = -1;
-        if (!active) {
+        if (!questActive) {
             return;
         }
         emit(new SlayerEvent.QuestFailed(reason));
@@ -302,7 +305,7 @@ public final class SlayerDetector {
      * list means no sidebar available, not that the quest disappeared.
      */
     public void onScoreboard(List<String> lines) {
-        if (!active) {
+        if (!questActive) {
             if (hasQuestHeader(lines)) {
                 beginQuest();
             } else {
@@ -325,7 +328,11 @@ public final class SlayerDetector {
         sawHeaderThisQuest = true;
         boolean sawBoss = false;
 
-        for (int i = header + 1; i < lines.size() && i <= header + 3; i++) {
+        for (
+            int i = header + 1;
+            i < lines.size() && i <= header + QUEST_LINES_BELOW_HEADER;
+            i++
+        ) {
             String raw = lines.get(i);
             String line = raw == null ? "" : raw.trim();
             if (line.isEmpty()) {
@@ -400,7 +407,7 @@ public final class SlayerDetector {
     // ---------------------------------------------------------------- plumbing
 
     private void clearQuest() {
-        active = false;
+        questActive = false;
         boss = null;
         tier = SlayerTier.UNKNOWN;
         tierSource = TierSource.NONE;

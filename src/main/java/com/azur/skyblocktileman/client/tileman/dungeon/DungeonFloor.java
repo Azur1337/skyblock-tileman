@@ -75,11 +75,16 @@ public enum DungeonFloor {
         };
     }
 
+    // tiers of the per-clear reward schedule, see getRewardForCompletion
+    public static final int FULL_REWARD_CLEARS = 10;
+    public static final int REWARD_DECAY_DIVISOR = 10;
+    public static final int REWARD_DECAY_CAP = 50;
+
     public int getRewardForCompletion(int currentCompletions) {
-        if (currentCompletions < 10) {
+        if (currentCompletions < FULL_REWARD_CLEARS) {
             return baseReward;
-        } else if (currentCompletions < 50) {
-            return Math.max(1, baseReward / 10);
+        } else if (currentCompletions < REWARD_DECAY_CAP) {
+            return Math.max(1, baseReward / REWARD_DECAY_DIVISOR);
         }
         return 0;
     }

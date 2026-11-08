@@ -31,6 +31,8 @@ public final class BlockValidation {
         Direction.WEST,
     };
 
+    private static final int MAX_STANDABLE_SCAN_DEPTH = 10;
+
     private BlockValidation() {}
 
     public static boolean isHorizontallyAdjacentToUnlocked(
@@ -54,12 +56,12 @@ public final class BlockValidation {
         }
 
         BlockPos current = clicked;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < MAX_STANDABLE_SCAN_DEPTH; i++) {
             BlockState state = level.getBlockState(current);
             if (isStandableBlock(state, level, current)) {
                 // climb to the top of the standable run so we never target a block
                 // buried under a stair or slab, which leaves that stair re-unlockable
-                for (int up = 0; up < 10; up++) {
+                for (int up = 0; up < MAX_STANDABLE_SCAN_DEPTH; up++) {
                     BlockPos above = current.above();
                     if (
                         isStandableBlock(

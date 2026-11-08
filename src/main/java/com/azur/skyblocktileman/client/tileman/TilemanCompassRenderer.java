@@ -146,28 +146,28 @@ public final class TilemanCompassRenderer {
         float y1 = y0 + 1;
         float z1 = z0 + 1;
 
-        float t = 0.02f;
+        float outlineThickness = 0.02f;
 
         // bottom face outline
         renderLineQuad(
             buffer,
             pose,
             x0,
-            y0 - t,
+            y0 - outlineThickness,
             z0,
             x1,
-            y0 + t,
-            z0 + t,
+            y0 + outlineThickness,
+            z0 + outlineThickness,
             OUTLINE_COLOR
         );
         renderLineQuad(
             buffer,
             pose,
             x0,
-            y0 - t,
-            z1 - t,
+            y0 - outlineThickness,
+            z1 - outlineThickness,
             x1,
-            y0 + t,
+            y0 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
@@ -175,21 +175,21 @@ public final class TilemanCompassRenderer {
             buffer,
             pose,
             x0,
-            y0 - t,
+            y0 - outlineThickness,
             z0,
-            x0 + t,
-            y0 + t,
+            x0 + outlineThickness,
+            y0 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
         renderLineQuad(
             buffer,
             pose,
-            x1 - t,
-            y0 - t,
+            x1 - outlineThickness,
+            y0 - outlineThickness,
             z0,
             x1,
-            y0 + t,
+            y0 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
@@ -199,21 +199,21 @@ public final class TilemanCompassRenderer {
             buffer,
             pose,
             x0,
-            y1 - t,
+            y1 - outlineThickness,
             z0,
             x1,
-            y1 + t,
-            z0 + t,
+            y1 + outlineThickness,
+            z0 + outlineThickness,
             OUTLINE_COLOR
         );
         renderLineQuad(
             buffer,
             pose,
             x0,
-            y1 - t,
-            z1 - t,
+            y1 - outlineThickness,
+            z1 - outlineThickness,
             x1,
-            y1 + t,
+            y1 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
@@ -221,21 +221,21 @@ public final class TilemanCompassRenderer {
             buffer,
             pose,
             x0,
-            y1 - t,
+            y1 - outlineThickness,
             z0,
-            x0 + t,
-            y1 + t,
+            x0 + outlineThickness,
+            y1 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
         renderLineQuad(
             buffer,
             pose,
-            x1 - t,
-            y1 - t,
+            x1 - outlineThickness,
+            y1 - outlineThickness,
             z0,
             x1,
-            y1 + t,
+            y1 + outlineThickness,
             z1,
             OUTLINE_COLOR
         );
@@ -247,20 +247,20 @@ public final class TilemanCompassRenderer {
             x0,
             y0,
             z0,
-            x0 + t,
+            x0 + outlineThickness,
             y1,
-            z0 + t,
+            z0 + outlineThickness,
             OUTLINE_COLOR
         );
         renderLineQuad(
             buffer,
             pose,
-            x1 - t,
+            x1 - outlineThickness,
             y0,
             z0,
             x1,
             y1,
-            z0 + t,
+            z0 + outlineThickness,
             OUTLINE_COLOR
         );
         renderLineQuad(
@@ -268,8 +268,8 @@ public final class TilemanCompassRenderer {
             pose,
             x0,
             y0,
-            z1 - t,
-            x0 + t,
+            z1 - outlineThickness,
+            x0 + outlineThickness,
             y1,
             z1,
             OUTLINE_COLOR
@@ -277,9 +277,9 @@ public final class TilemanCompassRenderer {
         renderLineQuad(
             buffer,
             pose,
-            x1 - t,
+            x1 - outlineThickness,
             y0,
-            z1 - t,
+            z1 - outlineThickness,
             x1,
             y1,
             z1,

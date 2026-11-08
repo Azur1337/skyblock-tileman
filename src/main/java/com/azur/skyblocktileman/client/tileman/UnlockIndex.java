@@ -221,9 +221,9 @@ final class UnlockIndex {
                 return;
             }
             BlockPos candidate = new BlockPos(x, y, z);
-            double d = center.distSqr(candidate);
-            if (d < distSq) {
-                distSq = d;
+            double candidateDist = center.distSqr(candidate);
+            if (candidateDist < distSq) {
+                distSq = candidateDist;
                 pos = candidate;
             }
         }

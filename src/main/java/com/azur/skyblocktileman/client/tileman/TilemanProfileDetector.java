@@ -41,6 +41,8 @@ public final class TilemanProfileDetector {
         "Profile ID: ([a-f0-9-]+)"
     );
 
+    private static final long PENDING_NAME_EXPIRY_MS = 60_000;
+
     private static String pendingProfileName = null;
     private static long pendingProfileNameAtMs = 0;
     private static String pendingApiProfileId = null;
@@ -113,7 +115,6 @@ public final class TilemanProfileDetector {
             profileId
         );
         state.setActiveProfile(profileId);
-        SkillXpParser.resetTracking();
         // a live slayer quest belongs to the previous profile, drop it
         SlayerFeature.reset();
         // profile changed after JOIN already ran its skip-check; re-sync baseline, unless the
@@ -139,7 +140,8 @@ public final class TilemanProfileDetector {
     static boolean isAwaitingProfileId() {
         return (
             pendingProfileName != null &&
-            System.currentTimeMillis() - pendingProfileNameAtMs < 60_000
+            System.currentTimeMillis() - pendingProfileNameAtMs <
+                PENDING_NAME_EXPIRY_MS
         );
     }
 

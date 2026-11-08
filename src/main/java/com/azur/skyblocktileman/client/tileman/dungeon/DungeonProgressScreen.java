@@ -86,18 +86,27 @@ public class DungeonProgressScreen extends TilemanChestScreen {
                 )
                 .blank()
                 .desc("Completions: " + data.getCompletions(floor));
-            int rewardClears = Math.min(data.getCompletions(floor), 10);
+            int completions = data.getCompletions(floor);
+            int rewardClears = Math.min(
+                completions,
+                DungeonFloor.FULL_REWARD_CLEARS
+            );
             int bonusClears = Math.min(
-                Math.max(0, data.getCompletions(floor) - 10),
-                40
+                Math.max(0, completions - DungeonFloor.FULL_REWARD_CLEARS),
+                DungeonFloor.REWARD_DECAY_CAP - DungeonFloor.FULL_REWARD_CLEARS
+            );
+            int decayedReward = Math.max(
+                1,
+                floor.getBaseReward() / DungeonFloor.REWARD_DECAY_DIVISOR
             );
             int earned =
                 rewardClears * floor.getBaseReward() +
-                bonusClears * Math.max(1, floor.getBaseReward() / 10);
+                bonusClears * decayedReward;
             item.value("Tokens earned: " + earned);
-            if (data.getCompletions(floor) < 50) {
+            if (completions < DungeonFloor.REWARD_DECAY_CAP) {
                 item.desc(
-                    "Rewarded clears left: " + (50 - data.getCompletions(floor))
+                    "Rewarded clears left: " +
+                        (DungeonFloor.REWARD_DECAY_CAP - completions)
                 );
             } else {
                 item.desc("Max rewards reached");
@@ -130,11 +139,11 @@ public class DungeonProgressScreen extends TilemanChestScreen {
             item.blank();
             item.desc("Clear rewards:");
             item.desc("First 10: " + floor.getBaseReward() + " tokens each");
-            item.desc(
-                "Clears 11-50: " +
-                    Math.max(1, floor.getBaseReward() / 10) +
-                    " tokens each"
+            int decayedReward = Math.max(
+                1,
+                floor.getBaseReward() / DungeonFloor.REWARD_DECAY_DIVISOR
             );
+            item.desc("Clears 11-50: " + decayedReward + " tokens each");
 
             onClick(slot, () -> {
                 playNav();

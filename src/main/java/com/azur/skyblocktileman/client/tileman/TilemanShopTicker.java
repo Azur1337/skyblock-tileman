@@ -7,6 +7,8 @@ import net.minecraft.client.Minecraft;
 
 public final class TilemanShopTicker {
 
+    private static final int TICKS_PER_SECOND = 20;
+
     private static int marathonTickCounter = 0;
 
     private TilemanShopTicker() {}
@@ -28,7 +30,7 @@ public final class TilemanShopTicker {
         TilemanState.getInstance().tickShop();
 
         // Marathon milestone needs time-based evaluation; once per second is plenty
-        if (++marathonTickCounter >= 20) {
+        if (++marathonTickCounter >= TICKS_PER_SECOND) {
             marathonTickCounter = 0;
             MilestoneTracker.getInstance().onTick();
         }

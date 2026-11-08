@@ -29,7 +29,7 @@ public class ProfileData {
     private DungeonData dungeons = new DungeonData();
     private SlayerData slayers = new SlayerData();
 
-    // legacy field - kept for migration but no longer used
+    // legacy field - kept only so old saves migrate their total into tokensEarned
     private int lifetimeTokensEarned = 0;
 
     public Boolean getTilemanMode() {
@@ -162,9 +162,5 @@ public class ProfileData {
             slayers = new SlayerData();
         }
         return slayers;
-    }
-
-    public int getLifetimeTokensEarned() {
-        return getTokensEarned();
     }
 }

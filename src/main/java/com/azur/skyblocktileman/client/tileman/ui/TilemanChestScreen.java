@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 public abstract class TilemanChestScreen extends ContainerScreen {
 
     protected static final int COLS = 9;
+    private static final int REFRESH_INTERVAL_TICKS = 10;
 
     private final SimpleContainer container;
     private final int rows;
@@ -98,15 +99,15 @@ public abstract class TilemanChestScreen extends ContainerScreen {
     }
 
     protected void addClose() {
-        int s = slot(footerRow(), 4);
-        setItem(s, Theme.close());
-        onClick(s, this::onClose);
+        int slotId = slot(footerRow(), 4);
+        setItem(slotId, Theme.close());
+        onClick(slotId, this::onClose);
     }
 
     protected void addBack(Runnable action) {
-        int s = slot(footerRow(), 3);
-        setItem(s, Theme.back());
-        onClick(s, () -> {
+        int slotId = slot(footerRow(), 3);
+        setItem(slotId, Theme.back());
+        onClick(slotId, () -> {
             playNav();
             action.run();
         });
@@ -138,13 +139,13 @@ public abstract class TilemanChestScreen extends ContainerScreen {
 
     @Override
     protected void containerTick() {
-        if (++ticksSinceRefresh >= 10) {
+        if (++ticksSinceRefresh >= REFRESH_INTERVAL_TICKS) {
             ticksSinceRefresh = 0;
             refresh();
         }
     }
 
-    // Every 10 ticks while the screen is open.
+    // Every REFRESH_INTERVAL_TICKS while the screen is open.
     protected void refresh() {}
 
     @Override

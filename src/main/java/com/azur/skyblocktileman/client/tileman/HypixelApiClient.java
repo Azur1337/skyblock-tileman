@@ -74,6 +74,12 @@ public final class HypixelApiClient {
     private static final long CLIENT_MIN_INTERVAL_MS = 30_000;
     private static long lastRequestStartedMs = 0;
 
+    // fallback backoff when the API omits or mangles the ratelimit-reset header
+    private static final long DEFAULT_BACKOFF_SECONDS = 60;
+
+    // dungeon floors 1-7, shared by normal and master completion maps
+    private static final int MAX_NORMAL_FLOOR = 7;
+
     private HypixelApiClient() {}
 
     // Cached entry point: serves the payload if younger than maxAgeMs, else joins or starts a fetch.
@@ -122,10 +128,6 @@ public final class HypixelApiClient {
         });
         inFlight = request;
         return request;
-    }
-
-    public static synchronized ProfilesResult peekProfiles() {
-        return cachedResult;
     }
 
     // Used on a real profile switch so the next fetch always goes to the network.
@@ -226,7 +228,7 @@ public final class HypixelApiClient {
             .headers()
             .firstValue("ratelimit-reset")
             .map(HypixelApiClient::parseLongOr)
-            .orElse(60L);
+            .orElse(DEFAULT_BACKOFF_SECONDS);
         backoffUntilMs = System.currentTimeMillis() + (resetSeconds + 5) * 1000;
         LOGGER.warn(
             "Hypixel API rate limit hit, backing off for {} seconds",
@@ -238,7 +240,7 @@ public final class HypixelApiClient {
         try {
             return Long.parseLong(value.trim());
         } catch (NumberFormatException e) {
-            return 60L;
+            return DEFAULT_BACKOFF_SECONDS;
         }
     }
 
@@ -431,7 +433,7 @@ public final class HypixelApiClient {
         if (type == null || !type.has("tier_completions")) return;
 
         JsonObject tierCompletions = type.getAsJsonObject("tier_completions");
-        for (int floor = 1; floor <= 7; floor++) {
+        for (int floor = 1; floor <= MAX_NORMAL_FLOOR; floor++) {
             String key = String.valueOf(floor);
             if (tierCompletions.has(key)) {
                 out.put(

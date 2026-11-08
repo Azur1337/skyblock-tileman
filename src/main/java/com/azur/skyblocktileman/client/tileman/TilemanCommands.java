@@ -29,10 +29,10 @@ public final class TilemanCommands {
             (dispatcher, registryAccess) ->
                 dispatcher.register(
                     ClientCommands.literal("tileman")
-                        .executes(context -> openHub(context.getSource()))
+                        .executes(context -> openHub())
                         .then(
                             ClientCommands.literal("config").executes(context ->
-                                openConfig(context.getSource())
+                                openConfig()
                             )
                         )
                         .then(
@@ -118,18 +118,17 @@ public final class TilemanCommands {
                         )
                         .then(
                             ClientCommands.literal("shop").executes(context ->
-                                openShop(context.getSource())
+                                openShop()
                             )
                         )
                         .then(
                             ClientCommands.literal("milestones").executes(
-                                context -> openMilestones(context.getSource())
+                                context -> openMilestones()
                             )
                         )
                         .then(
                             ClientCommands.literal("dungeons").executes(
-                                context ->
-                                    showDungeonProgress(context.getSource())
+                                context -> showDungeonProgress()
                             )
                         )
                         .then(
@@ -310,11 +309,11 @@ public final class TilemanCommands {
 
     private static int setOptIn(
         FabricClientCommandSource source,
-        boolean mode
+        boolean optIn
     ) {
         TilemanState state = TilemanState.getInstance();
         if (
-            mode &&
+            optIn &&
             !state.hasProgress() &&
             !TilemanLoginHandler.isCurrentProfileNew()
         ) {
@@ -325,11 +324,11 @@ public final class TilemanCommands {
             );
             return 0;
         }
-        state.setTilemanMode(mode);
+        state.setTilemanMode(optIn);
         source.sendFeedback(
             Component.literal(
                 "[Tileman] Tileman mode for this profile: " +
-                    (mode ? "ON" : "OFF")
+                    (optIn ? "ON" : "OFF")
             ).withStyle(ChatFormatting.GOLD)
         );
         return 1;
@@ -348,12 +347,12 @@ public final class TilemanCommands {
         return 1;
     }
 
-    private static int openHub(FabricClientCommandSource source) {
+    private static int openHub() {
         TilemanHubScreen.open();
         return 1;
     }
 
-    private static int openConfig(FabricClientCommandSource source) {
+    private static int openConfig() {
         Minecraft.getInstance().schedule(() ->
             TilemanConfig.getInstance().openConfigScreen()
         );
@@ -397,17 +396,17 @@ public final class TilemanCommands {
         return 1;
     }
 
-    private static int openShop(FabricClientCommandSource source) {
+    private static int openShop() {
         TilemanShopScreen.open();
         return 1;
     }
 
-    private static int openMilestones(FabricClientCommandSource source) {
+    private static int openMilestones() {
         MilestoneScreen.open();
         return 1;
     }
 
-    private static int showDungeonProgress(FabricClientCommandSource source) {
+    private static int showDungeonProgress() {
         DungeonProgressScreen.open();
         return 1;
     }

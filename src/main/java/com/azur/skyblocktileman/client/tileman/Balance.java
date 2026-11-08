@@ -27,6 +27,9 @@ public final class Balance {
     // every key read during the session, with its effective value, for dump()
     private static final Map<String, Long> seen = new LinkedHashMap<>();
 
+    // how deep dump() samples per-level price keys for perks without a max-level constant
+    private static final int PRICE_TEMPLATE_LEVELS = 10;
+
     private Balance() {}
 
     public static int getInt(String key, int def, int min) {
@@ -136,7 +139,7 @@ public final class Balance {
         for (int level = 0; level < ShopData.EFFICIENT_SCALING_MAX; level++) {
             ShopData.getEfficientScalingPrice(level);
         }
-        for (int level = 0; level < 10; level++) {
+        for (int level = 0; level < PRICE_TEMPLATE_LEVELS; level++) {
             ShopData.getSkillAffinityPrice(level);
             ShopData.getFrenzyDurationPrice(level);
             ShopData.getFrenzyPowerPrice(level);

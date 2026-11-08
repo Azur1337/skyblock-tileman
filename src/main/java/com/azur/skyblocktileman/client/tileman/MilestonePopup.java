@@ -16,6 +16,10 @@ public final class MilestonePopup {
     private static final int IN_MS = 340;
     private static final int OUT_MS = 640;
     private static final int MAX_QUEUE = 6;
+    private static final int MIN_VISIBLE_ALPHA = 4;
+    private static final int MIN_SPARKLE_ALPHA = 12;
+    // ease-in fraction at which the text starts fading up
+    private static final float TEXT_REVEAL_AT = 0.55f;
 
     private static final int CARD_H = 46;
     private static final int TOP_MARGIN = 14;
@@ -88,14 +92,18 @@ public final class MilestonePopup {
     ) {
         Minecraft client = Minecraft.getInstance();
         int total = TilemanConfig.getInstance().getPopupDurationMs();
-        int t = (int) (now - entry.startMs);
+        int elapsedMs = (int) (now - entry.startMs);
 
-        float inP = Mth.clamp(t / (float) IN_MS, 0f, 1f);
+        float inP = Mth.clamp(elapsedMs / (float) IN_MS, 0f, 1f);
         float easeIn = 1f - (1f - inP) * (1f - inP) * (1f - inP);
-        float outP = Mth.clamp((t - (total - OUT_MS)) / (float) OUT_MS, 0f, 1f);
+        float outP = Mth.clamp(
+            (elapsedMs - (total - OUT_MS)) / (float) OUT_MS,
+            0f,
+            1f
+        );
         float life = easeIn * (1f - outP);
         int alpha = (int) (255 * life);
-        if (alpha <= 4) {
+        if (alpha <= MIN_VISIBLE_ALPHA) {
             return;
         }
 
@@ -110,7 +118,7 @@ public final class MilestonePopup {
             ) + 28;
 
         int w = (int) (fullW * (0.35f + 0.65f * easeIn));
-        int bob = (int) (Math.sin(t / 260f) * 1.2f);
+        int bob = (int) (Math.sin(elapsedMs / 260f) * 1.2f);
         int x = centerX - w / 2;
         int y = TOP_MARGIN + bob - (int) ((1f - easeIn) * 18f);
 
@@ -137,12 +145,12 @@ public final class MilestonePopup {
             withAlpha(ACCENT, alpha)
         );
 
-        drawShine(graphics, entry, x, y, w, t, life);
-        drawSparkles(graphics, x, y, w, t, alpha);
+        drawShine(graphics, entry, x, y, w, elapsedMs, life);
+        drawSparkles(graphics, x, y, w, elapsedMs, alpha);
 
-        if (easeIn > 0.55f) {
+        if (easeIn > TEXT_REVEAL_AT) {
             int textAlpha = (int) (255 *
-                Mth.clamp((easeIn - 0.55f) / 0.45f, 0f, 1f) *
+                Mth.clamp((easeIn - TEXT_REVEAL_AT) / 0.45f, 0f, 1f) *
                 (1f - outP));
             int cy = y + 7;
             drawCentered(
@@ -178,15 +186,15 @@ public final class MilestonePopup {
         int x,
         int y,
         int w,
-        int t,
+        int elapsedMs,
         float life
     ) {
         int span =
             TilemanConfig.getInstance().getPopupDurationMs() - IN_MS - OUT_MS;
-        if (t <= IN_MS || span <= 0) {
+        if (elapsedMs <= IN_MS || span <= 0) {
             return;
         }
-        float sweep = (t - IN_MS) / (float) span;
+        float sweep = (elapsedMs - IN_MS) / (float) span;
         int shineW = 16;
         int sx = x + (int) (sweep * (w + shineW * 2)) - shineW;
         int x0 = Math.max(x, sx);
@@ -207,14 +215,15 @@ public final class MilestonePopup {
         int x,
         int y,
         int w,
-        int t,
+        int elapsedMs,
         int alpha
     ) {
         int cols = 7;
         for (int i = 0; i < cols; i++) {
-            float tw = (float) (0.5 + 0.5 * Math.sin(t / 220f + i * 1.7f));
+            float tw = (float) (0.5 +
+                0.5 * Math.sin(elapsedMs / 220f + i * 1.7f));
             int sa = (int) (alpha * tw);
-            if (sa < 12) {
+            if (sa < MIN_SPARKLE_ALPHA) {
                 continue;
             }
             int sx = x + 2 + (int) ((w - 5) * (i / (float) (cols - 1)));

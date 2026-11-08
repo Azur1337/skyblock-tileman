@@ -49,6 +49,11 @@ Grab `skyblocktileman-<version>-shadow.jar` from [Releases](../../releases) and 
 | `/tileman optin [on \| off]`                | Tileman mode for the current profile |
 | `/tileman overlay [on \| off]`              | Unlocked tile highlight              |
 | `/tileman debug [on \| off]`                | Mirror debug logs into chat          |
+| `/tileman balance status`                   | Show active balance overrides        |
+| `/tileman balance reload`                   | Re-read `balance.json`               |
+| `/tileman balance dump`                     | Write all balance keys to the file   |
+| `/tileman backups`                          | List save backups                    |
+| `/tileman restore <n or name>`              | Roll progress back to a backup       |
 
 ## Keybinds
 
@@ -61,6 +66,12 @@ Rebindable in vanilla Controls or the config screen; the two stay in sync.
 ## Settings
 
 `/tileman config`. Worth knowing: turning off tile rule enforcement also disables the Flawless milestone family, since nothing is being tracked.
+
+## Rebalancing without a rebuild
+
+`config/tileman/balance.json` overrides the economy numbers. Run `/tileman balance dump` to get a file with every key and its current value, edit what you want, and `/tileman balance reload` applies it live. Keys cover token band costs (`token.band.0`..`5`), dungeon floor costs and clear rewards (`dungeon.F7.unlock_cost`, `dungeon.M1.clear_reward`), milestone payouts (`milestone.COMBAT_LEVEL.reward.3`), every shop price (`shop.lucky_unlock.price.2`), Lucky XP gates and the large-gain XP guard. Bad or missing keys fall back to defaults, and costs have hard minimums so a typo can't mint infinite tokens.
+
+Progress is backed up automatically: once per game load and every 10 minutes, newest 24 under `config/tileman/backups/`. `/tileman restore 3` rolls back to the third newest. Economy events (tokens minted, spent, rule breaks) are appended to `config/tileman/balance_log.csv` for reviewing a session's real numbers.
 
 ## Building from source
 

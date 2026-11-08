@@ -109,5 +109,10 @@ public class GeneralCategory {
         )
         @ConfigEditorBoolean
         public boolean dungeon = true;
+
+        @Expose
+        @ConfigOption(name = "Save", desc = "Log save backups and restores.")
+        @ConfigEditorBoolean
+        public boolean save = false;
     }
 }

@@ -54,7 +54,7 @@ public class DungeonTracker {
             return false;
         }
 
-        TilemanState.getInstance().spendTokens(cost);
+        TilemanState.getInstance().spendTokens(cost, "dungeon_unlock");
         data.unlock(floor);
         TilemanState.getInstance().save();
 

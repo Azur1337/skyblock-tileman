@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.shop;
 
+import com.azur.skyblocktileman.client.tileman.Balance;
 import com.azur.skyblocktileman.client.tileman.TilemanState;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneData;
 import com.azur.skyblocktileman.client.tileman.milestone.MilestoneType;
@@ -20,6 +21,17 @@ public class ShopRequirements {
         45_000_000L,
         80_000_000L,
     };
+
+    public static long luckyXpGate(int level) {
+        if (level < 1 || level > LUCKY_XP_GATES.length) {
+            return Long.MAX_VALUE;
+        }
+        return Balance.getLong(
+            "shop.lucky_unlock.gate." + level,
+            LUCKY_XP_GATES[level - 1],
+            0
+        );
+    }
 
     static {
         // lucky_unlock is gated by raw total XP earned (see getRequirementText)
@@ -104,9 +116,8 @@ public class ShopRequirements {
 
     public static String getRequirementText(String itemKey, int targetLevel) {
         if (itemKey.equals("lucky_unlock")) {
-            int idx = targetLevel - 1;
-            if (idx >= 0 && idx < LUCKY_XP_GATES.length) {
-                long required = LUCKY_XP_GATES[idx];
+            if (targetLevel >= 1 && targetLevel <= LUCKY_XP_GATES.length) {
+                long required = luckyXpGate(targetLevel);
                 long have = TilemanState.getInstance().getTotalSkillXp();
                 if (have < required) {
                     return (

@@ -1,5 +1,7 @@
 package com.azur.skyblocktileman.client.tileman.dungeon;
 
+import com.azur.skyblocktileman.client.tileman.Balance;
+
 /**
  * Dungeon floors with their unlock cost and per-clear base reward.
  * Normal floors cost the floor number x 100 tokens, master mode x 1000.
@@ -50,11 +52,11 @@ public enum DungeonFloor {
     }
 
     public int getUnlockCost() {
-        return unlockCost;
+        return Balance.getInt("dungeon." + id + ".unlock_cost", unlockCost, 0);
     }
 
     public int getBaseReward() {
-        return baseReward;
+        return Balance.getInt("dungeon." + id + ".clear_reward", baseReward, 0);
     }
 
     public boolean isMasterMode() {

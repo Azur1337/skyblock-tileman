@@ -36,9 +36,17 @@ public final class TilemanState {
         .resolve("tileman");
     private static final Path SAVE_FILE = SAVE_DIR.resolve("tileman_data.json");
 
+    public static Path getSaveDir() {
+        return SAVE_DIR;
+    }
+
+    public static Path getSaveFile() {
+        return SAVE_FILE;
+    }
+
     private static TilemanState instance;
 
-    // token cost per skill-level band (level / 10), sqrt-scaled
+    // token cost per skill-level band (level / 10), sqrt-scaled; balance.json can override
     private static final int[] TOKEN_BAND_COSTS = {
         100, // levels 0-10
         800, // levels 10-20
@@ -128,6 +136,14 @@ public final class TilemanState {
 
     private final UnlockIndex unlockIndex = new UnlockIndex();
 
+    public static int bandCount() {
+        return TOKEN_BAND_COSTS.length;
+    }
+
+    public static int tokenBandCost(int band) {
+        return Balance.getInt("token.band." + band, TOKEN_BAND_COSTS[band], 50);
+    }
+
     // bumped when unlocked tiles or the active island change, so cached views can detect staleness
     private int unlockGeneration = 0;
 
@@ -152,6 +168,7 @@ public final class TilemanState {
                 );
                 data = loaded != null ? loaded : new TilemanSaveData();
                 LOGGER.info("Loaded Tileman data from {}", SAVE_FILE);
+                SaveBackups.onLoaded();
             } else {
                 data = new TilemanSaveData();
                 save();
@@ -171,6 +188,32 @@ public final class TilemanState {
         migrateOptIn();
         migrateAwardedXp();
         rebuildUnlockIndex();
+    }
+
+    // swap live state for a backup copy; the save being replaced is backed up first
+    public String restoreFrom(Path backup) {
+        try {
+            String json = Files.readString(backup);
+            TilemanSaveData restored = GSON.fromJson(
+                json,
+                TilemanSaveData.class
+            );
+            if (restored == null) {
+                return "Backup is empty or unreadable.";
+            }
+            SaveBackups.copyNow();
+            data = restored;
+            activeProfileId = data.getLastActiveProfileId();
+            activeIsland = data.getLastActiveIsland();
+            migrateOptIn();
+            migrateAwardedXp();
+            rebuildUnlockIndex();
+            save();
+            LOGGER.info("Restored Tileman data from {}", backup);
+            return null;
+        } catch (IOException | JsonSyntaxException e) {
+            return "Restore failed: " + e;
+        }
     }
 
     // awardedXp only exists since off-tile tracking; legacy totals were all awarded
@@ -246,6 +289,7 @@ public final class TilemanState {
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(tmp, SAVE_FILE, StandardCopyOption.REPLACE_EXISTING);
             }
+            SaveBackups.maybeOnSave();
         } catch (IOException e) {
             LOGGER.error("Failed to save Tileman data.", e);
         }
@@ -403,6 +447,7 @@ public final class TilemanState {
         profile.setTokenPool(skill, pool);
 
         if (tokensEarned > 0) {
+            BalanceLog.log("token_mint", skill, tokensEarned, getTokens());
             for (int i = 0; i < tokensEarned; i++) {
                 MilestoneTracker.getInstance().onTokenEarned();
             }
@@ -466,16 +511,13 @@ public final class TilemanState {
             return false;
         }
         activeProfile().addTokensSpent(1);
+        BalanceLog.log("token_spend", "unlock", 1, getTokens());
         save();
         return true;
     }
 
     public int getSkillTokenCost(String skill) {
-        int band = Math.min(
-            getSkillLevel(skill) / 10,
-            TOKEN_BAND_COSTS.length - 1
-        );
-        int cost = TOKEN_BAND_COSTS[band];
+        int cost = getSkillTokenCostInternal(skill);
 
         int bonus = activeProfile().getShop().getEfficientScalingBonus();
         if (bonus > 0) {
@@ -483,6 +525,14 @@ public final class TilemanState {
         }
 
         return cost;
+    }
+
+    private int getSkillTokenCostInternal(String skill) {
+        int band = Math.min(
+            getSkillLevel(skill) / 10,
+            TOKEN_BAND_COSTS.length - 1
+        );
+        return tokenBandCost(band);
     }
 
     public String getClosestTokenSkill() {
@@ -526,6 +576,12 @@ public final class TilemanState {
 
     public void addRuleBreak() {
         activeProfile().addRuleBreak();
+        BalanceLog.log(
+            "rule_break",
+            "",
+            activeProfile().getRuleBreaks(),
+            getTokens()
+        );
         save();
     }
 
@@ -662,6 +718,9 @@ public final class TilemanState {
 
     public void addTokens(int amount) {
         activeProfile().addTokensEarned(amount);
+        if (amount != 0) {
+            BalanceLog.log("token_grant", "reward", amount, getTokens());
+        }
         for (int i = 0; i < amount; i++) {
             MilestoneTracker.getInstance().onTokenEarned();
         }
@@ -673,6 +732,10 @@ public final class TilemanState {
     }
 
     public boolean spendTokens(int amount) {
+        return spendTokens(amount, "shop");
+    }
+
+    public boolean spendTokens(int amount, String reason) {
         if (amount <= 0) {
             return false;
         }
@@ -680,6 +743,7 @@ public final class TilemanState {
             return false;
         }
         activeProfile().addTokensSpent(amount);
+        BalanceLog.log("token_spend", reason, amount, getTokens());
         MilestoneTracker.getInstance().onShopPurchase(amount);
         save();
         return true;

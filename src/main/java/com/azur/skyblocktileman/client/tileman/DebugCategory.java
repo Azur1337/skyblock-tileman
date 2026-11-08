@@ -9,6 +9,7 @@ public enum DebugCategory {
     PUNISHMENT("Punishment", "Rule breaks, health bar and transfer grace"),
     SLAYER("Slayer", "Slayer quest detection and tracking"),
     DUNGEON("Dungeon", "Dungeon floor detection and blocking"),
+    SAVE("Save", "Save loading, backups and restores"),
     ALL("All", "All debug messages");
 
     private final String displayName;

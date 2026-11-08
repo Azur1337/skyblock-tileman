@@ -255,7 +255,15 @@ public final class SkillXpParser {
     }
 
     // max reasonable xp gain per actionbar update when we have existing baseline
-    private static final long MAX_REASONABLE_XP_GAIN = 100_000;
+    private static final long DEFAULT_MAX_REASONABLE_XP_GAIN = 100_000;
+
+    public static long maxReasonableXpGain() {
+        return Balance.getLong(
+            "xp.max_reasonable_gain",
+            DEFAULT_MAX_REASONABLE_XP_GAIN,
+            1000
+        );
+    }
 
     private static long skillXpCap(String skill) {
         int maxLevel = SKILL_MAX_LEVELS.getOrDefault(skill, 60);
@@ -277,7 +285,7 @@ public final class SkillXpParser {
 
     // credits only the visible drop when no absolute baseline is available
     private static void processDirectXpGain(String skill, long xpGained) {
-        if (xpGained <= 0 || xpGained > MAX_REASONABLE_XP_GAIN) {
+        if (xpGained <= 0 || xpGained > maxReasonableXpGain()) {
             TilemanLog.debug(
                 DebugCategory.TOKENS,
                 "Skipping direct XP gain for {} (amount: {})",
@@ -359,7 +367,7 @@ public final class SkillXpParser {
             return;
         }
 
-        if (xpGained > MAX_REASONABLE_XP_GAIN) {
+        if (xpGained > maxReasonableXpGain()) {
             TilemanLog.debug(
                 DebugCategory.TOKENS,
                 "Unusually large XP gain for {} ({} -> {}, +{}), skipping token award",

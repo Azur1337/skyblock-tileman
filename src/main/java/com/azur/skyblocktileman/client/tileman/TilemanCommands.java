@@ -8,6 +8,10 @@ import com.azur.skyblocktileman.client.tileman.milestone.MilestoneScreen;
 import com.azur.skyblocktileman.client.tileman.shop.TilemanShopScreen;
 import com.azur.skyblocktileman.client.tileman.ui.TilemanHubScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -144,12 +148,164 @@ public final class TilemanCommands {
                                 )
                             )
                         )
+                        .then(
+                            ClientCommands.literal("balance")
+                                .then(
+                                    ClientCommands.literal("reload").executes(
+                                        context ->
+                                            balanceReload(context.getSource())
+                                    )
+                                )
+                                .then(
+                                    ClientCommands.literal("dump").executes(
+                                        context ->
+                                            balanceDump(context.getSource())
+                                    )
+                                )
+                                .then(
+                                    ClientCommands.literal("status").executes(
+                                        context ->
+                                            balanceStatus(context.getSource())
+                                    )
+                                )
+                        )
+                        .then(
+                            ClientCommands.literal("backups").executes(
+                                context -> listBackups(context.getSource())
+                            )
+                        )
+                        .then(
+                            ClientCommands.literal("restore").then(
+                                ClientCommands.argument(
+                                    "backup",
+                                    StringArgumentType.word()
+                                ).executes(context ->
+                                    restoreBackup(
+                                        context.getSource(),
+                                        StringArgumentType.getString(
+                                            context,
+                                            "backup"
+                                        )
+                                    )
+                                )
+                            )
+                        )
                 )
         );
     }
 
     private static int toggleEnabled(FabricClientCommandSource source) {
         return setEnabled(source, !TilemanConfig.getInstance().isEnabled());
+    }
+
+    private static int balanceReload(FabricClientCommandSource source) {
+        source.sendFeedback(
+            Component.literal("[Tileman] " + Balance.reload()).withStyle(
+                ChatFormatting.GOLD
+            )
+        );
+        return 1;
+    }
+
+    private static int balanceDump(FabricClientCommandSource source) {
+        source.sendFeedback(
+            Component.literal("[Tileman] " + Balance.dump()).withStyle(
+                ChatFormatting.GOLD
+            )
+        );
+        return 1;
+    }
+
+    private static int balanceStatus(FabricClientCommandSource source) {
+        StringBuilder bands = new StringBuilder();
+        for (int i = 0; i < TilemanState.bandCount(); i++) {
+            if (i > 0) {
+                bands.append("/");
+            }
+            bands.append(TilemanState.tokenBandCost(i));
+        }
+        String error = Balance.lastError();
+        source.sendFeedback(
+            Component.literal(
+                "[Tileman] Balance: " +
+                    Balance.overrideCount() +
+                    " overrides active. Bands: " +
+                    bands +
+                    ". XP guard: " +
+                    SkillXpParser.maxReasonableXpGain() +
+                    (error != null ? ". Last reload error: " + error : "")
+            ).withStyle(ChatFormatting.GOLD)
+        );
+        return 1;
+    }
+
+    private static int listBackups(FabricClientCommandSource source) {
+        List<Path> files = SaveBackups.list();
+        if (files.isEmpty()) {
+            source.sendFeedback(
+                Component.literal(
+                    "[Tileman] No save backups yet. One is taken on every load and every 10 minutes."
+                ).withStyle(ChatFormatting.GRAY)
+            );
+            return 0;
+        }
+        source.sendFeedback(
+            Component.literal(
+                "[Tileman] Save backups (newest first): " + files.size()
+            ).withStyle(ChatFormatting.GOLD)
+        );
+        for (int i = files.size() - 1; i >= 0; i--) {
+            Path file = files.get(i);
+            String size = "";
+            try {
+                size = " (" + Files.size(file) / 1024 + " KB)";
+            } catch (IOException ignored) {}
+            source.sendFeedback(
+                Component.literal(
+                    "  #" +
+                        (files.size() - i) +
+                        "  " +
+                        file.getFileName() +
+                        size
+                ).withStyle(ChatFormatting.GRAY)
+            );
+        }
+        source.sendFeedback(
+            Component.literal(
+                "[Tileman] Restore with /tileman restore <number or name>."
+            ).withStyle(ChatFormatting.GRAY)
+        );
+        return 1;
+    }
+
+    private static int restoreBackup(
+        FabricClientCommandSource source,
+        String backup
+    ) {
+        Path file = SaveBackups.find(backup);
+        if (file == null) {
+            source.sendError(
+                Component.literal(
+                    "[Tileman] No backup matches \"" +
+                        backup +
+                        "\". See /tileman backups."
+                )
+            );
+            return 0;
+        }
+        String error = TilemanState.getInstance().restoreFrom(file);
+        if (error != null) {
+            source.sendError(Component.literal("[Tileman] " + error));
+            return 0;
+        }
+        source.sendFeedback(
+            Component.literal(
+                "[Tileman] Restored " +
+                    file.getFileName() +
+                    ". The replaced save was backed up first."
+            ).withStyle(ChatFormatting.GOLD)
+        );
+        return 1;
     }
 
     private static int setOptIn(

@@ -151,30 +151,50 @@ public class ShopData {
 
     // price climbs steeply so the top Lucky tiers stay a meaningful spend
     public static int getLuckyUnlockPrice(int currentLevel) {
-        return 15 + currentLevel * currentLevel * 10;
+        return Balance.getInt(
+            "shop.lucky_unlock.price." + currentLevel,
+            15 + currentLevel * currentLevel * 10,
+            1
+        );
     }
 
     public static int getEfficientScalingPrice(int currentLevel) {
-        return 20 + currentLevel * 10;
+        return Balance.getInt(
+            "shop.efficient_scaling.price." + currentLevel,
+            20 + currentLevel * 10,
+            1
+        );
     }
 
     public static int getSkillAffinityPrice(int currentLevel) {
-        return 8 + currentLevel * 3;
+        return Balance.getInt(
+            "shop.skill_affinity.price." + currentLevel,
+            8 + currentLevel * 3,
+            1
+        );
     }
 
     public static int getFrenzyDurationPrice(int currentLevel) {
-        return 20 + currentLevel * 15;
+        return Balance.getInt(
+            "shop.frenzy_duration.price." + currentLevel,
+            20 + currentLevel * 15,
+            1
+        );
     }
 
     public static int getFrenzyPowerPrice(int currentLevel) {
-        return 25 + currentLevel * 20;
+        return Balance.getInt(
+            "shop.frenzy_power.price." + currentLevel,
+            25 + currentLevel * 20,
+            1
+        );
     }
 
     public static int getRemoteUnlockPrice() {
-        return 5;
+        return Balance.getInt("shop.remote_unlock.price", 5, 1);
     }
 
     public static int getXpFrenzyPrice() {
-        return 15;
+        return Balance.getInt("shop.xp_frenzy.price", 15, 1);
     }
 }

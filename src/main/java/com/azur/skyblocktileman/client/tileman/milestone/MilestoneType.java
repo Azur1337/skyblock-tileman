@@ -1,5 +1,6 @@
 package com.azur.skyblocktileman.client.tileman.milestone;
 
+import com.azur.skyblocktileman.client.tileman.Balance;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
@@ -369,7 +370,11 @@ public enum MilestoneType {
 
     public int getRewardForTier(int tier) {
         if (tier < 1 || tier > tierRewards.length) return 0;
-        return tierRewards[tier - 1];
+        return Balance.getInt(
+            "milestone." + name() + ".reward." + tier,
+            tierRewards[tier - 1],
+            0
+        );
     }
 
     public String getDescription() {

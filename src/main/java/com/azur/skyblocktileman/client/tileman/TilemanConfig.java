@@ -84,6 +84,7 @@ public final class TilemanConfig {
             case PUNISHMENT -> debug.punishment;
             case SLAYER -> debug.slayer;
             case DUNGEON -> debug.dungeon;
+            case SAVE -> debug.save;
             case ALL -> true;
         };
     }
